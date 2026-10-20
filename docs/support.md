@@ -9,3 +9,13 @@ Authored opinions are compared separately from composed effective values. A prop
 AABB is only a broad-phase candidate. No confirmed collision verdict in V1. Missing Clash extension or unsupported geometry is unknown. Optional policy checks begin with rigid translation/relative rotation only, with units stated explicitly.
 
 Input files are hashed before/after comparison and all used source layer dirty flags are checked. A changed input invalidates the comparison. Separate revision paths avoid the global layer registry treating two revisions as one file. Mutable remote dependencies cannot form a trusted baseline.
+
+## Precision and snapshot limits
+
+Floating values use an absolute tolerance of 1e-8; integer/boolean values and authored opinions are exact. Relative tolerance is not used for large scene coordinates. Effective attribute type changes and authored layer metadata are reported separately. `equal` describes the supported composed scope at the selected sample; it is not binary equality or a guarantee about unselected variants.
+
+Source files are checked again after all copies. This detects ordinary mutations but is not an atomic filesystem transaction or protection against a malicious concurrent writer changing and restoring bytes. Freeze upstream files while snapshotting; otherwise supply an independently immutable filesystem revision. Snapshots are integrity-checked, not cryptographically signed provenance. Editing files and rewriting the manifest creates a new, untrusted revision identity.
+
+A bundle has to preserve relative directory structure inside the entry directory. External sibling dependencies require preparing a common local root upstream; this tool will not rewrite the original source. Inherits/specializes/relocates, remote/package paths, asset-valued properties and custom resolvers are rejected conservatively. Missing Clash support remains an explicit unknown; no AABB or narrow-phase adapter is implemented yet.
+
+The engine currently requires `Ar.GetUnderlyingResolver()` to expose DefaultResolver. A Kit app using a custom resolver will receive unknown even for a local bundle until that resolver is separately qualified; the GUI baseline has not established this behavior yet.

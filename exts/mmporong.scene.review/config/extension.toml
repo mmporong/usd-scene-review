@@ -1,0 +1,19 @@
+[package]
+version = "0.1.0"
+title = "USD Scene Review"
+description = "Read-only local USD revision review. GUI validation pending."
+category = "USD"
+readme = "docs/README.md"
+
+[dependencies]
+"omni.ui" = {}
+"omni.usd" = {}
+"omni.kit.viewport.window" = {}
+"omni.kit.viewport.utility" = {}
+
+[[python.module]]
+path = "../../src"
+name = "usd_scene_review"
+
+[[python.module]]
+name = "mmporong.scene.review"

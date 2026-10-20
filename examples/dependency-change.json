@@ -1,0 +1,283 @@
+{
+  "changes": [
+    {
+      "authored": {
+        "xformOp:translate": {
+          "after": [
+            {
+              "fields": {
+                "custom": false,
+                "default": [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                "typeName": "double3",
+                "variability": "Sdf.VariabilityVarying"
+              },
+              "layer": "parts.usda",
+              "path": "/World.xformOp:translate"
+            }
+          ],
+          "before": [
+            {
+              "fields": {
+                "custom": false,
+                "default": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "typeName": "double3",
+                "variability": "Sdf.VariabilityVarying"
+              },
+              "layer": "parts.usda",
+              "path": "/World.xformOp:translate"
+            }
+          ]
+        }
+      },
+      "fields": {
+        "local": {
+          "after": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "before": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "world": {
+          "after": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "before": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        }
+      },
+      "kind": "modified",
+      "local_delta": {
+        "rotation_degrees": 0.0,
+        "status": "known",
+        "translation_stage_units": 1.0
+      },
+      "path": "/World",
+      "provenance": "local",
+      "world_delta": {
+        "rotation_degrees": 0.0,
+        "status": "known",
+        "translation_stage_units": 1.0
+      }
+    },
+    {
+      "authored": {},
+      "fields": {
+        "world": {
+          "after": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              2.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "before": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.0,
+              0.0,
+              1.0
+            ]
+          ]
+        }
+      },
+      "kind": "modified",
+      "parent_cause": "/World",
+      "path": "/World/Part",
+      "provenance": "parent-propagated",
+      "world_delta": {
+        "rotation_degrees": 0.0,
+        "status": "known",
+        "translation_stage_units": 1.0
+      }
+    }
+  ],
+  "clash": {
+    "reason": "Clash adapter not available in V1",
+    "status": "unknown"
+  },
+  "config": {
+    "load": "all",
+    "time": "default",
+    "variants": {}
+  },
+  "layer_changes": [],
+  "parent_groups": [
+    {
+      "affected": [
+        "/World/Part"
+      ],
+      "parent": "/World"
+    }
+  ],
+  "policy": [],
+  "reasons": [],
+  "revision_files": {
+    "A": {
+      "parts.usda": "924c4af683e0c3aaf0201c8fd2683c3105cf44892ad2d28d4ec31a8236f4c75d",
+      "scene.usda": "d6704736d64c667cd6f6513afc9ea98c079f0bcaee71491cf03d1b7d034e8756"
+    },
+    "B": {
+      "parts.usda": "fbdbc3ea61faa51a1d2a847ba89454282af2e1996a2e67255d804050e55090b4",
+      "scene.usda": "d6704736d64c667cd6f6513afc9ea98c079f0bcaee71491cf03d1b7d034e8756"
+    }
+  },
+  "schema": 1,
+  "stage_metadata": {
+    "frames_per_second": {
+      "after": 24.0,
+      "before": 24.0
+    },
+    "meters_per_unit": {
+      "after": 1.0,
+      "before": 1.0
+    },
+    "time_codes_per_second": {
+      "after": 24.0,
+      "before": 24.0
+    },
+    "up_axis": {
+      "after": "Z",
+      "before": "Z"
+    }
+  },
+  "status": "changed"
+}

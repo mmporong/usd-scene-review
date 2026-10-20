@@ -1,0 +1,40 @@
+"""Regression coverage for strict input and effective value boundaries."""
+import json
+import unittest
+import test_review as helpers
+from usd_scene_review import compare, load_snapshot
+from usd_scene_review.cli import main
+
+
+class BoundaryTests(unittest.TestCase):
+    setUp = helpers.ReviewTests.setUp
+    source = helpers.ReviewTests.source
+    snapshot = helpers.ReviewTests.snapshot
+    pair = helpers.ReviewTests.pair
+    change = staticmethod(helpers.ReviewTests.change)
+
+    def test_nonfinite_manifest_rejected(self):
+        a, b = self.pair(helpers.pose_scene(), helpers.pose_scene())
+        for path in (a, b):
+            manifest = json.loads(path.read_text())
+            manifest['config']['time'] = float('nan')
+            path.write_text(json.dumps(manifest))
+        self.assertTrue(load_snapshot(a).errors)
+        report = compare(a, b)
+        self.assertEqual(report['status'], 'unknown')
+        json.dumps(report, allow_nan=False)
+
+    def test_effective_attribute_type_change(self):
+        a, b = self.pair('#usda 1.0\ndef Xform "World" {\n custom float n = 1\n}\n', '#usda 1.0\ndef Xform "World" {\n custom double n = 1\n}\n')
+        change = self.change(compare(a, b), '/World')
+        self.assertIn('attribute_types', change['fields'])
+        self.assertNotEqual(change['provenance'], 'authored-only')
+
+    def test_large_coordinate_motion_not_relative_tolerance(self):
+        a, b = self.pair(helpers.pose_scene((100000000, 0, 0)), helpers.pose_scene((100000000.5, 0, 0)))
+        self.assertIn('world', self.change(compare(a, b), '/World')['fields'])
+
+    def test_unknown_rigid_policy_cli_is_not_success(self):
+        a, b = self.pair(helpers.pose_scene(scale=(2, 1, 1)), helpers.pose_scene((2, 0, 0), scale=(2, 1, 1)))
+        result = main(['compare', str(a), str(b), '--json', str(self.base/'policy.json'), '--max-translation', '1'])
+        self.assertEqual(result, 2)
