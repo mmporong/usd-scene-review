@@ -174,10 +174,31 @@ class Probe(omni.ext.IExt):
             check('native review reload preserves history and evidence', len(review_events)==2
                   and review_events[0]['disposition']=='intentional'
                   and review_events[1]['disposition']=='needs-review' and owner._report==frozen_report)
+            synced = await client.frame(target, review=owner._review_event)
+            check('child human metadata matches reload', synced['display']['review']['disposition']=='needs-review')
             owner._review_frame.collapsed = True
             reply = await client._request('capture')
             check('real worker viewport capture', reply['status'] == 'captured' and (client.directory / 'viewport.png').stat().st_size > 1000)
             shutil.copyfile(client.directory / 'viewport.png', OUT / 'viewport.png')
+            check('child renderer settled', reply['display']['capture']['stable'])
+            check('real right evidence panel capture', (client.directory / 'review.png').stat().st_size > 1000)
+            await click('View B')
+            no_ghost = await client.frame(target, ghost=False)
+            reply = await client._request('capture')
+            shutil.copyfile(client.directory / 'viewport.png', OUT / 'ghost-off.png')
+            shown = await client.frame(target, ghost=True)
+            check('old A geometry ghost shown in current B', shown['display']['ghost']['status']=='shown')
+            check('ghost leaves fixed camera unchanged', shown['display']['camera']==no_ghost['display']['camera'])
+            reply = await client._request('capture')
+            check('ghost capture settled', reply['display']['capture']['stable'])
+            shutil.copyfile(client.directory / 'viewport.png', OUT / 'ghost-on.png')
+            shutil.copyfile(client.directory / 'review.png', OUT / 'ghost-evidence-ui.png')
+            from PIL import Image, ImageChops, ImageStat
+            with Image.open(OUT / 'ghost-off.png') as off, Image.open(OUT / 'ghost-on.png') as on:
+                difference = sum(ImageStat.Stat(ImageChops.difference(off.convert('RGB'), on.convert('RGB'))).mean)/3
+            check('ghost changes actual renderer pixels', difference>.01)
+            cleared = await client.frame(target, ghost=False)
+            check('ghost toggle clears geometry', cleared['display']['ghost']['status']=='off')
             reply = await client.frame('/MissingReviewPrim')
             check('absent prim refused without dropping worker', reply['status'] == 'refused' and client.state == 'running')
             check('refusal preserves whole scene camera', reply['display']['camera_scope']=='whole saved scene'

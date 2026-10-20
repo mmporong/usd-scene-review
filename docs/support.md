@@ -58,8 +58,8 @@ positive-basis axis lengths are labelled unsigned magnitudes, not authored signe
 Inactive or unobserved transforms are unavailable, not identity transforms.
 
 The isolated viewer preserves original geometry, material/subset bindings, display
-colors, active and visibility state. Only owned anonymous helper curves receive blue A
-or orange B materials. The previous gray-context/material-replacement approach is
+colors, active and visibility state. Owned anonymous helper curves receive blue A
+or orange B materials; optional old-A helper geometry receives its own translucent blue material. The previous gray-context/material-replacement approach is
 superseded. The default camera fits union bounds of both complete saved scenes. An
 explicit Focus selected checkbox uses selected bounds instead. Missing/unbounded
 selected geometry clears its outline and refuses that selection; whole-scene framing
@@ -97,3 +97,47 @@ it. A leftover lock after a crash requires inspecting/resolving that private log
 retrying; the app never breaks another writer's lock. Hash chaining detects inconsistent
 history but is not tamper-proof storage, authorization or protection against an actor
 who can rewrite the log. No multi-user concurrency/recovery or enterprise audit claim.
+
+
+## Old A geometry overlay
+
+After selecting a changed prim, enable **Show old A** and open B. A stays a before-only
+view. B contains current source geometry plus the selected old-A subtree as visual
+helpers in an anonymous review session. Toggling off, changing selection, refusing a
+selection, switching revisions or closing clears the old helper geometry. Helpers do
+not enter comparator, policy or raw-snapshot bounds. No source references, material
+networks, physics/collision APIs or simulation objects are copied.
+
+Each supported Cube/Mesh retains its local shape and exactly one complete old world
+matrix, including ancestor rotation/nonuniform scale/reset-stack effects. Mesh topology,
+subdivision, orientation, double-sidedness, normals and crease/corner attributes are
+allowlisted. Guide-purpose geometry is excluded. Instances/prototypes/point instancers,
+unloaded, animated, skeleton/deformer-bound and displaced geometry are unsupported.
+An unsupported selected subtree produces an explicit reason and no partial ghost.
+Limits are 512 shapes, 200,000 points, 1,000,000 indices and 333,333 faces per mesh,
+finite bounded transformed coordinates, and one cached selection. No complete-scene,
+deformation, arbitrary primitive, exact photometric or collision fidelity is claimed.
+Translucent ghost surfaces can affect this review renderer's shading/occlusion; they
+are not a shadow-free overlay or a reproduction of A's original materials.
+
+## Right evidence panel and preview illumination
+
+The child viewport has a right-side scrollable evidence panel populated from the
+actual comparison. Observed transform changes, policy status, unknown clash evidence
+and human status remain separate. Human review is local unverified metadata, never a
+rule waiver. Reload review refreshes or clears the child panel as well as the host.
+
+Fixed preview illumination is enabled by default and applies on the next View A/B.
+It mutes source light intensities only in the anonymous session, adds one fixed root
+white dome (intensity 1000, exposure 0), disables auto exposure and locks ISO 100,
+exposure time 0.02, f/5 and ACES tone mapping in the owned child process. Turning it off
+retains source lights (or adds a fallback dome if absent), still using manual exposure.
+This is a labelled normalized preview, not the authored production render setup.
+Source geometry, visibility and material edits remain visible and disclosed.
+
+Diagnostic capture advances the child renderer in 32-update batches, compares actual
+320x180 RGB images and requires two consecutive mean differences <=0.5 byte for its
+`stable` flag. It stops after eight batches and records the result; a capture with
+`stable=false` is not convergence evidence. This is a bounded practical settling test,
+not a proof of physical render convergence. Tests require the flag before claiming
+stable images. Camera pose, lens and clipping remain shared across A/B.

@@ -11,7 +11,9 @@ from omni.kit.viewport.window import ViewportWindow
 from usd_scene_review.display import ReviewDisplay, world_bounds, camera_spec
 from pxr import Sdf, Usd, UsdUtils
 
-from usd_scene_review import load_snapshot
+from usd_scene_review import load_snapshot, compare
+from usd_scene_review.ghost import extract, GhostOverlay
+from evidence_panel import EvidencePanel
 from usd_scene_review.snapshot import verify
 from usd_scene_review.preview import prepare_lighting
 from usd_scene_review.worker_client import SCHEMA, read_message, write_message
@@ -32,6 +34,12 @@ class ReviewWorker(omni.ext.IExt):
         self.display = None
         self.camera_cache = {}
         self.focus = False
+        self.ghost_enabled = False
+        self.normalized = True
+        self.review = {}
+        self.ghost = None
+        self.panel = None
+        self.ghost_cache = {}
         self.display_info = {}
         self.sequence = 0
         try:
@@ -41,6 +49,8 @@ class ReviewWorker(omni.ext.IExt):
             # This process starts empty; never replace an unexpected default stage.
             if self.context.get_stage() is not None:
                 raise RuntimeError('Viewer default context was not empty')
+            self.report = compare(self.config['manifests']['A']['path'], self.config['manifests']['B']['path'])
+            self.panel = EvidencePanel()
             self.respond('ready')
             while True:
                 message = read_message(self.root / 'request.json')
@@ -56,6 +66,8 @@ class ReviewWorker(omni.ext.IExt):
                         if self.viewport:
                             self.viewport.destroy()
                             self.viewport = None
+                        self.panel.destroy()
+                        self.panel = None
                         omni.usd.release_all_hydra_engines(self.context)
                         if self.context.get_attached_hydra_engine_names():
                             raise RuntimeError('Viewer engines did not detach')
@@ -74,6 +86,18 @@ class ReviewWorker(omni.ext.IExt):
                         if type(message['focus']) is not bool:
                             raise ValueError('Invalid focus mode')
                         self.focus = message['focus']
+                    for key, target in [('ghost', 'ghost_enabled'), ('normalized', 'normalized')]:
+                        if key in message:
+                            if type(message[key]) is not bool:
+                                raise ValueError('Invalid preview option')
+                            setattr(self, target, message[key])
+                    if 'review' in message:
+                        review = message['review']
+                        if (not isinstance(review, dict) or set(review) - {'disposition', 'reason'}
+                                or review.get('disposition', 'unreviewed') not in ('unreviewed', 'intentional', 'needs-review')
+                                or not isinstance(review.get('reason', ''), str) or len(review.get('reason', '')) > 4096):
+                            raise ValueError('Invalid human review metadata')
+                        self.review = review
                     if operation == 'view':
                         await self.view(message.get('side'))
                         self.frame(message.get('selected'))
@@ -83,15 +107,41 @@ class ReviewWorker(omni.ext.IExt):
                         # Diagnostic output is fixed inside the owned private run,
                         # never an arbitrary destination supplied by the caller.
                         self.check_current()
+                        # Advance THIS child's renderer, not the host's UI loop.
+                        # Compare real downsampled RGB frames before claiming stable output.
+                        from PIL import Image, ImageChops, ImageStat
+                        previous = None
+                        stable = 0
+                        differences = []
                         from omni.kit.viewport.utility import capture_viewport_to_file
-                        capture = capture_viewport_to_file(
-                            self.viewport.viewport_api, str(self.root / 'viewport.png'))
-                        await capture.wait_for_result()
                         from omni.kit.renderer.capture import acquire_renderer_capture_interface
-                        acquire_renderer_capture_interface().wait_async_capture()
+                        renderer_capture = acquire_renderer_capture_interface()
+                        for batch in range(8):
+                            for _ in range(32):
+                                await omni.kit.app.get_app().next_update_async()
+                            capture = capture_viewport_to_file(self.viewport.viewport_api, str(self.root / 'viewport.png'))
+                            await capture.wait_for_result()
+                            renderer_capture.wait_async_capture()
+                            with Image.open(self.root / 'viewport.png') as frame:
+                                current = frame.convert('RGB').resize((320, 180))
+                            if previous is not None:
+                                difference = sum(ImageStat.Stat(ImageChops.difference(previous, current)).mean) / 3
+                                differences.append(difference)
+                                stable = stable + 1 if difference <= .5 else 0
+                            previous = current
+                            if stable >= 2:
+                                break
                         capture = None
                         if not (self.root / 'viewport.png').is_file():
                             raise RuntimeError('Viewport capture completed without an image file')
+                        self.display_info['capture'] = dict(stable=stable >= 2, renderer_updates=32 * (batch + 1),
+                                                           mean_rgb_differences=differences)
+                        renderer_capture.capture_next_frame_swapchain(str(self.root / 'review.png'))
+                        for _ in range(5):
+                            await omni.kit.app.get_app().next_update_async()
+                        renderer_capture.wait_async_capture()
+                        if not (self.root / 'review.png').is_file():
+                            raise RuntimeError('Renderer swapchain capture did not produce an image')
                         self.respond('captured')
                     else:
                         raise ValueError('Unsupported viewer operation')
@@ -105,6 +155,9 @@ class ReviewWorker(omni.ext.IExt):
             omni.kit.app.get_app().post_quit(1)
 
     def respond(self, status, message=''):
+        if self.panel and getattr(self, 'side', None):
+            self.panel.update(self.report, self.display_info.get('selected'), self.side,
+                              self.review, self.display_info, self.lighting)
         write_message(self.root / 'response.json', dict(
             schema=SCHEMA, nonce=(self.config or {}).get('nonce'), sequence=self.sequence,
             status=status, message=message, side=getattr(self, "side", None),
@@ -116,6 +169,9 @@ class ReviewWorker(omni.ext.IExt):
                 raise RuntimeError('Compared manifest changed; compare again')
 
     def release_stage(self):
+        if self.ghost:
+            self.ghost.clear()
+        self.ghost = None
         self.display = None
         if self.context.get_stage():
             if not self.context.close_stage() or self.context.get_stage():
@@ -151,7 +207,12 @@ class ReviewWorker(omni.ext.IExt):
         if not session.anonymous:
             raise ValueError('File-backed review session refused')
         stage.SetEditTarget(Usd.EditTarget(session))
-        prepare_lighting(stage)
+        self.lighting = prepare_lighting(stage, normalized=self.normalized)
+        settings = carb.settings.get_settings()
+        for key, value in {'/rtx/post/histogram/enabled': False, '/rtx/post/tonemap/filmIso': 100.0,
+                           '/rtx/post/tonemap/exposureTime': .02, '/rtx/post/tonemap/fNumber': 5.0,
+                           '/rtx/post/tonemap/op': 6, '/rtx/ecoMode/enabled': False}.items():
+            settings.set(key, value)
         self.snapshot = snapshot
         for layer in stage.GetUsedLayers():
             if not layer.anonymous:
@@ -159,8 +220,10 @@ class ReviewWorker(omni.ext.IExt):
                 layer.SetPermissionToEdit(False)
                 layer.SetPermissionToSave(False)
         if self.viewport is None:
-            self.viewport = ViewportWindow('USD Scene Review A/B', '', width=960, height=640,
+            self.viewport = ViewportWindow('USD Scene Review A/B', '', width=1080, height=820,
                                            usd_drop_support=False, visible=False)
+            self.viewport.position_x = 10
+            self.viewport.position_y = 35
         self.stage_id = UsdUtils.StageCache.Get().Insert(stage)
         success, error = await self.context.attach_stage_async(stage)
         if not success:
@@ -172,8 +235,12 @@ class ReviewWorker(omni.ext.IExt):
             layer.SetPermissionToEdit(False)
             layer.SetPermissionToSave(False)
         await omni.kit.app.get_app().next_update_async()
+        self.lighting['renderer_settings'] = {key: settings.get(key) for key in (
+            '/rtx/rendermode', '/rtx/post/histogram/enabled', '/rtx/post/tonemap/filmIso',
+            '/rtx/post/tonemap/exposureTime', '/rtx/post/tonemap/fNumber', '/rtx/post/tonemap/op')}
         self.check_current()
         self.display = ReviewDisplay(stage)
+        self.ghost = GhostOverlay(stage, self.display.root)
         self.viewport.visible = True
         self.side = side
 
@@ -203,7 +270,10 @@ class ReviewWorker(omni.ext.IExt):
 
     def frame(self, selected):
         self.check_current()
+        self.ghost.clear()
         self.display_info = self.display.style(None, self.side, None)
+        self.display_info['ghost'] = {'status': 'off', 'count': 0}
+        self.display_info['review'] = dict(self.review)
         self.display_info.update(selected=None, camera_scope='previous camera; selection not framed')
         # Whole-scene context is independent of whether a selected change exists
         # or has geometric bounds in this revision.
@@ -238,7 +308,19 @@ class ReviewWorker(omni.ext.IExt):
         camera_info = {k: self.display_info[k] for k in ('camera', 'camera_scope')}
         self.display_info = self.display.style(selected, self.side, selected_spec['bounds'][self.side])
         self.display_info.update(selected=selected, **camera_info)
+        self.display_info['review'] = dict(self.review)
+        self.display_info['ghost'] = {'status': 'off', 'count': 0}
+        if self.ghost_enabled and self.side == 'B':
+            if selected not in self.ghost_cache:
+                old = load_snapshot(self.config['manifests']['A']['path'])
+                if old.errors or verify(old):
+                    raise RuntimeError('Old A snapshot verification failed')
+                # One selection only: overlapping subtrees must not accumulate.
+                self.ghost_cache = {selected: extract(old, selected)}
+            self.display_info['ghost'] = self.ghost.show(self.ghost_cache[selected])
+        self.display_info['lighting'] = self.lighting
         self.check_current()
         label = 'BEFORE saved scene A' if self.side == 'A' else 'AFTER saved scene B'
         self.respond('framed', self.side + ': framed ' + selected + '; ' + label
-                     + '; original appearance; ' + self.display_info['camera_scope'])
+                     + '; original geometry/materials; ' + self.lighting['label'] + '; '
+                     + self.display_info['camera_scope'])

@@ -1,5 +1,55 @@
 # Validation status
 
+## Current old-A overlay, evidence panel and illumination (2026-10-20)
+
+Windows 11 / RTX 3060 / installed Isaac Sim 4.5, Kit 106.5.0, Python 3.10.15,
+OpenUSD 22.11. No runtime, driver, security-setting or source-scene changes.
+
+- CPU suite: 107 tests, no failures/errors, two Windows symlink-privilege skips.
+  New real-USD cases cover complete ancestor/nonuniform-scale/reset transforms,
+  mesh normals/orientation, no copied physics/references, helper removal, source text
+  preservation, unsupported geometry/animation/guide/skeleton, session lighting and
+  ancestor local-zero/world-motion evidence with an intentional human decision while
+  independent policy still fails and clash stays unknown.
+- Actual packaged-extension minimal Kit acceptance: 63 checks passed, host exit 0,
+  four worker exits 0. This includes real A/B/A, fixed camera, ghost off/on rendered
+  pixels, stable captures, the actual right evidence panel, human metadata reload,
+  refusal recovery, close/reopen, disable/re-enable, active-viewer host quit and
+  host default-stage text/dirty/selection/time plus snapshot-byte preservation.
+- Additional actual synthetic/factory capture run: 28 checks passed, host exit 0,
+  both worker sessions closed normally with exit 0. The factory old-A overlay has
+  162 shapes, matching A/B camera and stable child frames. Standalone Reload review
+  clears child metadata. Actual delta is (0, 0.2, 0) m; source appearance changes are
+  disclosed. A real opaque control confirms background contribution through the
+  translucent helper in 5,368 qualifying pixels (not just an opacity attribute).
+- Both original factory snapshot bundles and all three original saved-scene files
+  retain their verified hashes. The public GIF is six seconds, 30 decoded frames,
+  two actual native A/B states at 1560 x 860. Only the outer desktop margin is
+  cropped; the complete viewport and right evidence window remain. No generated
+  scene pixels, substituted numbers, private paths, assets or logs are included.
+- Failed attempts are not passes: the first recorder copied a swapchain PNG before
+  asynchronous capture had completed; the completion wait now verifies the file.
+  One full acceptance run launched concurrently with the recorder timed out during
+  child RTX shader compilation (the log was still waiting after 70 seconds). The
+  subsequent standalone acceptance completed all 63 checks with normal exits.
+- The earlier full Isaac host normal-shutdown baseline native fault remains separately
+  FAILED / BLOCKED; it was not rerun or repaired. Minimal Kit success does not certify
+  the full app or production/animated assemblies. License remains undecided.
+
+Illumination diagnosis used eight actual matched-camera viewport captures at early
+and settled child-frame counts plus effective settings and raw source observations.
+Both revisions had no authored lights and the same fallback white dome. Auto exposure
+was already false; renderer was RaytracedLighting, ISO 100, exposure 0.02, f/5, ACES.
+The persistent background difference is authored: WestWall visibility changes from
+inherited to invisible; shared Steel roughness changes from about 0.32 to 0.42.
+Initial frames also changed before settling (the earlier helper waited host frames,
+not child renderer updates). This does not establish an exposure bug or justify
+undoing source edits. The normalized preview locks illumination/exposure and settles
+actual child captures, while retaining/disclosing source appearance changes.
+
+Earlier entries below are historical and describe their stated implementation/run.
+
+
 ## Concise comparison media edit (2026-10-20)
 
 This media-only edit replaces the seven-state demo with the two genuine selected-rack

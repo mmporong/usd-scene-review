@@ -6,37 +6,31 @@ Read-only semantic review of two local OpenUSD scene revisions, with a separate 
 
 ## Demonstration
 
-![Actual static A/B switching, changed-rack selection and framing](examples/usd-scene-review-demo.gif)
+![Actual Kit before A, current B and translucent old-A geometry with evidence panel](examples/usd-scene-review-demo.gif)
 
-Actual light review-panel and isolated-viewport captures from minimal Kit using the
-existing Windows Isaac Sim 4.5 SDK. **A means the saved scene before the change;
-B means the saved scene after the change. A difference is not automatically a defect.**
+Actual isolated minimal Kit rendering from the installed Windows Isaac Sim 4.5 SDK.
+**A is the saved scene before the change; B is the saved scene after the change.
+A difference is not automatically a defect.** The camera stays fixed across A/B.
 
-The six-second demo starts immediately with a useful selected-rack close view:
-**before A, blue dashed bounds → after B, orange solid bounds**, using the same camera.
-Original materials and the complete captured viewport are retained, including adjacent
-racks and floor context. The enlarged numeric strip consists of actual UI pixels:
-world prim-origin position `(0, 0, 0) → (0, 0.2, 0)` m, delta `(0, 0.2, 0)` m.
+The right-side panel shows comparator-derived selected path, changed properties,
+before/after world position, local/world delta, ancestor motion, independent policy,
+unknown clash status and separate human review metadata. The rack moves
+`(0, 0, 0)` to `(0, 0.2, 0)` m. Intentional decisions do not waive rules or unknowns.
 
-The opening distant comparisons and secondary parent-propagation/human-review scenes
-are omitted from this main comparison GIF. No lower path band, scrollbar, window shadow,
-footer rule or progress decoration is included. The app still defaults to whole-scene
-framing and retains optional Focus selected, parent-motion evidence and review history.
+In B, **Show old A** adds translucent blue geometry at its previous complete world
+transform. Current B retains original geometry/materials and orange selected bounds.
+This bounded visual helper supports static visible Cube/Mesh geometry only; it does
+not duplicate physics or edit source layers. See [supported limits](docs/support.md#old-a-geometry-overlay).
 
-Human reviewers can mark **intentional** or **needs review**, with a required reason.
-These decisions append to a separately chosen local `.jsonl` log, bound to exact A/B
-manifest hashes and the prim's full change evidence. Input/change differences do not
-inherit prior approval. Detected differences, independent policy failures and unknowns
-remain visible and unchanged. This is local unverified review metadata, not multi-user
-authorization or a safety sign-off; see [support](docs/support.md#local-human-review-metadata).
+Preview illumination uses a fixed white dome and manual exposure by default, labelled
+NORMALIZED. Source visibility/material differences remain: this example's B hides
+the west wall and changes Steel roughness from 0.32 to 0.42. Their effect is real source
+evidence, not a reason to silently restore A's wall/materials. Capture waits for stable
+child-rendered frames; [validation](docs/validation.md) records the diagnostic details.
 
-The GIF reuses the matching close A/B captures from the verified actual minimal Kit
-run (host and worker exit 0). It contains 30 frames at 1440 x 960; no new runtime or
-application code was introduced for this media edit. Only real UI fields are cropped;
-scene pixels and numeric results are not generated or replaced. Original source hashes
-were rechecked. No ghost overlay, collision verdict or AI is claimed. Outlines are world
-AABB bounds, not exact mesh edges. Private paths, source assets and logs are excluded.
-Full Isaac host normal shutdown remains blocked; see [validation](docs/validation.md).
+The GIF contains actual native scene and evidence-panel pixels. Private input paths,
+source files and logs are excluded. No AI, clash verdict or operational approval is
+claimed. Full Isaac host normal shutdown remains blocked by the reproduced SDK fault.
 
 ## Target and checked environments
 

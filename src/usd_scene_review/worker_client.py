@@ -209,7 +209,12 @@ app.extensions.registryEnabled=false
 app.extensions.syncRegistryOnStartup=false
 app.file.ignoreUnsavedOnExit=true
 app.fastShutdown=false
+app.window.width=1600
+app.window.height=1000
 renderer.multiGpu.autoEnable=false
+app.viewport.defaults.hud.visible=false
+app.viewport.defaults.guide.grid.visible=false
+app.viewport.grid.enabled=false
 exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
 ''', encoding='utf-8')
         command = [str(executable), str(app), '--portable', '--portable-root', str(directory / 'state'),
@@ -262,7 +267,7 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                            operation=operation, **fields))
         return await self._wait(lambda: self._reply(self.sequence))
 
-    async def view(self, manifests, side, selected, *, sdk, worker_module, expected_hashes=None, focus=False):
+    async def view(self, manifests, side, selected, *, sdk, worker_module, expected_hashes=None, focus=False, ghost=False, normalized=True, review=None):
         async with self._lock:
             if self._shutdown_requested or self.state in ('closing', 'failed'):
                 raise RuntimeError(self.error or 'Viewer is still closing; wait before opening another')
@@ -288,19 +293,23 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                     ready = await self._wait(lambda: self._reply(0))
                     if ready.get('status') != 'ready':
                         raise RuntimeError(ready.get('message', 'Viewer could not start'))
-                reply = await self._request('view', side=side, selected=selected, focus=focus)
+                reply = await self._request('view', side=side, selected=selected, focus=focus, ghost=ghost, normalized=normalized, review=review or {})
                 self.state = 'running'
                 return reply
             except Exception as exc:
                 await self._abort(exc)
                 raise
 
-    async def frame(self, selected, *, focus=None):
+    async def frame(self, selected, *, focus=None, ghost=None, review=None):
         async with self._lock:
             if self.state != 'running' or self.process is None:
                 raise RuntimeError('Open View A or View B before framing a result')
             try:
-                return await self._request('frame', selected=selected, **({'focus': focus} if focus is not None else {}))
+                fields={}
+                if focus is not None:fields['focus']=focus
+                if ghost is not None:fields['ghost']=ghost
+                if review is not None:fields['review']=review
+                return await self._request('frame', selected=selected, **fields)
             except Exception as exc:
                 await self._abort(exc)
                 raise

@@ -41,6 +41,9 @@ class SceneReviewExtension(omni.ext.IExt):
         self._query = ui.SimpleStringModel()
         self._inherited = ui.SimpleBoolModel(False)
         self._focus = ui.SimpleBoolModel(False)
+        self._ghost = ui.SimpleBoolModel(False)
+        self._normalized = ui.SimpleBoolModel(True)
+        self._review_event = {}
         self._status = ui.SimpleStringModel('Choose two local snapshot manifests. Viewer starts only on View A/B.')
         self._details = ui.SimpleStringModel('No comparison loaded.')
         self._revision = ui.SimpleStringModel('No saved scene attached')
@@ -83,6 +86,11 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.HStack(height=24):
                     ui.CheckBox(model=self._focus, width=20)
                     ui.Label('Focus selected (optional; default shows whole saved scene)')
+                with ui.HStack(height=24):
+                    ui.CheckBox(model=self._ghost, width=20)
+                    ui.Label('Show old A as translucent blue geometry in B')
+                    ui.CheckBox(model=self._normalized, width=20)
+                    ui.Label('Fixed preview illumination (on next View A/B)')
                 ui.StringField(model=self._revision, read_only=True, height=30)
                 with ui.ScrollingFrame(height=90):
                     self._rows = ui.VStack(spacing=3)
@@ -94,7 +102,7 @@ class SceneReviewExtension(omni.ext.IExt):
                         with ui.HStack(height=24):
                             ui.Label('Review log .jsonl', width=150)
                             ui.StringField(model=self._review_path)
-                            ui.Button('Reload review', width=140, clicked_fn=self._load_review)
+                            ui.Button('Reload review', width=140, clicked_fn=self._reload_review)
                         with ui.HStack(height=26):
                             ui.StringField(model=self._reason)
                             ui.Button('Mark intentional', width=160, clicked_fn=partial(self._record_review, 'intentional'))
@@ -110,6 +118,8 @@ class SceneReviewExtension(omni.ext.IExt):
         self._render_numeric(None)
         self._query_callback = self._query.add_value_changed_fn(lambda _: self._render_rows())
         self._focus_callback = self._focus.add_value_changed_fn(
+            lambda _: self._schedule(self._frame()) if self._viewer.state == 'running' else None)
+        self._ghost_callback = self._ghost.add_value_changed_fn(
             lambda _: self._schedule(self._frame()) if self._viewer.state == 'running' else None)
         self._inherited_callback = self._inherited.add_value_changed_fn(lambda _: self._render_rows())
 
@@ -142,6 +152,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._report = None
         self._selected = None
         self._selected_change = None
+        self._review_event = {}
         self._disposition.set_value('Human review: no changed prim selected')
         self._render_numeric(None)
         self._rows.clear()
@@ -191,6 +202,7 @@ class SceneReviewExtension(omni.ext.IExt):
         return change_identity(self._comparison_hashes, self._selected_change)
 
     def _show_review(self, event):
+        self._review_event = {k: event[k] for k in ('disposition', 'reason')} if event else {}
         self._disposition.set_value(('Human-marked ' + event['disposition'] + ': ' + event['reason']
                                     if event else 'Human review: unreviewed for this exact comparison/change')
                                    + '\nIndependent policy/unknown verdicts and observed differences remain unchanged.')
@@ -205,7 +217,13 @@ class SceneReviewExtension(omni.ext.IExt):
                              forbidden_roots=[p.parent for p in self._comparison_paths.values()])
             self._show_review(latest(events, identity))
         except Exception as exc:
+            self._review_event = {}
             self._disposition.set_value('Review not applied: ' + str(exc))
+
+    def _reload_review(self):
+        self._load_review()
+        if self._viewer.state == 'running':
+            self._schedule(self._frame())
 
     def _record_review(self, disposition):
         try:
@@ -215,6 +233,8 @@ class SceneReviewExtension(omni.ext.IExt):
             event = record(self._review_path.as_string, identity, disposition, self._reason.as_string,
                            forbidden_roots=[p.parent for p in self._comparison_paths.values()])
             self._show_review(event)
+            if self._viewer.state == 'running':
+                self._schedule(self._frame())
         except Exception as exc:
             self._disposition.set_value('Review not saved: ' + str(exc))
 
@@ -241,7 +261,8 @@ class SceneReviewExtension(omni.ext.IExt):
                                  style={'color': color, 'font_size': 17 if index else 18})
 
     async def _frame(self):
-        reply = await self._viewer.frame(self._selected, focus=self._focus.as_bool)
+        reply = await self._viewer.frame(self._selected, focus=self._focus.as_bool,
+                                         ghost=self._ghost.as_bool, review=self._review_event)
         self._accept_reply(reply)
 
     def _accept_reply(self, reply):
@@ -268,7 +289,9 @@ class SceneReviewExtension(omni.ext.IExt):
         worker = Path(__file__).resolve().parents[3] / 'worker'
         reply = await self._viewer.view(self._comparison_paths, side, self._selected,
                                         sdk=installed_sdk(), worker_module=worker,
-                                        expected_hashes=self._comparison_hashes, focus=self._focus.as_bool)
+                                        expected_hashes=self._comparison_hashes, focus=self._focus.as_bool,
+                                        ghost=self._ghost.as_bool, normalized=self._normalized.as_bool,
+                                        review=self._review_event)
         self._accept_reply(reply)
 
     def _close_review(self):
@@ -290,6 +313,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._query.remove_value_changed_fn(self._query_callback)
         self._inherited.remove_value_changed_fn(self._inherited_callback)
         self._focus.remove_value_changed_fn(self._focus_callback)
+        self._ghost.remove_value_changed_fn(self._ghost_callback)
         self._rows.clear()
         self._rows = None
         self._numeric.clear()
