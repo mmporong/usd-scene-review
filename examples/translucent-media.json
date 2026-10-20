@@ -1,0 +1,45 @@
+{
+  "candidate": "0.1.0-rc.2",
+  "width": 1560,
+  "height": 860,
+  "frames": 30,
+  "duration_seconds": 6.0,
+  "states": [
+    "before A",
+    "current B no helper",
+    "current B translucent green old-A faces"
+  ],
+  "face_opacity": 0.22,
+  "face_color": [
+    0.12,
+    0.95,
+    0.22
+  ],
+  "opacity_threshold": 0,
+  "opacity_texture": false,
+  "wire_width_scale": 0.0006,
+  "renderer": "Isaac Sim 4.5 / Kit 106.5 / RaytracedLighting",
+  "fractional_cutout_enabled": true,
+  "native_media_checks": 14,
+  "host_exit": 0,
+  "worker_exit": 0,
+  "bundle_bytes_preserved": true,
+  "world_delta_m": [
+    0,
+    -0.2,
+    0
+  ],
+  "gif_frame_source_mean_rgb_errors": {
+    "0": 1.8047199860862653,
+    "10": 1.8797411051480821,
+    "15": 1.9592486583184259
+  },
+  "gif_sha256": "156dd1403e5a4c210f0ec96d61d4511d6be484b0cdbcafb4fcf333a781afe4d6",
+  "gif_bytes": 923725,
+  "processing": "crop actual native UI, palette quantization and 5 fps held states; no generated scene pixels",
+  "files": {
+    "windows45-viewport.png": "6edb62b13f7dbce47884e63d18220199bb69ba79f45e40f18c693963a99c57b4",
+    "translucent-green-closeup.png": "049f596e010aa40bd2a0ccae69c3be7d07f7f0057f72602b3cbe1df058551aff",
+    "translucent-faces-comparison.png": "6bed1bf17792996f6c73fb7fbc9e3d271ce0b7466fa5e78b4de81605914891ac"
+  }
+}

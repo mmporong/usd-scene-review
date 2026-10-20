@@ -169,3 +169,30 @@ Isaac Sim 4.5 RTX material behavior, retains white background/original surroundi
 materials/fixed exposure/camera and old-right/current-left, then updates consistent
 image/GIF/package evidence. Previous distribution passes are not claimed for the new
 visual revision until revalidated.
+
+## Translucent-face follow-up completed locally
+
+Latest feedback superseded the 0.2% edge-led appearance. Actual installed RTX face-only
+controls selected green opacity 0.22 with zero threshold, no texture/emission/specular,
+and half-width secondary lines. See translucent-face-validation.md and final matching
+image/GIF/close-up metadata. Native controls: 26 checks; production media: 14 checks;
+packaged regression: 67 checks; exact rc.2 extraction smoke: 12 checks. Successful
+hosts/workers exited 0 and inputs were preserved. Full Windows CPU: 117 tests, two
+privilege skips, no failures. Final rc.2 archive: 66,872 bytes; SHA-256
+`6ca6c98f694e1a4cf14c42617b67e3a55e38d5665fe155b1e678bd3de6b9a4b6`.
+
+Automatic approval review denied the combined commit/push before execution because
+remote mutation was not considered explicitly authorized in the delegated request.
+No workaround/retry occurred. Changes and artifact are local and reviewable; rc.2
+remote CI has never run. Approval to commit/push the existing draft branch is the
+remaining publication action. Prior rc.1 baseline is preserved at commit 219fec5.
+License choice is still pending; no MIT/license or formal release was created.
+
+## Publication authorization received
+
+The owner approved committing/pushing the reviewed code, docs and corrected images/GIF
+to mmporong/usd-scene-review, fix/factory-review-lifecycle. The prior denied combined
+command was confirmed not executed. Remote URL, branch and unchanged baseline 219fec5
+were verified read-only before the authorized retry. No material setting is changed.
+Exact-SHA CPU CI and public-link verification follow the successful push. Merge,
+formal release and license selection remain excluded.

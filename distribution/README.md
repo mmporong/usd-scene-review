@@ -1,4 +1,4 @@
-# USD Scene Review — distribution candidate 0.1.0-rc.1
+# USD Scene Review — distribution candidate 0.1.0-rc.2
 
 Start with [English quick start](docs/quickstart-en.md) or
 [한국어 빠른 시작](docs/quickstart-ko.md).

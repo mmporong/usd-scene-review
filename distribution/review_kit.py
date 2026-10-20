@@ -11,7 +11,7 @@ import sys
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parent
-VERSION = '0.1.0-rc.1'
+VERSION = '0.1.0-rc.2'
 
 
 def verify(root=ROOT):

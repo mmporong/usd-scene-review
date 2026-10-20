@@ -20,7 +20,7 @@ class EvidencePanel:
             ui.Label(('A: before saved scene' if side=='A' else 'B: current saved scene'),height=25,
                      style={'color':0xFFBC5D0C if side=='A' else 0xFF0754C0})
             ghost=display.get('ghost',{})
-            ghost_text=('OLD A: faint LIME / thin GREEN edge cues'
+            ghost_text=('OLD A: translucent GREEN faces / subtle edges'
                         if ghost.get('status')=='shown' else 'OLD A overlay: '+ghost.get('status','off'))
             ui.Label(ghost_text,height=26,style={'color':0xFF18752D})
             ui.Label('CURRENT B: original materials / orange bounds',height=25,style={'color':0xFF0754C0})

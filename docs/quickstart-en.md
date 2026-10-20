@@ -50,7 +50,7 @@ The launcher copies the verified small project payload into `review-session/runt
 so Kit-generated caches stay in the private session and the original package stays
 unchanged. This is a local working copy, with no SDK/runtime installation.
 The new minimal host compares the sample, saves JSON/HTML to `review-session/reports`,
-selects the rack and opens current B plus the approved green/lime old-A helper and
+selects the rack and opens current B plus the translucent green old-A helper and
 right evidence panel. Use **View A/B**, search, optional focus and ghost toggles.
 To save another comparison, choose a new output folder in the host panel and press
 **Save results**. Input snapshot bundles are refused as export destinations. Compare

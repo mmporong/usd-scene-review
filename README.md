@@ -6,7 +6,7 @@ Read-only semantic review of two local OpenUSD scene revisions, with a separate 
 
 ## Demonstration
 
-![Actual Kit before A, current B and green/lime old-A geometry with evidence panel](examples/usd-scene-review-demo.gif)
+![Actual Kit before A, current B and translucent green old-A geometry with evidence panel](examples/usd-scene-review-demo.gif)
 
 Actual isolated minimal Kit rendering from the installed Windows Isaac Sim 4.5 SDK.
 **A is the saved scene before the change; B is the saved scene after the change.
@@ -17,10 +17,10 @@ before/after world position, local/world delta, ancestor motion, independent pol
 unknown clash status and separate human review metadata. The rack moves
 `(0, 0.2, 0)` to `(0, 0, 0)` m, delta `(0, -0.2, 0)` m. Intentional decisions do not waive rules or unknowns.
 
-In B, **Show old A** adds faint lime geometry at its previous complete world
+In B, **Show old A** adds translucent green geometry at its previous complete world
 transform. Current B retains original geometry/materials and orange selected bounds.
-Thin green Cube/control-cage edges carry the shape; single-sided lime surfaces use
-0.2% fractional cutout, with emission/specular disabled. This uses the installed Kit
+Single-sided green surfaces use 22% fractional opacity, with emission/specular
+disabled. Subtle half-width Cube/control-cage edges support the visible faces. This uses the installed Kit
 OmniPBR template and legacy RTX fractional-cutout support, avoiding glass-like
 transmission through many overlapping solids. The prior dense blue style is superseded.
 This bounded visual helper supports static visible Cube/Mesh geometry only; it does
@@ -35,10 +35,13 @@ child-rendered frames; [validation](docs/validation.md) records the diagnostic d
 The demo deliberately reverses the actual snapshot roles in private copies: previous
 A is on the right, current B on the left. Geometry, manifests, comparison identity and
 negative delta agree; no video mirroring or relabelling is used. The GIF shows before A,
-current B without the ghost, then current B with the faint green/lime ghost at old A.
+current B without the ghost, then current B with the translucent green ghost at old A.
 The GIF contains actual native scene and evidence-panel pixels. Private input paths,
 source files and logs are excluded. No AI, clash verdict or operational approval is
 claimed. Full Isaac host normal shutdown remains blocked by the reproduced SDK fault.
+
+See [face-only comparisons and close-up evidence](docs/translucent-face-validation.md)
+for the actual RTX material check behind this revised appearance.
 
 ## Distribution candidate
 

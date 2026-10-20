@@ -67,8 +67,10 @@ class DistributionBootstrap(omni.ext.IExt):
                 reply = await self.client._request('capture')
                 self.check('B rendered and settled', reply['status']=='captured' and reply['display']['capture']['stable'])
                 self.check('matching A/B camera', reply['display']['camera']==camera)
-                self.check('approved green helper loaded', reply['display']['ghost']['status']=='shown'
-                           and reply['display']['ghost']['opacity']==.002)
+                self.check('translucent green helper loaded', reply['display']['ghost']['status']=='shown'
+                           and reply['display']['ghost']['opacity']==.22
+                           and reply['display']['ghost']['face_color']==[.12,.95,.22]
+                           and reply['display']['ghost']['opacity_threshold']==0)
                 shutil.copyfile(self.client.directory/'review.png', self.root/'smoke-B.png')
                 from pxr import Gf
                 view = Gf.Matrix4d(*[v for row in camera['transform'] for v in row]).GetInverse()

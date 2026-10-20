@@ -101,7 +101,7 @@ class SceneReviewExtension(omni.ext.IExt):
                     ui.Label('Focus selected (optional; default shows whole saved scene)')
                 with ui.HStack(height=24):
                     ui.CheckBox(model=self._ghost, width=20)
-                    ui.Label('Show old A: faint lime hologram + thin green edges in B',style={'color':0xFF18752D})
+                    ui.Label('Show old A: translucent green faces + subtle edges in B',style={'color':0xFF18752D})
                     ui.CheckBox(model=self._normalized, width=20)
                     ui.Label('Fixed preview illumination (on next View A/B)')
                 ui.StringField(model=self._revision, read_only=True, height=30)

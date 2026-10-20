@@ -59,7 +59,7 @@ Inactive or unobserved transforms are unavailable, not identity transforms.
 
 The isolated viewer preserves original geometry, material/subset bindings, display
 colors, active and visibility state. Owned anonymous helper curves receive blue A
-or orange B materials; optional old-A helper geometry receives its own faint lime material. The previous gray-context/material-replacement approach is
+or orange B materials; optional old-A helper geometry receives its own translucent green material. The previous gray-context/material-replacement approach is
 superseded. The default camera fits union bounds of both complete saved scenes. An
 explicit Focus selected checkbox uses selected bounds instead. Missing/unbounded
 selected geometry clears its outline and refuses that selection; whole-scene framing
@@ -143,9 +143,9 @@ not a proof of physical render convergence. Tests require the flag before claimi
 stable images. Camera pose, lens and clipping remain shared across A/B.
 
 
-## Green/lime hologram style
+## Translucent green hologram style
 
-Old A uses 0.2% single-sided lime faces through the installed SDK's OmniPBR cutout
+Old A uses 22% single-sided green faces through the installed SDK's OmniPBR cutout
 template, with opacity threshold zero, specular zero and emission disabled. The owned
 legacy RTX child enables `/rtx/raytracing/fractionalCutoutOpacity`; PreviewSurface
 transmission is not used for the ghost faces. No NVIDIA template files are copied or
@@ -157,7 +157,7 @@ not preservation of the author's complete renderer configuration. A missing inst
 OmniPBR template produces an explicit unsupported ghost without creating helpers.
 
 Thin opaque green BasisCurves show Cube edges or Mesh control-cage edges, not an exact
-subdivision silhouette. Width is 0.0012 times the selected old geometry diagonal in
+subdivision silhouette. Width is 0.0006 times the selected old geometry diagonal in
 stage units (minimum 1e-6). The total is capped at 20,000 segments before helper creation;
 larger cages are explicitly unsupported. Curves and surfaces have no emissive bloom.
 Depth occlusion remains real, and coincident cues can overlap; this is a visual review
@@ -166,3 +166,7 @@ style rather than a physically meaningful translucent material or collision verd
 The configuration follows NVIDIA's documented
 [OmniPBR opacity parameters](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/templates/parameters/OmniPBR_Opacity.html)
 and [legacy RTX fractional-cutout setting](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/rtx-renderer_rt_legacy.html).
+
+The near-invisible 0.2% version is superseded after user feedback. Actual face-only
+0/6%/12%/22%/opaque controls, matching final media and preserved distribution baseline
+are recorded in [translucent-face validation](translucent-face-validation.md).

@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import zipfile
 
-VERSION='0.1.0-rc.1'
+VERSION='0.1.0-rc.2'
 ROOT=Path(__file__).resolve().parents[1]
 
 

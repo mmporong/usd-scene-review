@@ -7,8 +7,8 @@ MESH_ATTRIBUTES = ('points','faceVertexCounts','faceVertexIndices','subdivisionS
                    'doubleSided','holeIndices','creaseIndices','creaseLengths','creaseSharpnesses',
                    'cornerIndices','cornerSharpnesses','interpolateBoundary',
                    'faceVaryingLinearInterpolation','triangleSubdivisionRule','normals','extent')
-FACE_OPACITY = .002
-FACE_COLOR = (.5, 1.0, .12)
+FACE_OPACITY = .22
+FACE_COLOR = (.12, .95, .22)
 WIRE_COLOR = (.025, .42, .035)
 MAX_WIRE_SEGMENTS = 20000
 
@@ -124,6 +124,7 @@ class GhostOverlay:
         shader.SetSourceAssetSubIdentifier('OmniPBR','mdl')
         shader.CreateInput('diffuse_color_constant',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*FACE_COLOR))
         shader.CreateInput('enable_opacity',Sdf.ValueTypeNames.Bool).Set(True)
+        shader.CreateInput('enable_opacity_texture',Sdf.ValueTypeNames.Bool).Set(False)
         shader.CreateInput('opacity_constant',Sdf.ValueTypeNames.Float).Set(opacity)
         shader.CreateInput('opacity_threshold',Sdf.ValueTypeNames.Float).Set(0)
         shader.CreateInput('reflection_roughness_constant',Sdf.ValueTypeNames.Float).Set(1)
@@ -154,7 +155,7 @@ class GhostOverlay:
         wire_material.CreateSurfaceOutput().ConnectToSource(wire_shader.ConnectableAPI(),'surface')
         lo=Gf.Vec3d(*[min(p[i] for p in wires) for i in range(3)])
         hi=Gf.Vec3d(*[max(p[i] for p in wires) for i in range(3)])
-        width=max((hi-lo).GetLength()*.0012,1e-6)
+        width=max((hi-lo).GetLength()*.0006,1e-6)
         curves=UsdGeom.BasisCurves.Define(self.stage,self.root.AppendChild('WireCues'))
         curves.CreateTypeAttr('linear');curves.CreateWrapAttr('nonperiodic')
         curves.CreateCurveVertexCountsAttr([2]*(len(wires)//2))
@@ -163,5 +164,6 @@ class GhostOverlay:
         UsdShade.MaterialBindingAPI.Apply(curves.GetPrim()).Bind(wire_material)
         return {'status':'shown','count':len(data['geometry']),'opacity':opacity,
                 'wire_segments':len(wires)//2,'wire_width_stage_units':width,
-                'technique':'faint lime fractional-cutout single-sided faces + thin green control-cage edges; no emission',
-                'reason':'Old A hologram cues; current B retains original materials. Visual only; no physics copied.'}
+                'face_color':list(FACE_COLOR),'opacity_threshold':0.0,
+                'technique':'translucent green fractional-cutout single-sided faces + subtle control-cage edges; no emission',
+                'reason':'Old A translucent surface helper; current B retains original materials. Visual only; no physics copied.'}

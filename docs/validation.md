@@ -477,3 +477,24 @@ and English/Korean quick starts. No runtime or vendor assets are bundled or inst
 See [distribution work log](distribution-worklog.md) for review findings and archive
 identity. License selection remains pending; this is not a formal release. No system
 or driver/security settings, unrelated apps, scenes or unsaved work were changed.
+
+
+## Visible translucent faces, rc.2 (2026-10-20)
+
+The latest feedback replaces the edge-led 0.2% surface setting. Actual installed
+RTX face-only controls selected 22% green fractional opacity with background geometry
+still visible, and half-width secondary lines. The final image/GIF/close-up use the
+same production-default captures. See [material evidence](translucent-face-validation.md).
+
+CPU: 117 tests, no failures/errors, two Windows privilege skips. Actual native checks:
+26 material controls, 14 final media, 67 packaged UI regression and 12 exact rc.2
+extraction smoke; successful host/worker exits 0 and source bytes preserved. The
+extracted original package verifies again after Kit exit. Archive SHA-256 is
+`6ca6c98f694e1a4cf14c42617b67e3a55e38d5665fe155b1e678bd3de6b9a4b6`,
+66,872 bytes. Known failed/incomplete intermediate attempts and their limits are
+recorded in the material evidence; they are not acceptance passes.
+
+The initial commit/push was denied before execution while authorization was pending.
+The exact repository/branch/code/docs/media publication was subsequently authorized.
+CPU CI is checked at the exact published SHA and reported with its terminal receipt;
+it does not qualify native GPU behavior. License and full Isaac shutdown limits remain.

@@ -1,6 +1,6 @@
 # Candidate support and release boundary
 
-Candidate 0.1.0-rc.1 is a project-only archive for Windows and a separately installed
+Candidate 0.1.0-rc.2 is a project-only archive for Windows and a separately installed
 Isaac Sim 4.5 SDK. The qualified machine uses Kit 106.5, SDK Python 3.10.15,
 OpenUSD 22.11 and an RTX 3060. Other SDK/ABI combinations are rejected rather than
 silently mixed. Doctor checks imports and read-only GPU health; native smoke provides
@@ -20,7 +20,7 @@ The ZIP contains only this project's Python/config/docs and an independently aut
 USDA pair. It excludes NVIDIA binaries/MDL sources, factory originals, local logs and
 secrets. Runtime-generated reports/logs can contain local paths and remain private.
 
-The approved white review style, green/lime helper and right evidence panel are retained.
+The white review style, translucent green helper and right evidence panel are retained.
 The independent sample is intentionally smaller than the approved factory GIF; the GIF
 and factory source assets are not bundled. Geometry limits and unknown/policy/human
 distinctions still apply. This is not production assembly, collision or safety approval.
@@ -50,3 +50,8 @@ The repository's draft PR is an internal review mechanism. External IsaacSim/sou
 contribution candidates remain a separate researched list, not completed contributions
 and not a replacement for this candidate's implementation/testing. No upstream issue,
 PR or vendor report is submitted by the distribution workflow.
+
+The rc.2 helper uses visible translucent green faces at OmniPBR fractional opacity
+0.22, zero opacity threshold and half-width secondary edge cues. Face-only actual
+RTX comparisons preserve recognizable original geometry behind the helper. This
+changes anonymous preview helpers only; source material networks stay unchanged.
