@@ -4,6 +4,18 @@ Read-only semantic review of two local OpenUSD scene revisions, with a separate 
 
 **Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native SDK fault.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
 
+## Demonstration
+
+![Actual static A/B switching, changed-rack selection and framing](examples/usd-scene-review-demo.gif)
+
+Actual review-panel and isolated-viewport captures from minimal Kit using the existing
+Windows Isaac Sim 4.5 SDK. Six genuine capture pairs show the scene overview, selecting
+and framing a changed rack, A/B/A switching, and expanding inherited motion. The pairs
+are arranged side by side; the personal input-path area is cropped. This 14-second GIF
+contains 70 frames at 1440 x 860. It demonstrates static review, not collision or AI,
+and does not qualify full Isaac host normal shutdown; see [validation](docs/validation.md).
+Only the rendered demonstration is included, without source assets or raw logs.
+
 ## Target and checked environments
 
 The Windows target is Isaac Sim 4.5: installed Kit 106.5.0 / Python 3.10.15 / OpenUSD 22.11. CPU/CLI and actual packaged-extension tests use its bundled runtime. Native GUI checks cover static A/B attachment, rendering, selection/framing, repeated switching, close/reopen, negative inputs and source/default-context isolation. Tests use a separate minimal Kit app with synchronous rendering, as configured in the installed Isaac base app; the full Isaac application and production assemblies are not certified. See [Windows validation](docs/validation.md#windows-isaac-sim-45).
