@@ -19,3 +19,9 @@ Source files are checked again after all copies. This detects ordinary mutations
 A bundle has to preserve relative directory structure inside the entry directory. External sibling dependencies require preparing a common local root upstream; this tool will not rewrite the original source. Inherits/specializes/relocates, remote/package paths, asset-valued properties and custom resolvers are rejected conservatively. Missing Clash support remains an explicit unknown; no AABB or narrow-phase adapter is implemented yet.
 
 The engine currently requires `Ar.GetUnderlyingResolver()` to expose DefaultResolver. A Kit app using a custom resolver will receive unknown even for a local bundle until that resolver is separately qualified; the GUI baseline has not established this behavior yet.
+
+## Dependent variant configurations
+
+Declared parent prim choices are applied before descendants. Choices whose prim/set/option is not yet composed are deferred and retried when another declared choice makes progress; this also supports same-prim dependencies. After all progress, every requested set and option must remain available and its composed selection must equal the request. Invalidated, mutually exclusive or unresolved combinations are unknown. The engine does not search unspecified intermediate choices or solve arbitrary cyclic/redefined variant dependencies. Variant opinions live only in the anonymous session; source layers are not changed. Snapshot `ready` describes copied dependency integrity; the requested configuration is validated when loading/comparing it.
+
+CLI report files are created with exclusive mode, including when a file or symlink appears after initial path checks. JSON and HTML are separate files, not a multi-file atomic transaction; an error creating HTML can leave the newly created JSON report in place without overwriting the conflicting file.

@@ -51,6 +51,13 @@ large production assemblies and responsive background comparison are not validat
   attachment's Python await. If Kit stops the event loop before that completion, or an
   external cancellation makes native completion unknown, cleanup remains unconfirmed;
   the context is retained until process exit rather than destroyed during attachment.
+- Stage close must return success and the context must no longer hold a stage before
+  the adapter erases its cache entry, restores source permissions or drops the snapshot.
+  A false return, exception or still-attached stage blocks Compare, A/B, framing and
+  Close actions with an error message. Disabling the extension makes one conservative
+  cleanup attempt; failed detach retains the owned context and source protections.
+  Failed shutdown owners remain strongly referenced until process exit. This boundary
+  has GPU-free stub regression tests, but native Kit close behavior remains unverified.
 - No Clash extension is enabled, downloaded or assumed present by this adapter.
 
 ## Pending GUI acceptance checklist

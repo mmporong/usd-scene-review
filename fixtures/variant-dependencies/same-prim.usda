@@ -1,0 +1,33 @@
+#usda 1.0
+
+def Xform "World" (
+    variants = {
+        string zLayout = "A"
+    }
+    prepend variantSets = "zLayout"
+)
+{
+    variantSet "zLayout" = {
+        "A" {
+
+        }
+        "B" (
+            variants = {
+                string aColor = "red"
+            }
+            prepend variantSets = "aColor"
+        ) {
+            variantSet "aColor" = {
+                "blue" {
+                    custom string tint = "blue"
+
+                }
+                "red" {
+                    custom string tint = "red"
+
+                }
+            }
+
+        }
+    }
+}

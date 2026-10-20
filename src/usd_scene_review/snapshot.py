@@ -165,6 +165,51 @@ def _reject_constant(_text):
     raise ValueError("non-finite JSON constant")
 
 
+def _apply_variants(stage, variants):
+    """Resolve declared choices as sets become available; never invent prims.
+
+    Parent paths run first, and unavailable same-prim dependencies are retried.
+    No search through unspecified intermediate selections is performed. Every
+    requested set must still exist and match after all recomposition completes.
+    """
+    ordered = []
+    for key, choice in variants.items():
+        primpath, name = key.rsplit(":", 1)
+        path = Sdf.Path(primpath)
+        if not path.IsAbsolutePath() or not path.IsPrimPath() or path.ContainsPrimVariantSelection() or not name:
+            return ["invalid variant key: " + key]
+        ordered.append((primpath.count("/"), key, primpath, name, choice))
+    ordered.sort()
+    pending = list(ordered)
+    errors = []
+    while pending:
+        deferred = []
+        for item in pending:
+            _, key, primpath, name, choice = item
+            prim = stage.GetPrimAtPath(primpath)
+            if not prim or not prim.IsActive() or name not in prim.GetVariantSets().GetNames():
+                deferred.append(item)
+                continue
+            variant = prim.GetVariantSet(name)
+            if choice not in variant.GetVariantNames():
+                deferred.append(item)
+                continue
+            if not variant.SetVariantSelection(choice):
+                errors.append("variant selection rejected: " + key)
+        if len(deferred) == len(pending):
+            break
+        pending = deferred
+    for _, key, primpath, name, choice in ordered:
+        prim = stage.GetPrimAtPath(primpath)
+        if not prim or not prim.IsActive() or name not in prim.GetVariantSets().GetNames():
+            errors.append("variant configuration unresolved or mutually exclusive: " + key)
+            continue
+        variant = prim.GetVariantSet(name)
+        if choice not in variant.GetVariantNames() or variant.GetVariantSelection() != choice:
+            errors.append("variant configuration unresolved or mutually exclusive: " + key)
+    return sorted(set(errors))
+
+
 def load_snapshot(manifest_path):
     p = Path(manifest_path).resolve()
     try:
@@ -206,13 +251,7 @@ def load_snapshot(manifest_path):
         session = Sdf.Layer.CreateAnonymous("scene-review-session")
         stage = Usd.Stage.Open(layer, session, Usd.Stage.LoadAll)
         stage.SetEditTarget(session)
-        for key, value in sorted(config["variants"].items()):
-            primpath, name = key.rsplit(":", 1)
-            prim = stage.GetPrimAtPath(primpath)
-            if not prim or value not in prim.GetVariantSet(name).GetVariantNames():
-                snapshot.errors.append("invalid variant selection: " + key)
-            else:
-                prim.GetVariantSet(name).SetVariantSelection(value)
+        snapshot.errors.extend(_apply_variants(stage, config["variants"]))
         if any(prim.GetPrimIndex().localErrors for prim in stage.TraverseAll()):
             snapshot.errors.append("USD composition errors")
         if any(prim.HasPayload() and prim.IsActive() and not prim.IsLoaded() for prim in stage.TraverseAll()):

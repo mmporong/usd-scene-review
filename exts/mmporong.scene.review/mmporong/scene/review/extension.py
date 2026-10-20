@@ -21,6 +21,7 @@ from usd_scene_review.snapshot import verify
 
 # Keep deferred shutdown owners alive after Kit releases the IExt instance.
 _CLEANUP_TASKS = set()
+_RETAINED_OWNERS = set()
 
 
 class SceneReviewExtension(omni.ext.IExt):
@@ -37,6 +38,8 @@ class SceneReviewExtension(omni.ext.IExt):
         self._cleanup_task = None
         self._shutting_down = False
         self._attachment_pending = False
+        self._release_blocked = False
+        self._release_error = ""
         self._report = None
         self._selected = None
         self._side = None
@@ -77,11 +80,15 @@ class SceneReviewExtension(omni.ext.IExt):
     def _compare(self):
         if self._shutting_down:
             return
+        if self._release_blocked:
+            self._message(self._release_error)
+            return
         if self._attachment_pending or (self._task and not self._task.done()):
             self._message("Wait for the current viewport attachment before comparing again.")
             return
         self._task = None
-        self._release_stage()
+        if not self._release_stage():
+            return
         self._report = None
         self._selected = None
         self._side = None
@@ -111,14 +118,17 @@ class SceneReviewExtension(omni.ext.IExt):
         self._frame_selection()
 
     def _frame_selection(self):
+        if self._release_blocked:
+            self._message(self._release_error)
+            return
         if self._shutting_down or self._attachment_pending:
             self._message("Wait for viewport attachment before framing.")
             return
         if not self._selected or not self._snapshot or not self._viewport:
             return
         if verify(self._snapshot):
-            self._release_stage()
-            self._message("Snapshot changed or source dirty state is invalid. Compare again.")
+            if self._release_stage():
+                self._message("Snapshot changed or source dirty state is invalid. Compare again.")
             return
         prim = self._snapshot.stage.GetPrimAtPath(self._selected)
         if not prim or not prim.IsActive() or not prim.IsLoaded():
@@ -133,6 +143,9 @@ class SceneReviewExtension(omni.ext.IExt):
     def _schedule_view(self, side):
         if self._shutting_down:
             return
+        if self._release_blocked:
+            self._message(self._release_error)
+            return
         if not self._report:
             self._message("Compare manifests before opening A/B review.")
             return
@@ -142,9 +155,10 @@ class SceneReviewExtension(omni.ext.IExt):
         self._task = asyncio.ensure_future(self._view(side))
 
     async def _view(self, side):
-        if self._shutting_down:
+        if self._shutting_down or self._release_blocked:
             return
-        self._release_stage()
+        if not self._release_stage():
+            return
         try:
             if compare(self._comparison_paths["A"], self._comparison_paths["B"]) != self._report:
                 self._message("Inputs changed since comparison. Compare again before viewing.")
@@ -202,10 +216,19 @@ class SceneReviewExtension(omni.ext.IExt):
                                "owned context retained rather than destroyed.")
             raise
         except Exception as exc:
-            if not self._attachment_pending:
-                self._release_stage()
+            if not self._attachment_pending and not self._release_stage():
+                return
             self._message("Viewport failed: " + str(exc))
             carb.log_warn("USD Scene Review viewport failed: " + type(exc).__name__)
+
+    def _block_release(self, reason):
+        self._release_blocked = True
+        self._release_error = ("Review cleanup is unconfirmed: " + reason
+                               + " Compare, A/B and Close are blocked. Disable the extension "
+                               "to retry owned cleanup; source protections remain retained.")
+        carb.log_error("USD Scene Review: " + self._release_error)
+        self._message(self._release_error)
+        return False
 
     def _release_stage(self):
         if self._attachment_pending:
@@ -213,14 +236,17 @@ class SceneReviewExtension(omni.ext.IExt):
         try:
             if self._context and self._context.get_stage():
                 if not self._context.close_stage():
-                    carb.log_error("USD Scene Review: stage close was not confirmed.")
+                    return self._block_release("stage close returned false.")
+                if self._context.get_stage():
+                    return self._block_release("context still holds a stage after close.")
         except Exception as exc:
-            carb.log_error("USD Scene Review: stage close failed: " + type(exc).__name__)
+            return self._block_release("stage close raised " + type(exc).__name__ + ".")
+        # Ownership and source protections may be released only after confirmed detach.
         if self._stage_id is not None:
             try:
                 UsdUtils.StageCache.Get().Erase(self._stage_id)
             except Exception as exc:
-                carb.log_error("USD Scene Review: stage cache cleanup failed: " + type(exc).__name__)
+                return self._block_release("stage cache cleanup raised " + type(exc).__name__ + ".")
             else:
                 self._stage_id = None
         remaining = []
@@ -237,28 +263,38 @@ class SceneReviewExtension(omni.ext.IExt):
                 carb.log_error("USD Scene Review: source permission restoration failed: "
                                + type(exc).__name__)
         self._layer_permissions = remaining
+        if remaining:
+            return self._block_release("source permission restoration failed.")
         self._snapshot = None
         self._side = None
+        self._release_blocked = False
+        self._release_error = ""
+        return True
 
     def _close_review(self):
         if self._shutting_down:
+            return
+        if self._release_blocked:
+            self._message(self._release_error)
             return
         if self._attachment_pending or (self._task and not self._task.done()):
             self._message("Viewport attachment is in progress; close after it completes.")
             return
         self._task = None
-        self._dispose_review()
-        self._message("Review viewport closed. Original context was not opened or closed.")
+        if self._dispose_review():
+            self._message("Review viewport closed. Original context was not opened or closed.")
 
     def _dispose_review(self):
+        if not self._release_stage():
+            return False
         if self._viewport:
             try:
                 self._viewport.destroy()
             except Exception as exc:
-                carb.log_error("USD Scene Review: viewport cleanup failed: " + type(exc).__name__)
-            finally:
+                return self._block_release("viewport cleanup raised " + type(exc).__name__ + ".")
+            else:
                 self._viewport = None
-        self._release_stage()
+        return True
 
     def on_shutdown(self):
         if self._shutting_down:
@@ -291,6 +327,7 @@ class SceneReviewExtension(omni.ext.IExt):
         try:
             await asyncio.shield(task)
         except asyncio.CancelledError:
+            _RETAINED_OWNERS.add(self)
             carb.log_error("USD Scene Review: deferred shutdown was interrupted; "
                            "cleanup is unconfirmed.")
             return
@@ -301,19 +338,29 @@ class SceneReviewExtension(omni.ext.IExt):
 
     def _finish_shutdown(self):
         if self._attachment_pending:
+            _RETAINED_OWNERS.add(self)
             carb.log_error("USD Scene Review: native attachment completion is unknown; "
                            "context cleanup deferred until process exit.")
             return
         try:
-            self._dispose_review()
+            if not self._dispose_review():
+                _RETAINED_OWNERS.add(self)
+                return
         except Exception as exc:
             carb.log_error("USD Scene Review: resource cleanup failed: " + type(exc).__name__)
+            _RETAINED_OWNERS.add(self)
+            return
         if self._context:
             try:
                 if omni.usd.destroy_context(self._context_name):
                     self._context = None
                 else:
                     carb.log_error("USD Scene Review: context destruction was not confirmed.")
+                    _RETAINED_OWNERS.add(self)
+                    return
             except Exception as exc:
                 carb.log_error("USD Scene Review: context destruction failed: " + type(exc).__name__)
+                _RETAINED_OWNERS.add(self)
+                return
         self._task = None
+        _RETAINED_OWNERS.discard(self)

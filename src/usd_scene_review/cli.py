@@ -36,9 +36,11 @@ def main(argv=None):
         # Reports must not overwrite any existing input or artifact.
         if len({p.resolve() for p in outputs}) != len(outputs) or any(p.exists() or p.is_symlink() for p in outputs):
             raise ValueError("report destinations must be distinct new files")
-        Path(args.json).write_text(canonical(report), encoding="utf-8")
+        with Path(args.json).open("x", encoding="utf-8") as stream:
+            stream.write(canonical(report))
         if args.html:
-            Path(args.html).write_text(render_html(report), encoding="utf-8")
+            with Path(args.html).open("x", encoding="utf-8") as stream:
+                stream.write(render_html(report))
         return 2 if report["status"] == "unknown" or any(x["status"] == "unknown" for x in report["policy"]) else 3 if any(x["status"] == "fail" for x in report["policy"]) else 0
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         parser.exit(2, "Error: " + str(exc) + "\n")

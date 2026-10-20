@@ -1,5 +1,9 @@
 """Regression coverage for strict input and effective value boundaries."""
 import json
+import io
+from contextlib import redirect_stderr
+from pathlib import Path
+from unittest.mock import patch
 import unittest
 import test_review as helpers
 from usd_scene_review import compare, load_snapshot
@@ -38,3 +42,33 @@ class BoundaryTests(unittest.TestCase):
         a, b = self.pair(helpers.pose_scene(scale=(2, 1, 1)), helpers.pose_scene((2, 0, 0), scale=(2, 1, 1)))
         result = main(['compare', str(a), str(b), '--json', str(self.base/'policy.json'), '--max-translation', '1'])
         self.assertEqual(result, 2)
+
+    def test_cli_exclusive_output_rejects_creation_after_precheck(self):
+        a, b = self.pair(helpers.pose_scene(), helpers.pose_scene((1, 0, 0)))
+        original_open = Path.open
+        for kind in ('file', 'symlink', 'html'):
+            with self.subTest(kind=kind):
+                output = self.base/('race-' + kind + '.json')
+                html = self.base/'race.html'
+                target = self.base/'sentinel.txt'
+                target.write_text('keep')
+                raced = html if kind == 'html' else output
+                triggered = []
+                def race(path, mode='r', *args, **kwargs):
+                    if path == raced and mode == 'x' and not triggered:
+                        triggered.append(True)
+                        if kind == 'symlink':
+                            path.symlink_to(target)
+                        else:
+                            with original_open(path, 'w') as stream:
+                                stream.write('keep')
+                    return original_open(path, mode, *args, **kwargs)
+                argv = ['compare', str(a), str(b), '--json', str(output)]
+                if kind == 'html':
+                    argv += ['--html', str(html)]
+                with patch.object(Path, 'open', race), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+                    main(argv)
+                self.assertEqual(raised.exception.code, 2)
+                self.assertTrue(triggered)
+                self.assertEqual(raced.read_text(), 'keep')
+                self.assertEqual(target.read_text(), 'keep')
