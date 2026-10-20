@@ -23,11 +23,21 @@ def completion_status(root, returncode):
     return 0
 
 
+def record_completion(root, returncode):
+    status = completion_status(root, returncode)
+    (root / 'process-result.json').write_text(json.dumps({
+        'status': 'passed' if status == 0 else 'failed',
+        'process_exit': returncode, 'acceptance_exit': status,
+    }, indent=2), encoding='utf-8')
+    return status
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--isaac-root', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True, help='New private output directory; must not exist')
     parser.add_argument('--timeout', type=float, default=180)
+    parser.add_argument('--full-app', action='store_true', help='Use installed full Isaac app, with normal shutdown')
     args = parser.parse_args()
     sdk = args.isaac_root.resolve()
     executable = sdk / 'kit' / ('kit.exe' if sys.platform == 'win32' else 'kit')
@@ -73,18 +83,23 @@ app.asyncRendering=false
 renderer.multiGpu.autoEnable=false
 exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
 ''', encoding='utf-8')
-    command = [str(executable), str(app), '--portable', '--portable-root', str(root / 'state'),
+    selected_app = sdk / 'apps/isaacsim.exp.full.kit' if args.full_app else app
+    command = [str(executable), str(selected_app), '--portable', '--portable-root', str(root / 'state'),
+               '--ext-folder', str(sdk / 'apps'), '--enable', 'validation.runner',
                '--ext-folder', str(sdk / 'extscache'), '--ext-folder', str(sdk / 'exts'),
                '--ext-folder', str(root / 'exts'), '--/log/file=' + str(root / 'kit.log'),
-               '--/app/userConfigPath=' + str(root / 'user.config.json'), '--/app/fastShutdown=true']
+               '--/app/userConfigPath=' + str(root / 'user.config.json'), '--/app/fastShutdown=false',
+               '--/app/asyncRendering=false', '--/renderer/multiGpu/autoEnable=false',
+               '--/app/settings/persistent=false', '--/app/extensions/registryEnabled=false',
+               '--/app/extensions/syncRegistryOnStartup=false']
     with (root / 'console.log').open('w', encoding='utf-8') as log:
         try:
-            result = subprocess.run(command, cwd=root, stdout=log, stderr=subprocess.STDOUT, timeout=args.timeout)
+            result = subprocess.run(command, cwd=sdk, stdout=log, stderr=subprocess.STDOUT, timeout=args.timeout)
         except subprocess.TimeoutExpired:
             print('Kit validation timed out; only the newly launched process was stopped', file=sys.stderr)
-            return 124
+            return record_completion(root, 124)
     print('Native Kit validation process exit:', result.returncode)
-    return completion_status(root, result.returncode)
+    return record_completion(root, result.returncode)
 
 
 if __name__ == '__main__':

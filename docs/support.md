@@ -31,3 +31,12 @@ This qualifies observed local filesystem behavior in the tested Kit 106.5 enviro
 Declared parent prim choices are applied before descendants. Choices whose prim/set/option is not yet composed are deferred and retried when another declared choice makes progress; this also supports same-prim dependencies. After all progress, every requested set and option must remain available and its composed selection must equal the request. Invalidated, mutually exclusive or unresolved combinations are unknown. The engine does not search unspecified intermediate choices or solve arbitrary cyclic/redefined variant dependencies. Variant opinions live only in the anonymous session; source layers are not changed. Snapshot `ready` describes copied dependency integrity; the requested configuration is validated when loading/comparing it.
 
 CLI report files are created with exclusive mode, including when a file or symlink appears after initial path checks. JSON and HTML are separate files, not a multi-file atomic transaction; an error creating HTML can leave the newly created JSON report in place without overwriting the conflicting file.
+
+## Experimental viewer boundary
+
+The host owns comparison UI only. Static A/B rendering uses the installed Windows SDK
+in an owned child process with its default USD context. Review lighting/navigation
+author only into an anonymous session. Worker receipts plus observed exit 0 are required
+for a clean close; forced timeout containment is a failure. Full Isaac host normal
+shutdown still has an observed native SDK fault and is not qualified. See the current
+[validation status](validation.md) and [adapter guide](../exts/mmporong.scene.review/docs/README.md).

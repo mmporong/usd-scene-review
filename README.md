@@ -2,7 +2,7 @@
 
 Read-only semantic review of two local OpenUSD scene revisions, with a separate Python engine and NVIDIA Omniverse Kit interface.
 
-**Early development. Synthetic static A/B review is tested in Windows Kit 106.5 from Isaac Sim 4.5.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
+**Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native SDK fault.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
 
 ## Target and checked environments
 
@@ -52,10 +52,10 @@ The optional `test` extra declares the TOML test dependency for Python 3.10; the
 To repeat the native Windows acceptance in a new private directory:
 
 ```powershell
-python tools/run_kit_validation.py --isaac-root $sdk --output artifacts/new-kit-run --timeout 180
+python tools/run_kit_validation.py --isaac-root $sdk --output artifacts/new-kit-run --full-app --timeout 360
 ```
 
-This builds and extracts a project-only ZIP, launches a separate minimal Kit app,
+This builds and extracts a project-only ZIP, launches a separate installed full Isaac app,
 and uses synthetic stages. It does not attach to running user apps. Logs and screenshots
 stay in the selected output directory; do not publish raw machine logs.
 
@@ -65,7 +65,7 @@ See the generated [JSON example](examples/dependency-change.json) and [offline H
 
 ## Kit adapter
 
-Add this checkout's `exts` directory to Kit extension search paths and enable `mmporong.scene.review`. See the [adapter guide and pending GUI checks](exts/mmporong.scene.review/docs/README.md). The UI provides comparison rows and an isolated static A/B viewport; it rejects animated viewport review instead of changing the user's timeline. Semantic reports can evaluate an explicitly configured time.
+Add this checkout's `exts` directory to Kit extension search paths and enable `mmporong.scene.review`. See the [adapter guide and pending GUI checks](exts/mmporong.scene.review/docs/README.md). The UI provides searchable rows, inherited-motion filtering and a separate static A/B viewer process; it rejects animated viewport review instead of changing the user's timeline. Semantic reports can evaluate an explicitly configured time.
 
 A self-contained extension ZIP can also be generated from this project's code:
 
@@ -75,7 +75,7 @@ python tools/package_extension.py artifacts/mmporong.scene.review.zip
 
 Extract it into a fresh extension directory and add its parent to Kit's extension search paths. Native extraction/loading and synthetic static A/B review were checked in an isolated Windows Kit process. No NVIDIA binary or third-party asset is included.
 
-See [support](docs/support.md), [plan](docs/plan.md), [prior tools](docs/research.md), [validation](docs/validation.md) and [한국어 안내](docs/ko.md).
+See [PR/contribution candidates](docs/contribution-candidates.md), [support](docs/support.md), [plan](docs/plan.md), [prior tools](docs/research.md), [validation](docs/validation.md) and [한국어 안내](docs/ko.md).
 
 ## License status
 

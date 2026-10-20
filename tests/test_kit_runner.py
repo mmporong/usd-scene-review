@@ -1,5 +1,6 @@
 """A normal Kit exit is insufficient evidence of completed acceptance."""
 import importlib.util
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -33,4 +34,8 @@ class KitRunnerTests(unittest.TestCase):
             (root / 'results').mkdir()
             (root / 'results/result.json').write_text('{"status":"passed"}', encoding='utf-8')
             self.assertEqual(self.runner.completion_status(root, 3), 3)
+            self.assertEqual(self.runner.record_completion(root, 3), 3)
+            terminal = json.loads((root / 'process-result.json').read_text())
+            self.assertEqual(terminal['status'], 'failed')
+            self.assertEqual(terminal['process_exit'], 3)
             self.assertEqual(self.runner.completion_status(root, 0), 0)

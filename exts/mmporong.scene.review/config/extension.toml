@@ -7,10 +7,7 @@ readme = "docs/README.md"
 
 [dependencies]
 "omni.ui" = {}
-"omni.usd" = {}
-"omni.timeline" = {}
-"omni.kit.viewport.window" = {}
-"omni.kit.viewport.utility" = {}
+"omni.usd.libs" = {}
 
 [[python.module]]
 path = "../../src"

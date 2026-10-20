@@ -1,389 +1,183 @@
-"""Small review UI; all stage operations target an extension-owned USD context."""
-
+"""Comparison UI. Native review resources belong only to a separate Kit process."""
 import asyncio
 from functools import partial
-import json
+import hashlib
 from pathlib import Path
-from uuid import uuid4
+import sys
 
 import carb
 import omni.ext
-import omni.kit.app
-from omni.kit.viewport.utility import frame_viewport_prims
-from omni.kit.viewport.window import ViewportWindow
 import omni.ui as ui
-import omni.usd
-import omni.timeline
-from pxr import Usd, UsdUtils
 
-from usd_scene_review import compare, load_snapshot
-from usd_scene_review.snapshot import verify
+from usd_scene_review import compare
+from usd_scene_review.presentation import details, summary, visible_changes
+from usd_scene_review.worker_client import get_viewer_client
 
 
-# Keep deferred shutdown owners alive after Kit releases the IExt instance.
-_CLEANUP_TASKS = set()
-_RETAINED_OWNERS = set()
+def installed_sdk():
+    import carb.tokens
+    candidates = [Path(carb.tokens.get_tokens_interface().resolve('${kit}')).parent,
+                  Path(sys.executable).resolve().parent.parent]
+    for root in candidates:
+        if (root / 'kit/kit.exe').is_file() and (root / 'extscache').is_dir():
+            return root
+    raise RuntimeError('Existing Windows Isaac Sim SDK not found; inspect docs/support.md')
 
 
 class SceneReviewExtension(omni.ext.IExt):
-    """Expose semantic results and a separate, static A/B review viewport."""
-
     def on_startup(self, ext_id):
-        self._context_name = "usd_scene_review_" + uuid4().hex
-        self._context = omni.usd.create_context(self._context_name)
-        # Stage attachment synchronizes timeline metadata. Give the owned context
-        # its own timeline so it cannot rewrite the user's stage frame range/FPS.
-        self._timeline = omni.timeline.get_timeline_interface(self._context_name)
-        self._context.set_timeline(self._context_name)
-        self._viewport = None
-        self._snapshot = None
-        self._stage_id = None
-        self._layer_permissions = []
+        self._viewer = get_viewer_client()
         self._task = None
-        self._cleanup_task = None
         self._shutting_down = False
-        self._attachment_pending = False
-        self._release_blocked = False
-        self._release_error = ""
         self._report = None
         self._selected = None
-        self._side = None
-        self._paths = {"A": ui.SimpleStringModel(), "B": ui.SimpleStringModel()}
-        self._status = ui.SimpleStringModel("Choose two local snapshot manifest files.")
-        self._details = ui.SimpleStringModel("No comparison loaded.")
-        self._window = ui.Window("USD Scene Review", width=600, height=640)
-        self._window.frame.set_style({
-            "Window": {"background_color": 0xFFF7F7F7},
-            "Label": {"color": 0xFF202020},
-            "Button": {"background_color": 0xFFE7E7E7, "color": 0xFF202020},
-            "StringField": {"background_color": 0xFFFFFFFF, "color": 0xFF202020},
-        })
+        self._paths = {s: ui.SimpleStringModel() for s in ('A', 'B')}
+        self._query = ui.SimpleStringModel()
+        self._inherited = ui.SimpleBoolModel(False)
+        self._status = ui.SimpleStringModel('Choose two local snapshot manifests. Viewer starts only on View A/B.')
+        self._details = ui.SimpleStringModel('No comparison loaded.')
+        self._window = ui.Window('USD Scene Review', width=680, height=720)
         with self._window.frame:
-            with ui.VStack(spacing=8):
-                ui.Label("Local snapshots · semantic revision review", height=24)
-                ui.Label("Experimental local review. Static stages only.", height=22)
-                for side in ("A", "B"):
+            with ui.VStack(spacing=6):
+                ui.Label('Local snapshots: semantic revision review', height=24)
+                ui.Label('Experimental. Static viewer requires existing Windows Isaac Sim 4.5.', height=24)
+                for side in ('A', 'B'):
                     with ui.HStack(height=26):
-                        ui.Label(side + " manifest", width=90)
+                        ui.Label(side + ' manifest', width=90)
                         ui.StringField(model=self._paths[side])
                 with ui.HStack(height=30, spacing=6):
-                    ui.Button("Compare", clicked_fn=self._compare)
-                    ui.Button("View A", clicked_fn=partial(self._schedule_view, "A"))
-                    ui.Button("View B", clicked_fn=partial(self._schedule_view, "B"))
-                    ui.Button("Close review", clicked_fn=self._close_review)
-                ui.StringField(model=self._status, read_only=True, height=48, multiline=True)
-                ui.Label("Changes — choose a row, then switch A/B", height=22)
-                with ui.ScrollingFrame(height=210):
+                    ui.Button('Compare', clicked_fn=self._compare)
+                    ui.Button('View A', clicked_fn=partial(self._schedule_view, 'A'))
+                    ui.Button('View B', clicked_fn=partial(self._schedule_view, 'B'))
+                    ui.Button('Close review', clicked_fn=self._close_review)
+                ui.StringField(model=self._status, read_only=True, multiline=True, height=52)
+                with ui.HStack(height=26):
+                    ui.Label('Path search', width=85)
+                    ui.StringField(model=self._query)
+                    ui.CheckBox(model=self._inherited, width=20)
+                    ui.Label('Inherited motion', width=130)
+                with ui.ScrollingFrame(height=220):
                     self._rows = ui.VStack(spacing=3)
-                ui.Label("Selected result / comparison details", height=22)
                 ui.StringField(model=self._details, read_only=True, multiline=True)
+        self._query_callback = self._query.add_value_changed_fn(lambda _: self._render_rows())
+        self._inherited_callback = self._inherited.add_value_changed_fn(lambda _: self._render_rows())
 
     def _message(self, text):
         if self._window:
             self._status.set_value(text)
 
+    def _schedule(self, operation):
+        if self._shutting_down or (self._task and not self._task.done()):
+            operation.close()
+            self._message('Wait for the current viewer operation to complete.')
+            return
+        self._task = asyncio.ensure_future(self._run(operation))
+
+    async def _run(self, operation):
+        try:
+            await operation
+        except Exception as exc:
+            self._message(type(exc).__name__ + ': ' + str(exc)
+                          + ' Close review to acknowledge a stopped failed worker, then retry.')
+            carb.log_warn('USD Scene Review operation failed: ' + type(exc).__name__)
+
     def _compare(self):
-        if self._shutting_down:
-            return
-        if self._release_blocked:
-            self._message(self._release_error)
-            return
-        if self._attachment_pending or (self._task and not self._task.done()):
-            self._message("Wait for the current viewport attachment before comparing again.")
-            return
-        self._task = None
-        if not self._release_stage():
+        self._schedule(self._compare_async())
+
+    async def _compare_async(self):
+        if not await self._viewer.close():
+            self._message('Viewer cleanup unconfirmed. Close review before comparing again.')
             return
         self._report = None
         self._selected = None
-        self._side = None
         self._rows.clear()
-        try:
-            paths = {side: Path(model.as_string).expanduser().resolve()
-                     for side, model in self._paths.items()}
-            self._report = compare(paths["A"], paths["B"])
-            self._comparison_paths = paths
-            self._details.set_value(json.dumps(self._report, indent=2, ensure_ascii=False))
-            changes = self._report.get("changes", [])
-            with self._rows:
-                for change in changes:
-                    ui.Button(
-                        str(change.get("kind", "change")) + "  " + change.get("path", ""),
-                        height=24, clicked_fn=partial(self._select, change),
-                    )
-            self._message(f"{self._report.get('status', 'unknown')} · {len(changes)} changed prims. "
-                          "A/B viewport supports static stages only.")
-        except Exception as exc:
-            self._message("Comparison failed: " + str(exc))
-            carb.log_warn("USD Scene Review comparison failed: " + type(exc).__name__)
+        paths = {s: Path(model.as_string).expanduser().resolve() for s, model in self._paths.items()}
+        hashes = {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in paths.items()}
+        report = compare(paths['A'], paths['B'])
+        if hashes != {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in paths.items()}:
+            raise RuntimeError('Manifests changed during comparison; recreate frozen bundles')
+        self._report = report
+        self._comparison_paths = paths
+        self._comparison_hashes = hashes
+        self._details.set_value(summary(self._report))
+        self._render_rows()
+        self._message(summary(self._report).splitlines()[0])
+
+    def _render_rows(self):
+        if not self._report or not self._window:
+            return
+        changes = visible_changes(self._report, self._query.as_string, self._inherited.as_bool)
+        groups = {g['parent']: len(g['affected']) for g in self._report.get('parent_groups', [])}
+        self._rows.clear()
+        with self._rows:
+            ui.Label(f'{len(changes)} visible / {len(self._report.get("changes", []))} total', height=22)
+            for change in changes:
+                suffix = f' (+{groups[change["path"]]} descendants)' if change['path'] in groups else ''
+                ui.Button(change.get('kind', 'change') + '  ' + change['path'] + suffix,
+                          height=24, clicked_fn=partial(self._select, change))
 
     def _select(self, change):
-        self._selected = change.get("path")
-        self._details.set_value(json.dumps(change, indent=2, ensure_ascii=False))
-        self._frame_selection()
+        self._selected = change.get('path')
+        self._details.set_value(details(change))
+        if self._viewer.state == 'running':
+            self._schedule(self._frame())
 
-    def _frame_selection(self):
-        if self._release_blocked:
-            self._message(self._release_error)
-            return
-        if self._shutting_down or self._attachment_pending:
-            self._message("Wait for viewport attachment before framing.")
-            return
-        if not self._selected or not self._snapshot or not self._viewport:
-            return
-        if verify(self._snapshot):
-            if self._release_stage():
-                self._message("Snapshot changed or source dirty state is invalid. Compare again.")
-            return
-        prim = self._snapshot.stage.GetPrimAtPath(self._selected)
-        if not prim or not prim.IsActive() or not prim.IsLoaded():
-            self._message(f"{self._side}: {self._selected} is absent, inactive or unloaded. "
-                          "Try the other revision; no original stage was changed.")
-            return
-        self._context.get_selection().set_selected_prim_paths([self._selected], False)
-        framed = frame_viewport_prims(self._viewport.viewport_api, prims=[self._selected])
-        self._message(f"{self._side}: " + (f"framed {self._selected}" if framed
-                                          else "camera/framing is not available yet."))
+    async def _frame(self):
+        reply = await self._viewer.frame(self._selected)
+        self._accept_reply(reply)
+
+    def _accept_reply(self, reply):
+        if reply.get('status') == 'error':
+            raise RuntimeError(reply.get('message', 'Viewer failed'))
+        self._message(reply.get('message', reply.get('status', 'unknown')))
 
     def _schedule_view(self, side):
-        if self._shutting_down:
-            return
-        if self._release_blocked:
-            self._message(self._release_error)
-            return
-        if not self._report:
-            self._message("Compare manifests before opening A/B review.")
-            return
-        if self._attachment_pending or (self._task and not self._task.done()):
-            self._message("A viewport switch is in progress; wait before switching again.")
-            return
-        self._task = asyncio.ensure_future(self._view(side))
+        self._schedule(self._view(side))
 
     async def _view(self, side):
-        if self._shutting_down or self._release_blocked:
+        if not self._report:
+            self._message('Compare manifests before opening A/B review.')
             return
-        if not self._release_stage():
+        if self._report.get('status') == 'unknown':
+            self._message('Incomplete comparison: inspect the reasons and repair or recreate the snapshot bundles.')
             return
-        if self._viewport:
-            self._viewport.visible = False
-        try:
-            if compare(self._comparison_paths["A"], self._comparison_paths["B"]) != self._report:
-                self._message("Inputs changed since comparison. Compare again before viewing.")
-                return
-            # Reload and validate the bundle at every switch; do not trust stale UI results.
-            snapshot = load_snapshot(self._comparison_paths[side])
-            if snapshot.stage is None or getattr(snapshot, "errors", []):
-                self._message(side + ": snapshot is unknown; viewport was not attached.")
-                return
-            if any(attr.GetNumTimeSamples() for prim in snapshot.stage.TraverseAll()
-                   for attr in prim.GetAttributes()):
-                self._message("Animated viewport is unsupported: use the report at the "
-                              "declared time. The user's timeline was not changed.")
-                return
-            # Cameras/viewport navigation may author opinions, but only in this anonymous session.
-            session = snapshot.stage.GetSessionLayer()
-            if not session.anonymous:
-                self._message("Refusing a review stage with a file-backed session layer.")
-                return
-            snapshot.stage.SetEditTarget(Usd.EditTarget(session))
-            self._snapshot = snapshot
-            self._side = side
-            for layer in snapshot.stage.GetUsedLayers():
-                if not layer.anonymous:
-                    self._layer_permissions.append((
-                        layer, layer.permissionToEdit, layer.permissionToSave, layer.dirty,
-                    ))
-                    layer.SetPermissionToEdit(False)
-                    layer.SetPermissionToSave(False)
-            if self._viewport is None:
-                self._viewport = ViewportWindow(
-                    "USD Scene Review A/B", self._context_name,
-                    width=960, height=640, usd_drop_support=False, visible=False,
-                )
-            self._stage_id = UsdUtils.StageCache.Get().Insert(snapshot.stage)
-            self._attachment_pending = True
-            success, error = await self._context.attach_stage_async(snapshot.stage)
-            self._attachment_pending = False
-            if not success:
-                raise RuntimeError("Review stage attachment failed: " + error)
-            # Kit 106 resets layer permissions (and may choose an edit target) on
-            # attach. Reestablish the boundary before exposing the viewport or
-            # yielding another frame, then verify that it remains intact.
-            snapshot.stage.SetEditTarget(Usd.EditTarget(session))
-            for layer, _, _, was_dirty in self._layer_permissions:
-                if layer.dirty != was_dirty:
-                    raise RuntimeError("Source dirty state changed during attachment")
-                layer.SetPermissionToEdit(False)
-                layer.SetPermissionToSave(False)
-            if self._shutting_down:
-                return
-            await omni.kit.app.get_app().next_update_async()
-            if self._shutting_down:
-                return
-            if verify(snapshot):
-                raise RuntimeError("Snapshot integrity changed during attachment")
-            if (snapshot.stage.GetEditTarget().GetLayer() != session
-                    or any(l.permissionToEdit or l.permissionToSave for l, *_ in self._layer_permissions)):
-                raise RuntimeError("Source protections changed after attachment")
-            self._viewport.visible = True
-            self._message(side + ": static snapshot in a dedicated review viewport.")
-            self._frame_selection()
-        except asyncio.CancelledError:
-            # Cancelling the Python await does not cancel the native Kit attachment.
-            # Retain its context and layers if native completion is unknown.
-            if self._attachment_pending:
-                carb.log_error("USD Scene Review: native attachment completion is unknown; "
-                               "owned context retained rather than destroyed.")
-            raise
-        except Exception as exc:
-            if not self._attachment_pending and not self._release_stage():
-                return
-            self._message("Viewport failed: " + str(exc))
-            carb.log_warn("USD Scene Review viewport failed: " + type(exc).__name__)
-
-    def _block_release(self, reason):
-        self._release_blocked = True
-        self._release_error = ("Review cleanup is unconfirmed: " + reason
-                               + " Compare, A/B and Close are blocked. Disable the extension "
-                               "to retry owned cleanup; source protections remain retained.")
-        carb.log_error("USD Scene Review: " + self._release_error)
-        self._message(self._release_error)
-        return False
-
-    def _release_stage(self):
-        if self._attachment_pending:
-            raise RuntimeError("Cannot release a stage before native attachment completion")
-        try:
-            if self._context and self._context.get_stage():
-                if not self._context.close_stage():
-                    return self._block_release("stage close returned false.")
-                if self._context.get_stage():
-                    return self._block_release("context still holds a stage after close.")
-        except Exception as exc:
-            return self._block_release("stage close raised " + type(exc).__name__ + ".")
-        # Ownership and source protections may be released only after confirmed detach.
-        if self._stage_id is not None:
-            try:
-                UsdUtils.StageCache.Get().Erase(self._stage_id)
-            except Exception as exc:
-                return self._block_release("stage cache cleanup raised " + type(exc).__name__ + ".")
-            else:
-                self._stage_id = None
-        remaining = []
-        for layer, editable, saveable, was_dirty in self._layer_permissions:
-            try:
-                if layer.dirty != was_dirty:
-                    carb.log_error("USD Scene Review: source layer dirty state changed; nothing saved.")
-                try:
-                    layer.SetPermissionToEdit(editable)
-                finally:
-                    layer.SetPermissionToSave(saveable)
-            except Exception as exc:
-                remaining.append((layer, editable, saveable, was_dirty))
-                carb.log_error("USD Scene Review: source permission restoration failed: "
-                               + type(exc).__name__)
-        self._layer_permissions = remaining
-        if remaining:
-            return self._block_release("source permission restoration failed.")
-        self._snapshot = None
-        self._side = None
-        self._release_blocked = False
-        self._release_error = ""
-        return True
+        if compare(self._comparison_paths['A'], self._comparison_paths['B']) != self._report:
+            self._message('Inputs changed since comparison. Compare again.')
+            return
+        worker = Path(__file__).resolve().parents[3] / 'worker'
+        reply = await self._viewer.view(self._comparison_paths, side, self._selected,
+                                        sdk=installed_sdk(), worker_module=worker,
+                                        expected_hashes=self._comparison_hashes)
+        self._accept_reply(reply)
 
     def _close_review(self):
-        if self._shutting_down:
-            return
-        if self._release_blocked:
-            self._message(self._release_error)
-            return
-        if self._attachment_pending or (self._task and not self._task.done()):
-            self._message("Viewport attachment is in progress; close after it completes.")
-            return
-        self._task = None
-        if self._dispose_review():
-            self._message("Review viewport closed. Original context was not opened or closed.")
+        self._schedule(self._close())
 
-    def _dispose_review(self):
-        if not self._release_stage():
-            return False
-        if self._viewport:
-            try:
-                self._viewport.destroy()
-            except Exception as exc:
-                return self._block_release("viewport cleanup raised " + type(exc).__name__ + ".")
-            else:
-                self._viewport = None
-        return True
+    async def _close(self):
+        if self._viewer.state == 'closed' and self._viewer.process is None:
+            self._message('Review viewer is already closed.')
+        elif self._viewer.state == 'failed' and self._viewer.process is None:
+            self._viewer.acknowledge_failure()
+            self._message('Failed worker stopped; private diagnostic files retained. Retry View A/B.')
+        elif await self._viewer.close():
+            self._message('Review closed: graceful receipt and worker exit 0 confirmed.')
+        else:
+            self._message('Review cleanup failed: ' + self._viewer.error)
 
     def on_shutdown(self):
-        if self._shutting_down:
-            return
         self._shutting_down = True
+        self._query.remove_value_changed_fn(self._query_callback)
+        self._inherited.remove_value_changed_fn(self._inherited_callback)
+        self._rows.clear()
+        self._rows = None
         if self._window:
-            try:
-                self._window.destroy()
-            except Exception as exc:
-                carb.log_error("USD Scene Review: panel cleanup failed: " + type(exc).__name__)
-            finally:
-                self._window = None
-        if self._viewport:
-            try:
-                self._viewport.visible = False
-            except Exception as exc:
-                carb.log_error("USD Scene Review: viewport hide failed: " + type(exc).__name__)
-        task = self._task
-        if task and not task.done():
-            # IExt.on_shutdown is synchronous. Do not cancel the native attach await:
-            # wait for it in an owned coroutine, then release only our resources.
-            self._cleanup_task = asyncio.ensure_future(self._shutdown_after(task))
-            _CLEANUP_TASKS.add(self._cleanup_task)
-            self._cleanup_task.add_done_callback(_CLEANUP_TASKS.discard)
-            carb.log_warn("USD Scene Review: shutdown cleanup is pending native attachment completion.")
-        else:
-            self._finish_shutdown()
-
-    async def _shutdown_after(self, task):
-        try:
-            await asyncio.shield(task)
-        except asyncio.CancelledError:
-            _RETAINED_OWNERS.add(self)
-            carb.log_error("USD Scene Review: deferred shutdown was interrupted; "
-                           "cleanup is unconfirmed.")
-            return
-        except Exception as exc:
-            carb.log_error("USD Scene Review: attachment task failed during shutdown: "
-                           + type(exc).__name__)
-        self._finish_shutdown()
-
-    def _finish_shutdown(self):
-        if self._attachment_pending:
-            _RETAINED_OWNERS.add(self)
-            carb.log_error("USD Scene Review: native attachment completion is unknown; "
-                           "context cleanup deferred until process exit.")
-            return
-        try:
-            if not self._dispose_review():
-                _RETAINED_OWNERS.add(self)
-                return
-        except Exception as exc:
-            carb.log_error("USD Scene Review: resource cleanup failed: " + type(exc).__name__)
-            _RETAINED_OWNERS.add(self)
-            return
-        if self._context:
-            try:
-                if omni.usd.destroy_context(self._context_name):
-                    self._context = None
-                else:
-                    carb.log_error("USD Scene Review: context destruction was not confirmed.")
-                    _RETAINED_OWNERS.add(self)
-                    return
-            except Exception as exc:
-                carb.log_error("USD Scene Review: context destruction failed: " + type(exc).__name__)
-                _RETAINED_OWNERS.add(self)
-                return
-        self._task = None
-        self._timeline = None
-        if not omni.timeline.destroy_timeline(self._context_name):
-            carb.log_warn("USD Scene Review: owned timeline is still referenced after context cleanup.")
-        _RETAINED_OWNERS.discard(self)
+            self._window.destroy()
+            self._window = None
+        # Kit can stop advancing asyncio during app shutdown. The child runs its
+        # own loop, so bounded synchronous IPC confirms its normal exit first.
+        if not self._viewer.shutdown_sync():
+            carb.log_error('USD Scene Review shutdown failed: ' + self._viewer.error)
+        # Native work is entirely in the child and now closed or contained. Do
+        # not let stale host waiters mutate the durable manager after reload.
+        if self._task and not self._task.done():
+            self._task.cancel()

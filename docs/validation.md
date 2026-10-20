@@ -1,6 +1,94 @@
 # Validation status
 
-## Windows Isaac Sim 4.5
+## Current lifecycle investigation (2026-10-20)
+
+Windows 11 Pro 25H2 / RTX 3060 12 GiB / driver 610.62 is healthy at read-only
+startup checks. Existing Isaac Sim 4.5.0-rc.36, Kit 106.5.0, Python 3.10.15,
+OpenUSD 22.11 were used. No driver/runtime installation, reboot or security change.
+
+The earlier named review-context design failed real full-app teardown with
+`0xc0000005` at `omni.usd.dll+0x86d60`. Project-free controls also failed after
+engine release, reference cleanup and delayed updates. Retaining that context until
+normal application shutdown also failed. Those results supersede any historical
+claim below that successful buttons alone establish safe cleanup.
+
+The candidate architecture keeps the host comparison UI and creates **no host review
+context/timeline/viewport**. A separate Kit process owns its default context. It starts
+suspended, joins an owned Windows Job, then resumes; IPC pins compared hashes and
+requires ordered commands, a preservation receipt and actual exit code 0. Host disable
+and quit use bounded synchronous cleanup, so host event-loop progress is unnecessary.
+Kit 106 shader lookup also requires the SDK working directory; mutable run data remains
+in a separate private directory supplied explicitly. Missing shader errors and a
+Python import-scope startup error were detected and corrected during integration.
+
+Completed checks:
+
+- CPU: 89 tests run, zero failures/errors, two symlink privilege-related skips. Real
+  Windows tests confirm immediate descendant containment, failed Job assignment
+  retaining ownership, and synchronous graceful shutdown without host asyncio.
+  Protocol tests cover stale identities, timeout/nonzero exit, failure acknowledgement,
+  manifest pinning and unconfirmed termination retaining the owner. These are not GUI proof.
+- Four actual CLI processes created two synthetic snapshots and repeated comparisons.
+  JSON/HTML were byte-identical, two changes/one parent group matched, source hashes
+  were unchanged. Project-only ZIP tests passed and include worker/engine sources.
+- Two early standalone default-context worker prototypes rendered/closed cycles and
+  exited 0 with `fastShutdown=false`; one switched the saved assembly A/B/A and framed
+  its rack. These prototypes were not integrated extension acceptance.
+- The final synthetic **full Isaac app** feature run passed actual native Compare,
+  row filtering/search/selection, A/B/A framing, real captured lit geometry, close/reopen,
+  disable/re-enable, default stage text/dirty/selection/time and snapshot preservation.
+  Four integrated workers, including one closed by host shutdown while active, each
+  produced preservation receipts and exited 0 normally. The synthetic image was
+  inspected locally. A framing response alone was not treated as render evidence.
+
+**FAILED / blocked:** after those checks and worker exits, the full Isaac host crashed
+in `omni.anim.navigation.core.plugin.dll+0x18014` (`0xc0000005`) during normal SDK
+shutdown. This is a different module from the named-context fault. The overall full-app
+run is **failed**, even though its feature-check JSON says passed. Two normal integrated
+full-app exits have **not** been achieved. A project-free full-host control, with the review extension never enabled, also
+crashed at the same module/offset. This establishes a baseline SDK-host failure in
+this installed build; it does not identify the DLL's internal cause. See the terminal
+qualification note below. No fast-shutdown setting masks the outcome.
+
+Earlier integration attempts are failures: missing capture output, startup timeout from
+an import-scope error, and absent SDK-relative RTX shaders. They are not clean-exit or
+render passes. Dedicated failed test processes/report dialogs were ownership-checked
+before being stopped. Crash report dialogs had upload disabled; local raw dumps/logs
+and private assembly images are not published.
+
+**Not qualified:** production stress, arbitrary assemblies/resolvers, renderer modes
+other than the tested synchronous mode, live robot/ROS sessions, host shutdown in every
+native attach/frame/close interleaving, newer SDKs, animation viewport, clash, ghost or
+AI-agent behavior. Source bundles must remain frozen. Full-application normal-exit
+failure remains a merge/readiness blocker; code-review approval is not runtime approval.
+
+See [contribution candidates](contribution-candidates.md) for draft own-repo work,
+conditional Apache-licensed source contributions, and separate proprietary SDK reports.
+No external issue or PR was submitted.
+
+### Terminal qualification
+
+The final saved static assembly run used the same 4.5/106.5 SDK in a **minimal Kit
+host**, not the full Isaac app. It exercised 183 changed prims with 174 inherited-only
+rows collapsed to 9 direct rows, actual row selection and A/B/A rack framing, a real
+captured rack image inspected locally, absent-prim refusal, disable while the worker
+was still starting, re-enable and host quit with a viewer active. The host exited 0
+normally and all four workers had matching preservation receipts and exit 0. Original
+three source files and all A/B/control/active bundle file hashes remained unchanged.
+The private assembly image and raw machine data remain local. The public screenshot
+is synthetic geometry only.
+
+A second independent minimal synthetic run also passed: 34 acceptance checks, host
+exit 0 and four worker exits 0, with `fastShutdown=false`. The factory run passed
+33 checks. Both independent minimal runs reached terminal process outcomes; no
+validation Kit process or crash-report dialog remained at the final process audit. Minimal-host
+results do not turn the full Isaac host failure into a pass. Full app normal-exit
+qualification remains blocked by the extension-free baseline fault. SDK graphics-object
+reference warnings can occur even on exit 0; leak freedom and stress stability are not
+claimed. Startup/attach/frame/close shutdown interleavings beyond the listed cases are
+not exhaustively tested.
+
+## Historical Windows baseline before full-app lifecycle investigation
 
 The selected Windows target was checked on Windows 11 Pro 25H2, build 26200.9457,
 Ryzen 7 5800X (8 cores / 16 threads), about 80 GiB RAM, RTX 3060 with 12 GiB VRAM,
