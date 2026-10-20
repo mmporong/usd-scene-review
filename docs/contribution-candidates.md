@@ -4,6 +4,26 @@ Research checked: 2026-10-20. This is a draft work list, not a submission record
 
 ## Own repository
 
+### Current disposition after the approved visual baseline
+
+Items 1-4 below are implemented in draft PR #1, not new implementation candidates.
+They now include isolated native review, normalized illumination, readable right-side
+evidence, local human metadata and the user-approved green/lime old-pose helper with
+an actual right-to-left demo. Historical wording below describes each original scope.
+The capture-metrics import defect is fixed and retested without changing those visuals;
+current terminal results belong in [validation.md](validation.md).
+
+Item 5 (license) remains a maintainer decision. Items 6-8 are parked external research /
+vendor candidates: no new upstream validation, submission, runtime upgrade or repeated
+proprietary crash loop is authorized by this stabilization. The full-host baseline
+crash remains a support blocker, not an actionable source-code fix identified here.
+No current PR comments/reviews or CI results were present at the read-only check.
+
+The next bounded implementation milestone is a minimal-Kit launch preset using the
+existing isolated route and a public synthetic A/B example, with one documented local
+launch/close smoke check. It should not broaden the renderer/geometry feature set or
+claim full Isaac qualification. This milestone is proposed, not started here.
+
 Target: [mmporong/usd-scene-review](https://github.com/mmporong/usd-scene-review). Proposed items can share a focused compatibility PR where their tests and ownership changes belong together. No merge readiness is implied.
 
 ### 1. Isolate native rendering from the host application
@@ -28,7 +48,7 @@ Target: [mmporong/usd-scene-review](https://github.com/mmporong/usd-scene-review
 - **Evidence:** a bounded saved static assembly produced 183 changed paths, including 174 propagated descendants of one moved parent. Its semantic checks matched the expected paths; 162 configured policy results were unknown because the matrices were nonrigid/scaled. These are limitations to explain, not passing clearance checks.
 - **Proposed change / target:** group parent propagation, add search and inherited-motion filtering, and show a concise summary with row navigation. Keep observed differences separate from rule verdicts, with specific unknown reasons. Preserve reset-transform boundaries and stable prim-path selection.
 - **Tests:** synthetic parent/child and reset-transform cases, search/filter visibility, row selection and native framing, nonrigid/active-state unknown messages, deterministic offline reports, and no-change input.
-- **Status / blocker:** implemented; actual native search/filter/result selection and A/B framing passed. Production-scale usability remains unqualified. This adds no collision, ghost overlay, intent inference, or AI-agent claim. See [support.md](support.md).
+- **Status / blocker:** implemented; actual native search/filter/result selection and A/B framing passed. Production-scale usability remains unqualified. The separate bounded static ghost is now implemented; collision, intent inference and AI agents remain absent. See [support.md](support.md).
 
 ### 4. Publish reproducible validation evidence with the compatibility change
 

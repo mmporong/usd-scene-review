@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import time
 import traceback
+from capture_metrics import mean_rgb_difference
 
 import omni.ext
 import omni.kit.app
@@ -197,9 +198,7 @@ class Probe(omni.ext.IExt):
             check('ghost capture settled', reply['display']['capture']['stable'])
             shutil.copyfile(client.directory / 'viewport.png', OUT / 'ghost-on.png')
             shutil.copyfile(client.directory / 'review.png', OUT / 'ghost-evidence-ui.png')
-            from PIL import Image, ImageChops, ImageStat
-            with Image.open(OUT / 'ghost-off.png') as off, Image.open(OUT / 'ghost-on.png') as on:
-                difference = sum(ImageStat.Stat(ImageChops.difference(off.convert('RGB'), on.convert('RGB'))).mean)/3
+            difference = mean_rgb_difference(OUT / 'ghost-off.png', OUT / 'ghost-on.png')
             check('ghost changes actual renderer pixels', difference>.01)
             cleared = await client.frame(target, ghost=False)
             check('ghost toggle clears geometry', cleared['display']['ghost']['status']=='off')

@@ -1,5 +1,44 @@
 # Validation status
 
+## Stabilization of the approved visual baseline (2026-10-20)
+
+The user-approved green/lime helper, right-to-left demo, right evidence panel and
+published GIF remain unchanged. The GIF SHA-256 remains
+`adc50cd1c7ef2c1c17d3efb7ba51865436cda7b5f8c6d75c19714d520a6ba5fe`.
+
+The auxiliary recorder's missing Image import is resolved by a shared
+`tools/capture_metrics.py`, imported before measurement and copied beside the native
+probe by the launcher. Both the checked-in probe and repaired factory recorder use it.
+It rejects image-size mismatches, handles zero opaque baselines without inventing a
+ratio, closes image handles, and records the exploratory quarter target as explicitly
+non-gating. Pillow is declared only in the optional test extra; the qualified installed
+SDK already provides it. No packages or runtimes were installed or upgraded.
+
+Final-code results:
+
+- 110 CPU tests: zero failures/errors; two Windows symlink-privilege skips.
+- Checked-in packaged GUI acceptance: 65 checks passed, host exit 0 and four worker
+  exits 0, including active-viewer host quit and source/default-stage preservation.
+- Repaired auxiliary factory recorder: 23 checks passed, host/worker exit 0. Actual
+  off/faint/wire-only/opaque images, right-to-left projection, negative delta,
+  camera equality, review-summary refresh, snapshot preservation and graceful close
+  completed end-to-end. This supersedes the previous missing-import probe failure;
+  the historical failure below remains recorded.
+- Whole-frame contrast ratio was 0.457802 (faint deviation 1.263760 byte, opaque
+  2.760496). The exploratory 25% target remains unmet, recorded as false with
+  `acceptance_gate=false`. The approved look was not altered to chase that metric.
+- Read-only PR inspection found no comments, reviews or CI checks. Independent code
+  and architecture reviews approved this scoped tooling change. No product renderer,
+  UI, source scene or approved media changed; original saved-scene hashes still match.
+
+Release boundaries remain: full Isaac normal shutdown is unqualified because of the
+previously reproduced vendor baseline fault, and the project license is undecided.
+No vendor issue was submitted and no full-host crash loop, runtime/driver upgrade or
+security change was attempted. The contrast target is a disclosed measurement, not
+a release blocker. Candidate disposition is reconciled in contribution-candidates.md.
+
+Earlier entries below retain their historical results and limitations.
+
 ## Current green/lime hologram and reversed demo (2026-10-20)
 
 The dense blue/transmission helper is superseded by 0.2% single-sided lime fractional

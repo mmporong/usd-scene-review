@@ -1,5 +1,14 @@
 # Implementation plan and acceptance
 
+Current status: the core, isolated minimal-Kit review, static green/lime old-pose helper,
+right-side evidence and local human metadata are implemented and tested. The visual
+baseline is user-approved. The current bounded work stabilizes capture tooling and
+reconciles evidence; it does not redesign visuals or add features. Full Isaac normal
+shutdown remains blocked by the reproduced baseline SDK fault; license is undecided.
+See [validation.md](validation.md) and the current disposition in
+[contribution-candidates.md](contribution-candidates.md). The initial outcome below is
+historical, not the latest GUI status.
+
 1. Establish this scope, prior-art links and validation boundaries before implementation.
 2. Implement strict local snapshot bundles and manifest integrity validation. Root-equal/dependency-different, missing dependency and changed bundle must be tested.
 3. Implement authored/effective comparison, transform/active/visibility observations and parent movement grouping. Test masked opinions, inactive versus removed, reset stacks, equivalent rotation and configuration mismatch.

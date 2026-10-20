@@ -62,6 +62,7 @@ version="0.1.0"
 name="probe"
 ''', encoding='utf-8')
     shutil.copyfile(Path(__file__).with_name('kit_native_probe.py'), runner / 'probe.py')
+    shutil.copyfile(Path(__file__).with_name('capture_metrics.py'), runner / 'capture_metrics.py')
     app = root / 'validation.kit'
     app.write_text('''[package]
 title="USD Scene Review Isolated Validation"
