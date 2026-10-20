@@ -458,13 +458,16 @@ The versioned project-only candidate adds existing-SDK diagnostics, checksum ver
 new-workspace public synthetic sample generation, compare/export, a minimal Kit launcher,
 and English/Korean quick starts. No runtime or vendor assets are bundled or installed.
 
-- Windows SDK CPU: 116 tests, zero failures, two symlink privilege skips.
+- Windows SDK CPU: 117 tests, zero failures, two symlink privilege skips.
 - Packaged native extension regression: 67 checks, host exit 0, four worker exits 0,
   including actual Save results widget, source/default-context isolation and lifecycle.
 - Fresh extracted candidate: 12 actual native smoke checks, A/B render captures,
   before-right/current-left projection and negative delta, unchanged snapshot bytes,
   matching JSON/HTML, close/reopen and normal host quit with an active owned worker.
   Host exit 0 and both worker sessions exit 0 with preservation confirmed.
+- The final archive verifies again after native exit; repeated native launches from
+  the unchanged package also passed. Runtime copying uses a validated file allowlist
+  and rechecks hashes before launch. LF/CRLF checkout differences are normalized.
 - Two same-toolchain builds are byte-identical; archive privacy/type audit excludes
   SDK binaries, MDL sources, private assets and raw logs. Existing approved GIF unchanged.
 - GPU smoke is separate from CPU CI. Human interactive/early manual window close,

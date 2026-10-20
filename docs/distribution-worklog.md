@@ -135,3 +135,37 @@ must include post-run verify and a second run from the unchanged original packag
   `01003fa832166444d4e3278601a4f62f20b87542516ccf09b25b888ed3adf921`,
   size 66,558 bytes. Earlier preview archive identities above are historical.
 - Final code follow-up is approved; terminal validation is kept separate from review.
+
+## Completed deliverable
+
+- Final reviewed archive: 66,558 bytes; SHA-256
+  `01003fa832166444d4e3278601a4f62f20b87542516ccf09b25b888ed3adf921`.
+  A second independent build is byte-identical. The exact final archive's fresh
+  extraction passed all 12 native smoke checks; host exit 0, both worker sessions
+  exit 0 with preservation confirmed. Post-native original-package verify passes.
+- Final Windows CPU rerun: 117 tests, zero failures/errors, two privilege skips.
+  The earlier root-binding regression failure is corrected and is not a pending blocker.
+- Real native extension regression remains 67 checks, host exit 0, four worker exits 0.
+  CPU CI and installed GPU results are separate; CI does not certify native rendering.
+- Known failures fixed in this task: Kit cache mutation on original extraction;
+  unfinished bootstrap work after shutdown; unlisted-directory whole-tree copying;
+  test-only default-root binding. Intermediate attempts remain historical above.
+- Never-run/unqualified: human interactive use and manual early-close during GPU
+  startup; other SDK/GPU combinations and production assemblies; full Isaac shutdown
+  (previous independently reproduced vendor crash, not retried). License choice is
+  still pending. These limits remain visible in support and quick starts.
+- All newly owned native acceptance processes reached normal terminal outcomes.
+  Unrelated existing apps/scenes were left alone. No vendor submission, merge,
+  ready-for-review transition, formal release or public archive upload was performed.
+- Next milestone: maintainer selects a license, followed by bounded human first-run
+  acceptance on the same qualified minimal Kit path before any licensed public release.
+
+## New visual request supersedes prior appearance approval
+
+The completed distribution baseline above is preserved separately. The latest user
+feedback requests visible translucent green faces/volume rather than effectively
+edge-only 0.2% faces. License remains undecided. Next work compares actual installed
+Isaac Sim 4.5 RTX material behavior, retains white background/original surrounding
+materials/fixed exposure/camera and old-right/current-left, then updates consistent
+image/GIF/package evidence. Previous distribution passes are not claimed for the new
+visual revision until revalidated.
