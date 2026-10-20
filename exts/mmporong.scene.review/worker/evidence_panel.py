@@ -20,9 +20,9 @@ class EvidencePanel:
             ui.Label(('A: before saved scene' if side=='A' else 'B: current saved scene'),height=25,
                      style={'color':0xFFBC5D0C if side=='A' else 0xFF0754C0})
             ghost=display.get('ghost',{})
-            ghost_text=('OLD A: translucent BLUE ('+str(ghost.get('count',0))+' shapes)'
+            ghost_text=('OLD A: faint LIME / thin GREEN edge cues'
                         if ghost.get('status')=='shown' else 'OLD A overlay: '+ghost.get('status','off'))
-            ui.Label(ghost_text,height=26,style={'color':0xFFBC5D0C})
+            ui.Label(ghost_text,height=26,style={'color':0xFF18752D})
             ui.Label('CURRENT B: original materials / orange bounds',height=25,style={'color':0xFF0754C0})
             if ghost.get('status')=='unsupported':rows.insert(0,('Ghost unsupported',ghost.get('reason','unknown')))
             for name,value in rows:

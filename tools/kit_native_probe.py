@@ -188,6 +188,10 @@ class Probe(omni.ext.IExt):
             shutil.copyfile(client.directory / 'viewport.png', OUT / 'ghost-off.png')
             shown = await client.frame(target, ghost=True)
             check('old A geometry ghost shown in current B', shown['display']['ghost']['status']=='shown')
+            check('faint green hologram has bounded thin wire cues', shown['display']['ghost']['opacity']==.002
+                  and 0 < shown['display']['ghost']['wire_segments'] <= 20000)
+            check('legacy RTX fractional cutout is enabled',
+                  shown['display']['lighting']['renderer_settings']['/rtx/raytracing/fractionalCutoutOpacity'] is True)
             check('ghost leaves fixed camera unchanged', shown['display']['camera']==no_ghost['display']['camera'])
             reply = await client._request('capture')
             check('ghost capture settled', reply['display']['capture']['stable'])

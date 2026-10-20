@@ -40,6 +40,7 @@ class ReviewWorker(omni.ext.IExt):
         self.ghost = None
         self.panel = None
         self.ghost_cache = {}
+        self.ghost_material_available = False
         self.display_info = {}
         self.sequence = 0
         try:
@@ -49,6 +50,7 @@ class ReviewWorker(omni.ext.IExt):
             # This process starts empty; never replace an unexpected default stage.
             if self.context.get_stage() is not None:
                 raise RuntimeError('Viewer default context was not empty')
+            self.ghost_material_available = (Path(self.config.get('sdk','')) / 'kit/mdl/core/Base/OmniPBR.mdl').is_file()
             self.report = compare(self.config['manifests']['A']['path'], self.config['manifests']['B']['path'])
             self.panel = EvidencePanel()
             self.respond('ready')
@@ -211,7 +213,8 @@ class ReviewWorker(omni.ext.IExt):
         settings = carb.settings.get_settings()
         for key, value in {'/rtx/post/histogram/enabled': False, '/rtx/post/tonemap/filmIso': 100.0,
                            '/rtx/post/tonemap/exposureTime': .02, '/rtx/post/tonemap/fNumber': 5.0,
-                           '/rtx/post/tonemap/op': 6, '/rtx/ecoMode/enabled': False}.items():
+                           '/rtx/post/tonemap/op': 6, '/rtx/ecoMode/enabled': False,
+                           '/rtx/raytracing/fractionalCutoutOpacity': True}.items():
             settings.set(key, value)
         self.snapshot = snapshot
         for layer in stage.GetUsedLayers():
@@ -237,7 +240,8 @@ class ReviewWorker(omni.ext.IExt):
         await omni.kit.app.get_app().next_update_async()
         self.lighting['renderer_settings'] = {key: settings.get(key) for key in (
             '/rtx/rendermode', '/rtx/post/histogram/enabled', '/rtx/post/tonemap/filmIso',
-            '/rtx/post/tonemap/exposureTime', '/rtx/post/tonemap/fNumber', '/rtx/post/tonemap/op')}
+            '/rtx/post/tonemap/exposureTime', '/rtx/post/tonemap/fNumber', '/rtx/post/tonemap/op',
+            '/rtx/raytracing/fractionalCutoutOpacity')}
         self.check_current()
         self.display = ReviewDisplay(stage)
         self.ghost = GhostOverlay(stage, self.display.root)
@@ -311,6 +315,12 @@ class ReviewWorker(omni.ext.IExt):
         self.display_info['review'] = dict(self.review)
         self.display_info['ghost'] = {'status': 'off', 'count': 0}
         if self.ghost_enabled and self.side == 'B':
+            if not self.ghost_material_available:
+                self.display_info['lighting'] = self.lighting
+                self.display_info['ghost'] = {'status':'unsupported','count':0,
+                    'reason':'Installed SDK OmniPBR template is unavailable; no ghost created'}
+                self.respond('framed', self.side + ': current geometry retained; old A material unsupported')
+                return
             if selected not in self.ghost_cache:
                 old = load_snapshot(self.config['manifests']['A']['path'])
                 if old.errors or verify(old):

@@ -4,7 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdPhysics
 from usd_scene_review import create_snapshot, load_snapshot, compare
-from usd_scene_review.ghost import extract, GhostOverlay
+from usd_scene_review.ghost import extract, GhostOverlay, FACE_OPACITY, wire_points
 from usd_scene_review.evidence import evidence_rows
 from usd_scene_review.preview import prepare_lighting
 
@@ -28,12 +28,27 @@ class GhostEvidenceTests(unittest.TestCase):
         stage.SetEditTarget(stage.GetSessionLayer())
         overlay = GhostOverlay(stage, Sdf.Path('/Review'))
         self.assertEqual(overlay.show(data)['count'], 2)
+        self.assertEqual(FACE_OPACITY, .002)
+        shader=stage.GetPrimAtPath('/Review/OldPoseGhost/Material/Surface')
+        self.assertAlmostEqual(shader.GetAttribute('inputs:opacity_constant').Get(), FACE_OPACITY, places=7)
+        self.assertFalse(shader.GetAttribute('inputs:enable_emission').Get())
+        self.assertEqual(shader.GetAttribute('inputs:diffuse_color_constant').Get(), Gf.Vec3f(.5,1,.12))
+        self.assertEqual(shader.GetAttribute('inputs:specular_level').Get(), 0)
+        self.assertEqual(shader.GetAttribute('info:mdl:sourceAsset').Get().path, 'OmniPBR.mdl')
+        wire_shader=stage.GetPrimAtPath('/Review/OldPoseGhost/WireMaterial/Surface')
+        self.assertEqual(wire_shader.GetAttribute('inputs:diffuseColor').Get(), Gf.Vec3f(.025,.42,.035))
+        self.assertEqual(wire_shader.GetAttribute('inputs:specularColor').Get(), Gf.Vec3f(0))
+        wire=UsdGeom.BasisCurves(stage.GetPrimAtPath('/Review/OldPoseGhost/WireCues'))
+        self.assertEqual(len(wire.GetPointsAttr().Get()), 48)
+        self.assertLess(wire.GetWidthsAttr().Get()[0], .1)
+        self.assertFalse(wire.GetPrim().HasAPI(UsdPhysics.CollisionAPI))
         for i, item in enumerate(data['geometry']):
             ghost = stage.GetPrimAtPath('/Review/OldPoseGhost/Geometry_' + str(i))
             expected = UsdGeom.XformCache().GetLocalToWorldTransform(stage.GetPrimAtPath(item['source_path']))
             actual = UsdGeom.XformCache().GetLocalToWorldTransform(ghost)
             self.assertTrue(Gf.IsClose(expected, actual, 1e-8))
             self.assertFalse(ghost.HasAPI(UsdPhysics.CollisionAPI))
+            self.assertFalse(UsdGeom.Gprim(ghost).GetDoubleSidedAttr().Get())
             self.assertFalse(ghost.GetReferences().GetPrim().HasAuthoredReferences())
         overlay.clear()
         self.assertFalse(stage.GetPrimAtPath('/Review/OldPoseGhost'))
@@ -79,6 +94,13 @@ class GhostEvidenceTests(unittest.TestCase):
         copied = UsdGeom.Mesh(stage.GetPrimAtPath('/Review/OldPoseGhost/Geometry_0'))
         self.assertEqual(copied.GetNormalsInterpolation(), 'constant')
         self.assertEqual(copied.GetOrientationAttr().Get(), 'leftHanded')
+        self.assertEqual(len(wire_points(data)), 6)
+        from unittest.mock import patch
+        with patch('usd_scene_review.ghost.MAX_WIRE_SEGMENTS', 2):
+            self.assertIsNone(wire_points(data))
+            refused=overlay.show(data)
+            self.assertEqual(refused['status'], 'unsupported')
+            self.assertFalse(stage.GetPrimAtPath('/Review/OldPoseGhost'))
         prepare_lighting(stage, normalized=True)
         self.assertEqual(light.GetIntensityAttr().Get(), 0)
         self.assertEqual(stage.GetPrimAtPath('/_UsdSceneReviewLight').GetAttribute('inputs:intensity').Get(), 1000)

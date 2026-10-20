@@ -83,7 +83,7 @@ metadata is not authorization or operational safety approval. See support.md for
 The isolated child also shows a concise right evidence panel with the selected path,
 before/after/delta, motion cause, policy/unknown and separate human status. Reload review
 refreshes the child status. Enable **Show old A** to place the selected static Cube/Mesh
-subtree at its old complete world transform as translucent blue visual-only helpers in B.
+subtree at its old complete world transform as faint lime visual-only helpers in B.
 Unsupported geometry produces a reason instead of a partial overlay. Helpers are cleared
 on selection/toggle/revision/close and have no copied physics or source composition.
 

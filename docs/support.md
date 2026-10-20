@@ -59,7 +59,7 @@ Inactive or unobserved transforms are unavailable, not identity transforms.
 
 The isolated viewer preserves original geometry, material/subset bindings, display
 colors, active and visibility state. Owned anonymous helper curves receive blue A
-or orange B materials; optional old-A helper geometry receives its own translucent blue material. The previous gray-context/material-replacement approach is
+or orange B materials; optional old-A helper geometry receives its own faint lime material. The previous gray-context/material-replacement approach is
 superseded. The default camera fits union bounds of both complete saved scenes. An
 explicit Focus selected checkbox uses selected bounds instead. Missing/unbounded
 selected geometry clears its outline and refuses that selection; whole-scene framing
@@ -110,7 +110,7 @@ networks, physics/collision APIs or simulation objects are copied.
 
 Each supported Cube/Mesh retains its local shape and exactly one complete old world
 matrix, including ancestor rotation/nonuniform scale/reset-stack effects. Mesh topology,
-subdivision, orientation, double-sidedness, normals and crease/corner attributes are
+subdivision, orientation, normals and crease/corner attributes are
 allowlisted. Guide-purpose geometry is excluded. Instances/prototypes/point instancers,
 unloaded, animated, skeleton/deformer-bound and displaced geometry are unsupported.
 An unsupported selected subtree produces an explicit reason and no partial ghost.
@@ -141,3 +141,28 @@ Diagnostic capture advances the child renderer in 32-update batches, compares ac
 `stable=false` is not convergence evidence. This is a bounded practical settling test,
 not a proof of physical render convergence. Tests require the flag before claiming
 stable images. Camera pose, lens and clipping remain shared across A/B.
+
+
+## Green/lime hologram style
+
+Old A uses 0.2% single-sided lime faces through the installed SDK's OmniPBR cutout
+template, with opacity threshold zero, specular zero and emission disabled. The owned
+legacy RTX child enables `/rtx/raytracing/fractionalCutoutOpacity`; PreviewSurface
+transmission is not used for the ghost faces. No NVIDIA template files are copied or
+distributed. This route requires the already-qualified installed SDK and is not a
+generic USD render guarantee. Current source material networks are never replaced.
+The fractional-cutout setting applies to all opacity materials in the owned viewer;
+it stays identical across A/B and ghost-off/control captures. This is review rendering,
+not preservation of the author's complete renderer configuration. A missing installed
+OmniPBR template produces an explicit unsupported ghost without creating helpers.
+
+Thin opaque green BasisCurves show Cube edges or Mesh control-cage edges, not an exact
+subdivision silhouette. Width is 0.0012 times the selected old geometry diagonal in
+stage units (minimum 1e-6). The total is capped at 20,000 segments before helper creation;
+larger cages are explicitly unsupported. Curves and surfaces have no emissive bloom.
+Depth occlusion remains real, and coincident cues can overlap; this is a visual review
+style rather than a physically meaningful translucent material or collision verdict.
+
+The configuration follows NVIDIA's documented
+[OmniPBR opacity parameters](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/templates/parameters/OmniPBR_Opacity.html)
+and [legacy RTX fractional-cutout setting](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/rtx-renderer_rt_legacy.html).

@@ -7,6 +7,34 @@ MESH_ATTRIBUTES = ('points','faceVertexCounts','faceVertexIndices','subdivisionS
                    'doubleSided','holeIndices','creaseIndices','creaseLengths','creaseSharpnesses',
                    'cornerIndices','cornerSharpnesses','interpolateBoundary',
                    'faceVaryingLinearInterpolation','triangleSubdivisionRule','normals','extent')
+FACE_OPACITY = .002
+FACE_COLOR = (.5, 1.0, .12)
+WIRE_COLOR = (.025, .42, .035)
+MAX_WIRE_SEGMENTS = 20000
+
+
+def wire_points(data):
+    """Cube edges and Mesh control-cage edges, not a computed silhouette."""
+    result=[]
+    for item in data['geometry']:
+        matrix=Gf.Matrix4d(*[x for row in item['world'] for x in row])
+        attrs=item['attributes']
+        if item['type']=='Cube':
+            size=float(attrs['size'][1])/2
+            points=[Gf.Vec3d(*[size if n & (1 << i) else -size for i in range(3)]) for n in range(8)]
+            edges=[(n,n^(1<<axis)) for n in range(8) for axis in range(3) if n<(n^(1<<axis))]
+        else:
+            points=attrs['points'][1];indices=attrs['faceVertexIndices'][1];edges=set();start=0
+            for count in attrs['faceVertexCounts'][1]:
+                face=indices[start:start+count];start+=count
+                for a,b in zip(face,list(face[1:])+[face[0]]):
+                    edges.add(tuple(sorted((int(a),int(b)))))
+                    if len(edges)>MAX_WIRE_SEGMENTS:return None
+            edges=sorted(edges)
+        if len(result)//2+len(edges)>MAX_WIRE_SEGMENTS:return None
+        for a,b in edges:
+            result.extend((matrix.Transform(Gf.Vec3d(*points[a])),matrix.Transform(Gf.Vec3d(*points[b]))))
+    return result
 
 
 def extract(snapshot, selected, *, max_prims=512, max_points=200000):
@@ -81,28 +109,59 @@ class GhostOverlay:
             raise ValueError('Ghost overlay requires the owned anonymous session')
     def clear(self):
         if self.stage.GetPrimAtPath(self.root):self.stage.RemovePrim(self.root)
-    def show(self,data,opacity=.22):
+    def show(self,data,opacity=FACE_OPACITY):
         self.clear()
         if not math.isfinite(opacity) or not 0<opacity<=1:raise ValueError('Invalid ghost opacity')
         if data['status']!='ready':return {'status':'unsupported','reason':data['reason'],'count':0}
+        wires=wire_points(data)
+        if wires is None:return {'status':'unsupported','reason':'Old A wire cues exceed 20,000 segments','count':0}
         UsdGeom.Scope.Define(self.stage,self.root)
         material=UsdShade.Material.Define(self.stage,self.root.AppendChild('Material'))
         shader=UsdShade.Shader.Define(self.stage,material.GetPath().AppendChild('Surface'))
-        shader.CreateIdAttr('UsdPreviewSurface')
-        shader.CreateInput('diffuseColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(.015,.28,1))
-        shader.CreateInput('opacity',Sdf.ValueTypeNames.Float).Set(opacity)
-        shader.CreateInput('opacityThreshold',Sdf.ValueTypeNames.Float).Set(0)
-        shader.CreateInput('roughness',Sdf.ValueTypeNames.Float).Set(.8)
-        material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(),'surface')
+        # Use the installed SDK's non-refractive cutout template. The qualified
+        # RTX PreviewSurface route darkened overlapping ghosts in real captures.
+        shader.SetSourceAsset(Sdf.AssetPath('OmniPBR.mdl'),'mdl')
+        shader.SetSourceAssetSubIdentifier('OmniPBR','mdl')
+        shader.CreateInput('diffuse_color_constant',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*FACE_COLOR))
+        shader.CreateInput('enable_opacity',Sdf.ValueTypeNames.Bool).Set(True)
+        shader.CreateInput('opacity_constant',Sdf.ValueTypeNames.Float).Set(opacity)
+        shader.CreateInput('opacity_threshold',Sdf.ValueTypeNames.Float).Set(0)
+        shader.CreateInput('reflection_roughness_constant',Sdf.ValueTypeNames.Float).Set(1)
+        shader.CreateInput('specular_level',Sdf.ValueTypeNames.Float).Set(0)
+        shader.CreateInput('enable_emission',Sdf.ValueTypeNames.Bool).Set(False)
+        shader.CreateOutput('out',Sdf.ValueTypeNames.Token)
+        material.CreateSurfaceOutput('mdl').ConnectToSource(shader.ConnectableAPI(),'out')
         for i,item in enumerate(data['geometry']):
             path=self.root.AppendChild('Geometry_'+str(i))
             geom=UsdGeom.Cube.Define(self.stage,path) if item['type']=='Cube' else UsdGeom.Mesh.Define(self.stage,path)
             for name,(kind,value) in item['attributes'].items():geom.GetPrim().CreateAttribute(name,kind).Set(value)
+            # Avoid accumulating both front and back faces of each old solid.
+            geom.CreateDoubleSidedAttr(False)
             if item['normals_interpolation']:geom.SetNormalsInterpolation(item['normals_interpolation'])
             # Local geometry + exactly one complete A world matrix; no inherited
             # source ancestor transform, reset-stack inference or TRS decomposition.
             matrix=Gf.Matrix4d(*[x for row in item['world'] for x in row])
             UsdGeom.Xformable(geom).MakeMatrixXform().Set(matrix)
             UsdShade.MaterialBindingAPI.Apply(geom.GetPrim()).Bind(material)
+        wire_material=UsdShade.Material.Define(self.stage,self.root.AppendChild('WireMaterial'))
+        wire_shader=UsdShade.Shader.Define(self.stage,wire_material.GetPath().AppendChild('Surface'))
+        wire_shader.CreateIdAttr('UsdPreviewSurface')
+        wire_shader.CreateInput('diffuseColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*WIRE_COLOR))
+        wire_shader.CreateInput('roughness',Sdf.ValueTypeNames.Float).Set(1)
+        wire_shader.CreateInput('useSpecularWorkflow',Sdf.ValueTypeNames.Int).Set(1)
+        wire_shader.CreateInput('specularColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(0))
+        wire_shader.CreateInput('emissiveColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(0))
+        wire_material.CreateSurfaceOutput().ConnectToSource(wire_shader.ConnectableAPI(),'surface')
+        lo=Gf.Vec3d(*[min(p[i] for p in wires) for i in range(3)])
+        hi=Gf.Vec3d(*[max(p[i] for p in wires) for i in range(3)])
+        width=max((hi-lo).GetLength()*.0012,1e-6)
+        curves=UsdGeom.BasisCurves.Define(self.stage,self.root.AppendChild('WireCues'))
+        curves.CreateTypeAttr('linear');curves.CreateWrapAttr('nonperiodic')
+        curves.CreateCurveVertexCountsAttr([2]*(len(wires)//2))
+        curves.CreatePointsAttr([Gf.Vec3f(*p) for p in wires]);curves.CreateWidthsAttr([width])
+        curves.SetWidthsInterpolation('constant')
+        UsdShade.MaterialBindingAPI.Apply(curves.GetPrim()).Bind(wire_material)
         return {'status':'shown','count':len(data['geometry']),'opacity':opacity,
-                'reason':'Blue old A geometry; current B retains original materials. Visual only; no physics copied.'}
+                'wire_segments':len(wires)//2,'wire_width_stage_units':width,
+                'technique':'faint lime fractional-cutout single-sided faces + thin green control-cage edges; no emission',
+                'reason':'Old A hologram cues; current B retains original materials. Visual only; no physics copied.'}

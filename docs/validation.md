@@ -1,5 +1,47 @@
 # Validation status
 
+## Current green/lime hologram and reversed demo (2026-10-20)
+
+The dense blue/transmission helper is superseded by 0.2% single-sided lime fractional
+cutout faces and thin green Cube/Mesh control-cage edges, with emission/specular off.
+The installed SDK supplies OmniPBR; no vendor template files are distributed. The
+owned viewer's cutout setting is identical across A/B and off/control captures.
+
+Private copies reverse the actual previous snapshot roles: old A is on the RIGHT at
+(0, 0.2, 0)m, current B is LEFT at (0, 0, 0)m; delta (0, -0.2, 0)m. Selected geometry
+centers project horizontally to +0.011854 and -0.012199 in the same camera. Geometry,
+manifest/change identity and comparison values agree; no pixel mirroring/relabeling.
+
+- Final CPU: 107 tests, zero failures/errors, two symlink-privilege skips.
+- Final packaged GUI acceptance: 65 checks passed, host exit 0 and four worker exits
+  0. Actual green pixels, cutout readback, bounded wire cues, A/B/camera, review-panel
+  metadata, close/reopen, disable/re-enable, active-viewer host quit and host-stage /
+  snapshot preservation passed. Original materials remain; original hashes match.
+- Five factory UI/viewport pairs include off, faint faces, wire-only and opaque
+  controls, all with stable capture flags. The auxiliary recorder passed 12 checks
+  before a missing Image import in post-capture statistics ended it with exit 1.
+  That probe is FAILED, not a native SDK crash or an overall acceptance pass. A
+  separate saved-frame/OpenUSD check verified all five captures, signed values,
+  camera projection, snapshot/private-copy bytes and original saved-scene hashes.
+- Actual and decoded images were inspected: current/context materials remain visible,
+  old-position cues are thin green, and evidence text is readable. The GIF has three
+  native states (A, B off, B plus ghost), 30 frames / six seconds at 1560x860. Only
+  outer desktop margin is cropped; private paths/assets/logs are excluded.
+
+The exploratory quarter-of-opaque whole-frame deviation target was NOT met. Against
+wire-only, faint-face mean RGB deviation is 1.28583 byte versus opaque 2.77168, ratio
+0.463916. This metric is not shader alpha and does not isolate temporal lighting/edge
+effects. No 25% contrast-reduction, photometric or shadow-free claim follows. Earlier
+candidate controls failed bounded settling/combined-edge checks; they are not passes.
+Declared face opacity is 0.002; thin edge cues deliberately remain opaque with depth
+occlusion. This is a visual review style, not a physical transparency measurement.
+
+The supplied Library reference could not be materialized: its supported helper needs
+unavailable Windows extended attributes, and no local file was created. Previously
+published GIF pixels were inspected instead, as permitted. Full Isaac baseline shutdown
+remains separately FAILED/BLOCKED and was not rerun. No drivers, security settings,
+runtimes, original scenes or unrelated apps changed. Earlier sections are historical.
+
 ## Current old-A overlay, evidence panel and illumination (2026-10-20)
 
 Windows 11 / RTX 3060 / installed Isaac Sim 4.5, Kit 106.5.0, Python 3.10.15,
