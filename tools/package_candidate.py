@@ -64,7 +64,9 @@ def build(destination):
     checksum=destination.with_name(destination.name+'.sha256')
     if any(p.exists() or p.is_symlink() for p in (destination,checksum)):
         raise ValueError('Use new archive and checksum destinations')
-    files=payload();audit=inspect(files)
+    # All payloads are UTF-8 text. Canonical LF makes checkout autocrlf irrelevant.
+    files={name:data.replace(b'\r\n',b'\n') for name,data in payload().items()}
+    audit=inspect(files)
     manifest={'schema':1,'version':VERSION,'files':{name:hashlib.sha256(data).hexdigest() for name,data in sorted(files.items())},'audit':audit}
     files['candidate.json']=(json.dumps(manifest,sort_keys=True,indent=2)+'\n').encode('utf-8')
     with zipfile.ZipFile(destination,'x',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as archive:

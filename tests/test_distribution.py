@@ -32,6 +32,11 @@ class DistributionTests(unittest.TestCase):
             one=builder.build(first);two=builder.build(second)
             self.assertEqual(first.read_bytes(),second.read_bytes())
             self.assertEqual(one['sha256'],two['sha256'])
+            payload=builder.payload()
+            crlf={name:data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n') for name,data in payload.items()}
+            with patch.object(builder,'payload',return_value=crlf):
+                builder.build(root/'crlf.zip')
+            self.assertEqual(first.read_bytes(),(root/'crlf.zip').read_bytes())
             self.assertEqual(builder.VERSION,launcher.VERSION)
             extracted=root/'clean extracted path';extracted.mkdir()
             with zipfile.ZipFile(first) as archive:

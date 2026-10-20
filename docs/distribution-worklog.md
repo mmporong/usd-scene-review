@@ -75,7 +75,7 @@ choice. Full Isaac application support remains unqualified independently of this
   The corrected candidate's active-worker host-quit GPU smoke is still running at
   this boundary; it must reach a terminal result before delivery.
 
-## Final native candidate boundary
+## Intermediate native candidate boundary (superseded)
 
 - Corrected fresh extraction: verify, sample, CLI compare and real minimal Kit smoke
   all passed. Twelve native checks passed, including actual A/B captures, matching
@@ -103,3 +103,17 @@ bytecode environment flag. That archive is superseded, not the final deliverable
 The launcher now copies only the already verified small project payload into private
 session/runtime before native launch. Native caches stay there. Final qualification
 must include post-run verify and a second run from the unchanged original package.
+
+## Cache isolation and reproducibility boundary
+
+- The corrected launcher materializes only the verified project payload in private
+  session/runtime. Its native smoke passed and the original package verifies again
+  after normal shutdown. No system installation or cache cleanup is needed.
+- GitHub CPU CI for implementation commit 34b01ff passed both push/PR events.
+- Canonical LF payload serialization now removes Git autocrlf differences. A regression
+  builds LF/CRLF variants and requires byte-identical archives. All six distribution
+  tests passed after this bounded packaging change.
+- Final portable archive identity (supersedes all earlier preview archives):
+  `b5e002a139d5bf687ee6a141a816ebb182c8419527511d655802deb70465fd09`,
+  66,442 bytes. Independent rebuild is byte-identical. Final native repeated-use
+  acceptance remains pending at this checkpoint.
