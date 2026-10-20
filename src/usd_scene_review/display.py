@@ -82,19 +82,11 @@ class ReviewDisplay:
             root = Sdf.Path(str(root)+'_')
         self.root = root
         UsdGeom.Scope.Define(stage, root)
-        self.materials = {name: self.material(name, color) for name, color in
-                          [('Context', (.62, .65, .69)), ('A', COLORS['A']), ('B', COLORS['B'])]}
-        self.geometry = []
-        # Block original bindings in this session only, including ancestor,
-        # collection, purpose and subset bindings, before applying review colors.
-        for prim in list(stage.Traverse()):
-            if prim.GetPath().HasPrefix(root):
-                continue
-            for relationship in prim.GetRelationships():
-                if relationship.GetName().startswith('material:binding'):
-                    relationship.SetTargets([])
-            if UsdGeom.Gprim(prim):
-                self.geometry.append(prim)
+        self.materials = {name: self.material(name, COLORS[name]) for name in ('A', 'B')}
+        # Source geometry, bindings, display colors, visibility and active state
+        # remain untouched. Only owned helper curves receive review materials.
+        self.geometry = [prim for prim in stage.Traverse()
+                         if not prim.GetPath().HasPrefix(root) and UsdGeom.Gprim(prim)]
         self.style(None, 'A', None)
 
     def material(self, name, color):
@@ -109,15 +101,7 @@ class ReviewDisplay:
 
     def style(self, selected, side, bounds):
         path = Sdf.Path(selected) if selected else None
-        count = 0
-        for prim in self.geometry:
-            chosen = path is not None and prim.GetPath().HasPrefix(path)
-            material = self.materials[side if chosen else 'Context']
-            api = UsdShade.MaterialBindingAPI.Apply(prim)
-            api.Bind(material, UsdShade.Tokens.strongerThanDescendants)
-            if api.ComputeBoundMaterial()[0].GetPath() != material.GetPath():
-                raise RuntimeError('Review material override was not confirmed')
-            count += int(chosen)
+        count = sum(path is not None and prim.GetPath().HasPrefix(path) for prim in self.geometry)
         outline = self.root.AppendChild('SelectedWorldBounds')
         if self.stage.GetPrimAtPath(outline):
             self.stage.RemovePrim(outline)
@@ -132,7 +116,8 @@ class ReviewDisplay:
             curves.SetWidthsInterpolation(UsdGeom.Tokens.constant)
             UsdShade.MaterialBindingAPI.Apply(curves.GetPrim()).Bind(self.materials[side])
         return dict(selected_geometry=count, outline='dashed' if side == 'A' else 'solid',
-                    label='selected world AABB bounds', color=list(COLORS[side]))
+                    label='selected world AABB bounds only; original scene appearance', color=list(COLORS[side]),
+                    appearance='original', source_geometry=len(self.geometry))
 
     def set_camera(self, spec, viewport):
         path = self.root.AppendChild('Camera')

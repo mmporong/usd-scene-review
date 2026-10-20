@@ -150,3 +150,50 @@ class ViewerLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(client.acknowledge_failure())
         with self.assertRaises(RuntimeError):
             await self.view(client)
+
+
+class MessageReplaceTests(unittest.TestCase):
+    @unittest.skipUnless(__import__('os').name == 'nt', 'Windows sharing semantics')
+    def test_transient_replace_keeps_complete_old_message_and_retries(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'response.json';write_message(path,{'sequence':1})
+            original=Path.replace; calls=[]
+            def replace(pending,target):
+                calls.append(1)
+                if len(calls)==1:
+                    self.assertEqual(read_message(target),{'sequence':1})
+                    error=PermissionError('sharing');error.winerror=32;raise error
+                return original(pending,target)
+            with patch.object(Path,'replace',replace):
+                write_message(path,{'sequence':2})
+            self.assertEqual(read_message(path),{'sequence':2})
+            self.assertEqual(len(calls),2)
+
+    @unittest.skipUnless(__import__('os').name == 'nt', 'Windows sharing semantics')
+    def test_persistent_replace_failure_is_bounded_and_preserves_old_message(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'response.json';write_message(path,{'sequence':1})
+            error=PermissionError('denied');error.winerror=5
+            with patch.object(Path,'replace',side_effect=error) as replace, patch('usd_scene_review.worker_client.time.sleep'):
+                with self.assertRaises(PermissionError):write_message(path,{'sequence':2})
+            self.assertEqual(replace.call_count,101)
+            self.assertEqual(read_message(path),{'sequence':1})
+
+
+class SharedMessageReadTests(unittest.TestCase):
+    @unittest.skipUnless(__import__('os').name == 'nt', 'Windows sharing semantics')
+    def test_transient_read_access_denied_retries(self):
+        from unittest.mock import patch
+        error=PermissionError(13,'sharing')
+        with patch('usd_scene_review.worker_client._read_message_bytes',side_effect=[error,b'{"sequence":2}']):
+            self.assertEqual(read_message('owned-protocol.json'),{'sequence':2})
+
+    @unittest.skipUnless(__import__('os').name == 'nt', 'Windows sharing semantics')
+    def test_persistent_read_access_denied_is_bounded(self):
+        from unittest.mock import patch
+        error=PermissionError(13,'denied')
+        with patch('usd_scene_review.worker_client._read_message_bytes',side_effect=error) as reader, patch('usd_scene_review.worker_client.time.sleep'):
+            with self.assertRaises(PermissionError):read_message('owned-protocol.json')
+        self.assertEqual(reader.call_count,101)

@@ -62,14 +62,20 @@ mock protocol tests are not rendering evidence. Do not publish private runtime l
 
 ## Reading the visual difference
 
-Select a changed row, then View A / View B. The persistent legend and actual-view label
-identify blue/dashed before and orange/solid after. Selected geometry is recolored in
-an anonymous session; context is gray. The same selected path uses an identical camera,
-lens and clipping across A/B. Outlines represent world AABB bounds, not mesh edges or
-collision. A refusal clears the previous highlight. One revision is rendered at a time.
+A is the saved scene before the change; B is the saved scene after it. A change can be
+intentional. Default framing retains the whole factory and its original geometry and
+material context. Blue dashed A / orange solid B outlines identify selected world
+AABB bounds only. Focus selected is an explicit optional close-up; switching it off
+restores whole-scene context even for absent/unbounded selections. One revision is
+rendered at a time, with matching A/B camera/lens/clipping within the chosen mode.
 
 The light panel's before/after/delta table comes from the compared snapshots, including
 unchanged local pose for parent-propagated children. Local coordinates are parent-frame
 coordinates; meters use declared stage units. Rotation is rigid-only quaternion plus
 shortest angle. Axis magnitudes are unsigned and do not recover authored signed scale.
-Raw comparison evidence remains available in the collapsed panel.
+
+Expand Human review metadata to choose a separate `.jsonl` log and explicitly save an
+intentional/needs-review disposition with a reason. Reload review restores exact-match
+history. Decisions bind A/B hashes and full change identity and never alter/hide evidence,
+policy failures or unknowns. Default UI policy is not evaluated; this local unverified
+metadata is not authorization or operational safety approval. See support.md for limits.

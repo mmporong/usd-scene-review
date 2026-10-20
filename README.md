@@ -9,19 +9,34 @@ Read-only semantic review of two local OpenUSD scene revisions, with a separate 
 ![Actual static A/B switching, changed-rack selection and framing](examples/usd-scene-review-demo.gif)
 
 Actual light review-panel and isolated-viewport captures from minimal Kit using the
-existing Windows Isaac Sim 4.5 SDK. Before A uses **blue geometry and dashed world
-bounds**; after B uses **orange geometry and solid bounds**, with the same A/B camera.
-Context geometry is gray. The actual panel shows before/after/delta positions in stage
-units and meters, rigid quaternion/angle, unsigned axis magnitudes, active/visibility,
-and direct versus ancestor-propagated movement. The selected rack moves 0.2 m; its
-selected descendant keeps its local pose while its world position changes by 0.2 m.
+existing Windows Isaac Sim 4.5 SDK. **A means the saved scene before the change;
+B means the saved scene after the change. A difference is not automatically a defect.**
 
-Six genuine capture pairs are arranged side by side; private input paths are cropped.
-This 14-second GIF contains 70 frames at 1920 x 1000. It shows one revision at a time:
-no ghost overlay, collision verdict or AI. Outlines are selected world AABB bounds,
-not exact object edges. Styling/camera helpers live only in an anonymous review
-session. Only the rendered demonstration is included, without source assets or raw
-logs. Full Isaac host normal shutdown remains blocked; see [validation](docs/validation.md).
+The demo starts with the whole factory and retains its original geometry and material
+colors. Blue dashed bounds mark the selected object in A; orange solid bounds mark it
+in B. Only the anonymous helper outlines are colored. Optional **Focus selected** moves
+the camera closer; the default retains the whole saved scene, even if a selected object
+is absent in one version. A/B use matching cameras within either mode.
+
+The actual panel shows before/after/delta positions in stage units and meters,
+rigid quaternion/angle, unsigned axis magnitudes, active/visibility, and direct versus
+ancestor-propagated movement. The rack moves 0.2 m; a descendant keeps its local pose
+while its world position changes by 0.2 m. The final demo review entry is explicitly
+marked as a demonstration, not operational approval.
+
+Human reviewers can mark **intentional** or **needs review**, with a required reason.
+These decisions append to a separately chosen local `.jsonl` log, bound to exact A/B
+manifest hashes and the prim's full change evidence. Input/change differences do not
+inherit prior approval. Detected differences, independent policy failures and unknowns
+remain visible and unchanged. This is local unverified review metadata, not multi-user
+authorization or a safety sign-off; see [support](docs/support.md#local-human-review-metadata).
+
+Genuine UI/viewport capture pairs are arranged side by side on a light canvas; private
+input paths are omitted, and outer empty viewport margins are cropped in overview pairs.
+No scene pixels or numeric results are generated or replaced. Only one saved scene is
+rendered at a time. No ghost overlay, collision verdict or AI is claimed. Outlines are
+world AABB bounds, not exact mesh edges. Source assets and private logs are excluded.
+Full Isaac host normal shutdown remains blocked; see [validation](docs/validation.md).
 
 ## Target and checked environments
 

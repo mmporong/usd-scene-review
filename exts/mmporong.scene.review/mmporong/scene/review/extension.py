@@ -12,6 +12,7 @@ import omni.ui as ui
 from usd_scene_review import compare
 from usd_scene_review.presentation import details, summary, visible_changes
 from usd_scene_review.measurements import detail_rows, measurements
+from usd_scene_review.dispositions import change_identity, record, history, latest
 from usd_scene_review.worker_client import get_viewer_client
 
 
@@ -32,12 +33,17 @@ class SceneReviewExtension(omni.ext.IExt):
         self._shutting_down = False
         self._report = None
         self._selected = None
+        self._selected_change = None
+        self._review_path = ui.SimpleStringModel()
+        self._reason = ui.SimpleStringModel()
+        self._disposition = ui.SimpleStringModel('Human review: unreviewed. This does not change independent rule verdicts.')
         self._paths = {s: ui.SimpleStringModel() for s in ('A', 'B')}
         self._query = ui.SimpleStringModel()
         self._inherited = ui.SimpleBoolModel(False)
+        self._focus = ui.SimpleBoolModel(False)
         self._status = ui.SimpleStringModel('Choose two local snapshot manifests. Viewer starts only on View A/B.')
         self._details = ui.SimpleStringModel('No comparison loaded.')
-        self._revision = ui.SimpleStringModel('No revision attached')
+        self._revision = ui.SimpleStringModel('No saved scene attached')
         self._selected_label = ui.SimpleStringModel('Select a changed prim to inspect before / after / delta')
         self._motion = ui.SimpleStringModel('Local deltas use parent coordinates. Bounds are not collision evidence.')
         self._window = ui.Window('USD Scene Review', width=1000, height=900)
@@ -54,7 +60,7 @@ class SceneReviewExtension(omni.ext.IExt):
         with self._window.frame:
             with ui.VStack(spacing=4):
                 ui.Label('USD SCENE REVIEW  |  static revision comparison', height=26)
-                ui.Label('Experimental. Static viewer requires existing Windows Isaac Sim 4.5.', height=24)
+                ui.Label('A = BEFORE saved scene | B = AFTER saved scene. A change may be intentional.', height=24)
                 for side in ('A', 'B'):
                     with ui.HStack(height=26):
                         ui.Label(side + ' manifest', width=90)
@@ -73,12 +79,27 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.HStack(height=30):
                     ui.Label('BEFORE A | BLUE / dashed bounds', style={'color': 0xFFBC5D0C})
                     ui.Label('AFTER B | ORANGE / solid bounds', style={'color': 0xFF0754C0})
-                ui.Label('Selected object colored; context gray. One revision at a time; no ghost overlay.', height=25)
+                ui.Label('Original geometry/materials retained. Color marks selected bounds only; not an error verdict.', height=25)
+                with ui.HStack(height=24):
+                    ui.CheckBox(model=self._focus, width=20)
+                    ui.Label('Focus selected (optional; default shows whole saved scene)')
                 ui.StringField(model=self._revision, read_only=True, height=30)
                 with ui.ScrollingFrame(height=90):
                     self._rows = ui.VStack(spacing=3)
                 ui.StringField(model=self._selected_label, read_only=True, height=30)
                 ui.StringField(model=self._motion, read_only=True, multiline=True, height=52)
+                with ui.CollapsableFrame('Human review metadata (separate from evidence)', collapsed=True) as review_frame:
+                    self._review_frame = review_frame
+                    with ui.VStack(spacing=3):
+                        with ui.HStack(height=24):
+                            ui.Label('Review log .jsonl', width=150)
+                            ui.StringField(model=self._review_path)
+                            ui.Button('Reload review', width=140, clicked_fn=self._load_review)
+                        with ui.HStack(height=26):
+                            ui.StringField(model=self._reason)
+                            ui.Button('Mark intentional', width=160, clicked_fn=partial(self._record_review, 'intentional'))
+                            ui.Button('Needs review', width=140, clicked_fn=partial(self._record_review, 'needs-review'))
+                        ui.StringField(model=self._disposition, read_only=True, multiline=True, height=40)
                 self._numeric = ui.VStack(spacing=3, height=255)
                 ui.Label('Translation: stage units + meters. q: rigid quaternion (w,x,y,z); shortest angle.', height=22,
                          style={'font_size': 16})
@@ -88,6 +109,8 @@ class SceneReviewExtension(omni.ext.IExt):
                     ui.StringField(model=self._details, read_only=True, multiline=True, height=120)
         self._render_numeric(None)
         self._query_callback = self._query.add_value_changed_fn(lambda _: self._render_rows())
+        self._focus_callback = self._focus.add_value_changed_fn(
+            lambda _: self._schedule(self._frame()) if self._viewer.state == 'running' else None)
         self._inherited_callback = self._inherited.add_value_changed_fn(lambda _: self._render_rows())
 
     def _message(self, text):
@@ -118,6 +141,8 @@ class SceneReviewExtension(omni.ext.IExt):
             return
         self._report = None
         self._selected = None
+        self._selected_change = None
+        self._disposition.set_value('Human review: no changed prim selected')
         self._render_numeric(None)
         self._rows.clear()
         paths = {s: Path(model.as_string).expanduser().resolve() for s, model in self._paths.items()}
@@ -147,10 +172,51 @@ class SceneReviewExtension(omni.ext.IExt):
 
     def _select(self, change):
         self._selected = change.get('path')
+        self._selected_change = change
+        self._reason.set_value('')
+        self._load_review()
         self._details.set_value(details(change))
         self._render_numeric(change)
         if self._viewer.state == 'running':
             self._schedule(self._frame())
+
+    def _review_identity(self):
+        if not self._report or not self._selected_change:
+            raise ValueError('Compare and select a changed prim first')
+        actual = {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in self._comparison_paths.items()}
+        if actual != self._comparison_hashes or compare(self._comparison_paths['A'], self._comparison_paths['B']) != self._report:
+            raise ValueError('Inputs changed; compare again. Prior dispositions do not apply.')
+        if {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in self._comparison_paths.items()} != actual:
+            raise ValueError('Manifests changed during review verification; compare again.')
+        return change_identity(self._comparison_hashes, self._selected_change)
+
+    def _show_review(self, event):
+        self._disposition.set_value(('Human-marked ' + event['disposition'] + ': ' + event['reason']
+                                    if event else 'Human review: unreviewed for this exact comparison/change')
+                                   + '\nIndependent policy/unknown verdicts and observed differences remain unchanged.')
+
+    def _load_review(self):
+        try:
+            if not self._review_path.as_string.strip() or not self._selected_change:
+                self._show_review(None)
+                return
+            identity = self._review_identity()
+            events = history(self._review_path.as_string,
+                             forbidden_roots=[p.parent for p in self._comparison_paths.values()])
+            self._show_review(latest(events, identity))
+        except Exception as exc:
+            self._disposition.set_value('Review not applied: ' + str(exc))
+
+    def _record_review(self, disposition):
+        try:
+            identity = self._review_identity()
+            if not self._review_path.as_string.strip():
+                raise ValueError('Choose a separate review log .jsonl path first')
+            event = record(self._review_path.as_string, identity, disposition, self._reason.as_string,
+                           forbidden_roots=[p.parent for p in self._comparison_paths.values()])
+            self._show_review(event)
+        except Exception as exc:
+            self._disposition.set_value('Review not saved: ' + str(exc))
 
     def _render_numeric(self, change):
         self._numeric.clear()
@@ -160,7 +226,10 @@ class SceneReviewExtension(omni.ext.IExt):
         data = measurements(self._report, change)
         self._selected_label.set_value(change['path'])
         units = data['units']
-        self._motion.set_value(data['motion'] + '\nmeters / stage unit: A=' + str(units.get('before'))
+        policy = [p for p in self._report.get('policy', []) if p.get('path') == change['path']]
+        verdict = ', '.join(p.get('status', 'unknown') for p in policy) if policy else 'not evaluated'
+        self._motion.set_value('OBSERVED CHANGE (not a defect verdict); policy: ' + verdict
+                               + '\n' + data['motion'] + '; meters / stage unit: A=' + str(units.get('before'))
                                + ', B=' + str(units.get('after')))
         with self._numeric:
             for index, row in enumerate([('OBSERVATION', 'BEFORE A', 'AFTER B', 'DELTA / interpretation')]
@@ -172,7 +241,7 @@ class SceneReviewExtension(omni.ext.IExt):
                                  style={'color': color, 'font_size': 17 if index else 18})
 
     async def _frame(self):
-        reply = await self._viewer.frame(self._selected)
+        reply = await self._viewer.frame(self._selected, focus=self._focus.as_bool)
         self._accept_reply(reply)
 
     def _accept_reply(self, reply):
@@ -180,8 +249,8 @@ class SceneReviewExtension(omni.ext.IExt):
             raise RuntimeError(reply.get('message', 'Viewer failed'))
         self._message(reply.get('message', reply.get('status', 'unknown')))
         if reply.get('side') in ('A', 'B'):
-            self._revision.set_value('ACTUAL VIEW: ' + ('BEFORE A | BLUE | dashed bounds' if reply['side'] == 'A'
-                                                       else 'AFTER B | ORANGE | solid bounds'))
+            self._revision.set_value('ACTUAL VIEW: ' + ('BEFORE saved scene A | BLUE dashed bounds' if reply['side'] == 'A'
+                                                       else 'AFTER saved scene B | ORANGE solid bounds'))
 
     def _schedule_view(self, side):
         self._schedule(self._view(side))
@@ -199,7 +268,7 @@ class SceneReviewExtension(omni.ext.IExt):
         worker = Path(__file__).resolve().parents[3] / 'worker'
         reply = await self._viewer.view(self._comparison_paths, side, self._selected,
                                         sdk=installed_sdk(), worker_module=worker,
-                                        expected_hashes=self._comparison_hashes)
+                                        expected_hashes=self._comparison_hashes, focus=self._focus.as_bool)
         self._accept_reply(reply)
 
     def _close_review(self):
@@ -220,6 +289,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._shutting_down = True
         self._query.remove_value_changed_fn(self._query_callback)
         self._inherited.remove_value_changed_fn(self._inherited_callback)
+        self._focus.remove_value_changed_fn(self._focus_callback)
         self._rows.clear()
         self._rows = None
         self._numeric.clear()

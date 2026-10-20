@@ -57,14 +57,43 @@ scale, shear, reflection and singular transforms receive no rotation verdict. Or
 positive-basis axis lengths are labelled unsigned magnitudes, not authored signed scale.
 Inactive or unobserved transforms are unavailable, not identity transforms.
 
-The isolated viewer temporarily overrides materials in its anonymous session: selected
-source geometry is blue in A and orange in B; other geometry is gray. This is review
-styling, not original material comparison. Dashed/solid curves show selected world AABB
-bounds, not exact edges, clearance or collision. Raw verified snapshots supply bounds
-before any helper/light/style opinions. Matching revisions share one union-bounds camera
-per selected path; changing selection reframes. Hidden, absent, unloaded, non-geometric
-or unsupported-range bounds produce a refusal with prior highlighting cleared. The
-previous camera may remain after refusal; no object is highlighted for that selection.
-Only one revision is attached/rendered at a time; no simultaneous ghost overlay exists.
-The owned panel is light and the demonstrated scene is light neutral; global Kit chrome
-and user renderer preferences are not changed.
+The isolated viewer preserves original geometry, material/subset bindings, display
+colors, active and visibility state. Only owned anonymous helper curves receive blue A
+or orange B materials. The previous gray-context/material-replacement approach is
+superseded. The default camera fits union bounds of both complete saved scenes. An
+explicit Focus selected checkbox uses selected bounds instead. Missing/unbounded
+selected geometry clears its outline and refuses that selection; whole-scene framing
+is still installed when focus is off. Bounds are calculated on raw verified snapshots
+before any helper opinions. They are AABBs, not mesh edges, collision or clearance.
+Visible loaded render/default/proxy bounds do not recover excluded/unsupported assets
+or reproduce all original author render settings. Global Kit chrome is unchanged.
+
+## Local human review metadata
+
+A/B are before/after saved scenes, not an error verdict. Observed differences, configured
+rigid policy verdicts, incomplete/unknown evidence, and human dispositions are separate.
+The UI compare uses no policy thresholds by default and says not evaluated; marking a
+change intentional does not establish a policy pass or turn unknown into known.
+
+After comparison, select a changed row and expand Human review metadata. Choose a new
+or existing `.jsonl` path in a separate existing folder outside both immutable snapshot
+bundles, enter a reason, then explicitly choose Mark intentional or Needs review. Reload
+review restores the most recent exact-match entry. Changing a decision appends history;
+it does not erase older entries or the comparison evidence. Neither disposition hides
+change rows. No automatic approval, reviewer identity authentication or operational
+safety sign-off is implemented.
+
+Each event stores ordered exact A/B manifest SHA-256 values, prim path, full change
+SHA-256, local unverified actor, UTC time, disposition, reason, sequence and previous-event
+hash. The UI rechecks manifest bytes and recomputes comparison before load/save. A new
+snapshot/change identity does not receive an earlier decision. The old event remains
+in history for inspection. Review history is outside source snapshots, never written
+into USD. Reasons can contain private information; logs stay local and are not included
+in the extension package or demonstration.
+
+This bounded single-writer MVP uses exclusive locking, append/flush/fsync and an 8 MiB
+preappend limit. Invalid, partial or mismatched history fails closed without overwriting
+it. A leftover lock after a crash requires inspecting/resolving that private log before
+retrying; the app never breaks another writer's lock. Hash chaining detects inconsistent
+history but is not tamper-proof storage, authorization or protection against an actor
+who can rewrite the log. No multi-user concurrency/recovery or enterprise audit claim.

@@ -1,5 +1,67 @@
 # Validation status
 
+## Current context-preserving review follow-up (2026-10-20)
+
+This supersedes the earlier gray-context/material-replacement demo below. The apparent
+missing factory context had two confirmed project causes: the display code overrode
+all source material bindings with gray/selected colors, and automatic selected-prim
+framing replaced the earlier wide overview with a rack close-up. The same saved factory
+bundle was used; no geometry/visibility removal or missing asset caused this omission.
+
+The corrected viewer preserves original geometry, material/subset bindings, display
+colors, visibility and active state. Only owned outline helpers are blue/dashed before
+and orange/solid after. Whole-scene union framing is the default; explicit Focus selected
+is optional, with matching A/B camera/lens/clipping. Absent/unbounded selections do not
+prevent the default whole-scene camera. A/B are labelled before/after saved scenes,
+not error verdicts. Human dispositions and configured rules are separate.
+
+Completed verification:
+
+- Full CPU suite: 100 tests, zero failures/errors, two Windows symlink-privilege skips.
+  This includes real-USD policy fail/unknown remaining unchanged after intentional
+  records, exact snapshot/change identity invalidation, append history, reason limits,
+  Unicode separators, capacity/corrupt/busy-log handling and source preservation.
+- After the final IPC read fix, all 13 targeted transport/lifecycle tests passed,
+  including transient and persistent read/replace access failures. The full suite was
+  not repeated after this narrow read-retry change. Retries are Windows-only, bounded
+  to 101 attempts/100 short sleeps, preserving complete old messages; persistent
+  failures still propagate. No ACL or security-setting changes were made.
+- Both actual factory snapshots have 1,386 original prims, 1,228 source geometry prims
+  and 20 materials. Every source geometry binding/color/visibility/active observation
+  was unchanged by display styling; source layer text/dirty, bundle bytes and original
+  saved-assembly hashes were preserved. Actual wide and focus renderer frames were
+  inspected to confirm full factory context and visible original material colors.
+- Final actual minimal Kit factory recording: 30 checks passed, host exit 0, worker
+  exit 0 with graceful close. Seven genuine UI/viewport capture pairs cover wide A/B,
+  explicit focus A/B, actual local/world deltas, parent motion, explicit intentional
+  reason save, change to needs-review, reload of both retained events, unchanged
+  difference evidence, refusal recovery and restoring the whole-scene camera.
+  Native widget actions/model callbacks were used, not mocked UI or invented values.
+  Review reasons in the recording explicitly say DEMO; they are not operational approval.
+- The extended synthetic multi-worker runner is checked in but was not rerun for this
+  follow-up; the earlier 43-check run below belongs to the prior display implementation.
+  This recording does not claim fresh coverage of all active-host-quit interleavings.
+
+Earlier correction attempts are failures, not acceptance passes: one probe hit the SDK
+zero-window-size input issue; another failed on an ambiguous checkbox query; one reached
+all captured feature checks but timed out at 300 seconds before clean close (exit124).
+Native Windows atomic-replace and request-read access races were also observed and
+corrected with bounded retries. The final recording used a 480-second outer limit and
+finished normally. Successful files are the final run only. Private raw logs and review
+history are excluded from the repository.
+
+The local review MVP is explicit human metadata, not authenticated approval, automatic
+intent inference or policy waiver. Exact A/B manifest hashes plus full prim/change digest
+bind each disposition. Changed inputs/evidence do not inherit old decisions; prior events
+remain in history. Files are separate from immutable bundles. No multi-user authorization,
+tamper-proof audit, collision, AI or operational safety sign-off is claimed.
+
+**Full Isaac host shutdown remains FAILED / BLOCKED** by the independently reproduced
+baseline SDK fault below. It was not rerun here. Minimal Kit success does not qualify the
+full Isaac app. Runtime stays 4.5; no drivers, security settings, runtime upgrades, user
+live scenes or unrelated running applications were changed.
+
+
 ## Current lifecycle investigation (2026-10-20)
 
 Windows 11 Pro 25H2 / RTX 3060 12 GiB / driver 610.62 is healthy at read-only

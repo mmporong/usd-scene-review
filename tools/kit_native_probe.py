@@ -1,5 +1,6 @@
 """Native acceptance in a fresh process, with synthetic source fixtures only."""
 import asyncio
+import copy
 import gc
 import hashlib
 import json
@@ -63,7 +64,12 @@ class Probe(omni.ext.IExt):
             import omni.kit.ui_test as ui_test
             button = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='" + label + "'")
             check(label + ' actual widget found', button is not None)
-            await button.click()
+            import omni.ui as ui
+            if ui.Workspace.get_main_window_width() <= 0 or ui.Workspace.get_main_window_height() <= 0:
+                button.widget.call_clicked_fn()
+                result.setdefault('input_modes', []).append('native callback: '+label)
+            else:
+                await button.click()
             await updates(2)
             await done(owner._task)
 
@@ -146,16 +152,36 @@ class Probe(omni.ext.IExt):
                 check(side + ' worker running and framed', client.state == 'running' and 'framed' in owner._status.as_string)
                 check('host owns no review context', not hasattr(owner, '_context'))
                 visual = await client.frame(target)
+                check(side + ' whole scene and original appearance', visual['display']['camera_scope']=='whole saved scene'
+                      and visual['display']['appearance']=='original')
                 check(side + ' selected geometry and bounds style', visual['display']['selected_geometry'] > 0
                       and visual['display']['outline'] == ('dashed' if side == 'A' else 'solid'))
                 if fixed_camera is None:
                     fixed_camera = visual['display']['camera']
                 check(side + ' fixed A/B camera', visual['display']['camera'] == fixed_camera)
+            frozen_report = copy.deepcopy(owner._report)
+            owner._review_frame.collapsed = False
+            owner._review_path.set_value(str(OUT / 'review-history.jsonl'))
+            owner._reason.set_value('Synthetic GUI test: intentional fixture relocation')
+            await updates(5)
+            await click('Mark intentional')
+            check('native intentional decision recorded', 'Human-marked intentional' in owner._disposition.as_string)
+            owner._reason.set_value('Synthetic GUI test: confirm independently')
+            await click('Needs review')
+            await click('Reload review')
+            from usd_scene_review.dispositions import history
+            review_events = history(OUT / 'review-history.jsonl')
+            check('native review reload preserves history and evidence', len(review_events)==2
+                  and review_events[0]['disposition']=='intentional'
+                  and review_events[1]['disposition']=='needs-review' and owner._report==frozen_report)
+            owner._review_frame.collapsed = True
             reply = await client._request('capture')
             check('real worker viewport capture', reply['status'] == 'captured' and (client.directory / 'viewport.png').stat().st_size > 1000)
             shutil.copyfile(client.directory / 'viewport.png', OUT / 'viewport.png')
             reply = await client.frame('/MissingReviewPrim')
             check('absent prim refused without dropping worker', reply['status'] == 'refused' and client.state == 'running')
+            check('refusal preserves whole scene camera', reply['display']['camera_scope']=='whole saved scene'
+                  and reply['display']['camera']==fixed_camera)
             check('refusal clears prior highlight', reply['display']['selected'] is None
                   and reply['display']['selected_geometry'] == 0)
             if not supplied.is_file():
@@ -164,6 +190,11 @@ class Probe(omni.ext.IExt):
                       and client.state == 'running' and reply['display']['selected'] is None)
             reply = await client.frame(target)
             check('framing recovers after refusal', reply['status'] == 'framed')
+            focus = await client.frame(target, focus=True)
+            check('explicit selected focus', focus['display']['camera_scope']=='selection focus')
+            missing = await client.frame('/MissingReviewPrim', focus=False)
+            check('focus off with missing selection restores overview', missing['status']=='refused'
+                  and missing['display']['camera']==fixed_camera)
             await click('Close review')
             check('graceful close plus worker exit zero', client.state == 'closed' and client.last_exit == 0 and client.process is None)
             result['worker_exits'].append(client.last_exit)

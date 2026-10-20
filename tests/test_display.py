@@ -83,6 +83,7 @@ class DisplayTests(unittest.TestCase):
         UsdGeom.Scope.Define(stage, '/_UsdSceneReviewDisplay')
         cube = UsdGeom.Cube.Define(stage, '/World/Cube')
         other = UsdGeom.Cube.Define(stage, '/World/Other')
+        other.CreateDisplayColorAttr([(0.2,0.4,0.8)])
         original = UsdShade.Material.Define(stage, '/World/Original')
         UsdShade.MaterialBindingAPI.Apply(stage.GetPrimAtPath('/World')).Bind(original, UsdShade.Tokens.strongerThanDescendants)
         subset = UsdGeom.Subset.Define(stage, '/World/Cube/Subset')
@@ -92,6 +93,7 @@ class DisplayTests(unittest.TestCase):
         source = stage.GetRootLayer().ExportToString(); dirty = stage.GetRootLayer().dirty
         raw = SimpleNamespace(stage=stage, manifest={'config': {'time': 'default'}})
         bounds = world_bounds(raw, '/World/Cube')
+        self.assertIsNotNone(world_bounds(raw, '/'))
         self.assertIsNone(world_bounds(raw, '/World/Hidden'))
         self.assertIsNone(world_bounds(raw, '/Missing'))
         spec = camera_spec({'A': bounds, 'B': [[10, -1, -1], [12, 1, 1]]}, 'Z')
@@ -102,8 +104,8 @@ class DisplayTests(unittest.TestCase):
         self.assertEqual(a['selected_geometry'], 1)
         self.assertEqual(len(UsdGeom.BasisCurves(stage.GetPrimAtPath(display.root.AppendChild('SelectedWorldBounds'))).GetPointsAttr().Get()), 192)
         for prim in (cube.GetPrim(), subset.GetPrim()):
-            self.assertEqual(UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()[0].GetPath(), display.materials['A'].GetPath())
-        self.assertEqual(UsdShade.MaterialBindingAPI(other.GetPrim()).ComputeBoundMaterial()[0].GetPath(), display.materials['Context'].GetPath())
+            self.assertEqual(UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()[0].GetPath(), original.GetPath())
+        self.assertEqual(UsdShade.MaterialBindingAPI(other.GetPrim()).ComputeBoundMaterial()[0].GetPath(), original.GetPath())
         viewport = SimpleNamespace()
         display.set_camera(spec, viewport); display.set_camera(spec, viewport)
         before = UsdGeom.Xformable(stage.GetPrimAtPath(viewport.camera_path)).GetLocalTransformation()
@@ -113,8 +115,11 @@ class DisplayTests(unittest.TestCase):
         cleared = display.style(None, 'B', None)
         self.assertEqual(cleared['selected_geometry'], 0)
         self.assertFalse(stage.GetPrimAtPath(display.root.AppendChild('SelectedWorldBounds')))
-        self.assertEqual(UsdShade.MaterialBindingAPI(cube.GetPrim()).ComputeBoundMaterial()[0].GetPath(), display.materials['Context'].GetPath())
+        self.assertEqual(UsdShade.MaterialBindingAPI(cube.GetPrim()).ComputeBoundMaterial()[0].GetPath(), original.GetPath())
+        self.assertAlmostEqual(other.GetDisplayColorAttr().Get()[0][2],.8)
         self.assertEqual(hidden.ComputeVisibility(), 'invisible')
+        for spec_path in stage.GetSessionLayer().rootPrims:
+            self.assertTrue(str(spec_path.path).startswith(str(display.root)))
         self.assertEqual(stage.GetRootLayer().ExportToString(), source)
         self.assertEqual(stage.GetRootLayer().dirty, dirty)
 

@@ -31,6 +31,7 @@ class ReviewWorker(omni.ext.IExt):
         self.permissions = []
         self.display = None
         self.camera_cache = {}
+        self.focus = False
         self.display_info = {}
         self.sequence = 0
         try:
@@ -69,6 +70,10 @@ class ReviewWorker(omni.ext.IExt):
                         # No destroy_context / destroy_timeline call here. Normal SDK shutdown.
                         omni.kit.app.get_app().post_quit(0)
                         return
+                    if 'focus' in message:
+                        if type(message['focus']) is not bool:
+                            raise ValueError('Invalid focus mode')
+                        self.focus = message['focus']
                     if operation == 'view':
                         await self.view(message.get('side'))
                         self.frame(message.get('selected'))
@@ -181,53 +186,59 @@ class ReviewWorker(omni.ext.IExt):
                        for layer, *_ in self.permissions)):
             raise RuntimeError('Source protection changed during review')
 
-    def frame(self, selected):
-        self.check_current()
-        # Requested path may not exist in this revision. Never leave a previous
-        # object's color/bounds paired with the new row's numeric observations.
-        self.display_info = self.display.style(None, self.side, None)
-        self.display_info['selected'] = None
-        if not selected:
-            self.respond('viewing', self.side + ': static review in separate viewer window')
-            return
-        path = Sdf.Path(selected)
-        if not path.IsAbsolutePath() or not path.IsPrimPath():
-            self.respond('refused', 'Choose an absolute prim path from the comparison')
-            return
-        prim = self.snapshot.stage.GetPrimAtPath(path)
-        if not prim or not prim.IsActive() or not prim.IsLoaded():
-            self.respond('refused', self.side + ': selected prim is absent, inactive or unloaded; try the other revision')
-            return
-        if path.HasPrefix(self.display.root):
-            self.respond('refused', 'Select a source prim, not a display helper')
-            return
-        if selected not in self.camera_cache:
-            bounds = {}
-            metadata = []
+    def camera_for(self, key):
+        if key not in self.camera_cache:
+            bounds, metadata = {}, []
             from pxr import UsdGeom
             for side, record in self.config['manifests'].items():
                 raw = load_snapshot(record['path'])
                 if raw.errors or verify(raw):
                     raise RuntimeError('Cannot calculate bounds from verified raw snapshots')
-                bounds[side] = world_bounds(raw, selected)
+                bounds[side] = world_bounds(raw, key)
                 metadata.append((UsdGeom.GetStageMetersPerUnit(raw.stage), str(UsdGeom.GetStageUpAxis(raw.stage))))
             if metadata[0] != metadata[1] or metadata[0][0] <= 0:
-                self.respond('refused', 'Synchronized framing requires matching units and up axis')
-                return
-            try:
-                self.camera_cache[selected] = camera_spec(bounds, metadata[0][1])
-            except ValueError as exc:
-                self.respond('refused', self.side + ': synchronized framing unavailable: ' + str(exc))
-                return
-        spec = self.camera_cache[selected]
-        if spec['bounds'][self.side] is None:
-            self.respond('refused', self.side + ': selected prim has no visible finite bounds')
-            return
-        self.context.get_selection().set_selected_prim_paths([], False)
-        self.display_info = self.display.style(selected, self.side, spec['bounds'][self.side])
-        self.display.set_camera(spec, self.viewport.viewport_api)
-        self.display_info['selected'] = selected
-        self.display_info['camera'] = spec
+                raise ValueError('Synchronized framing requires matching units and up axis')
+            self.camera_cache[key] = camera_spec(bounds, metadata[0][1])
+        return self.camera_cache[key]
+
+    def frame(self, selected):
         self.check_current()
-        self.respond('framed', self.side + ': framed ' + selected + '; fixed A/B camera; '
-                     + ('BLUE dashed' if self.side == 'A' else 'ORANGE solid') + ' selected world bounds')
+        self.display_info = self.display.style(None, self.side, None)
+        self.display_info.update(selected=None, camera_scope='previous camera; selection not framed')
+        # Whole-scene context is independent of whether a selected change exists
+        # or has geometric bounds in this revision.
+        if not self.focus or not selected:
+            try:
+                spec = self.camera_for('/')
+            except ValueError as exc:
+                self.respond('refused', self.side + ': scene framing unavailable: ' + str(exc))
+                return
+            self.display.set_camera(spec, self.viewport.viewport_api)
+            self.display_info.update(camera=spec, camera_scope='whole saved scene')
+        if not selected:
+            self.check_current()
+            self.respond('viewing', self.side + ': whole saved scene; original appearance')
+            return
+        path = Sdf.Path(selected)
+        prim = self.snapshot.stage.GetPrimAtPath(path) if path.IsAbsolutePath() and path.IsPrimPath() else None
+        if (not prim or not prim.IsActive() or not prim.IsLoaded() or path.HasPrefix(self.display.root)):
+            self.respond('refused', self.side + ': selected source prim is absent, inactive or unloaded; scene retained')
+            return
+        try:
+            selected_spec = self.camera_for(selected)
+        except ValueError as exc:
+            self.respond('refused', self.side + ': selected bounds unavailable; scene retained: ' + str(exc))
+            return
+        if selected_spec['bounds'][self.side] is None:
+            self.respond('refused', self.side + ': selected prim has no visible bounds; scene retained')
+            return
+        if self.focus:
+            self.display.set_camera(selected_spec, self.viewport.viewport_api)
+            self.display_info.update(camera=selected_spec, camera_scope='selection focus')
+        camera_info = {k: self.display_info[k] for k in ('camera', 'camera_scope')}
+        self.display_info = self.display.style(selected, self.side, selected_spec['bounds'][self.side])
+        self.display_info.update(selected=selected, **camera_info)
+        self.check_current()
+        label = 'BEFORE saved scene A' if self.side == 'A' else 'AFTER saved scene B'
+        self.respond('framed', self.side + ': framed ' + selected + '; ' + label
+                     + '; original appearance; ' + self.display_info['camera_scope'])

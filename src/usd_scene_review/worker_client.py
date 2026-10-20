@@ -19,16 +19,40 @@ def write_message(path, value):
     path = Path(path)
     temporary = path.with_suffix('.pending')
     temporary.write_text(json.dumps(value, sort_keys=True), encoding='utf-8')
-    temporary.replace(path)
+    # A Windows reader may briefly hold response.json without delete sharing.
+    # Keep the old complete message until atomic replacement succeeds; never
+    # unlink it or spin indefinitely on a persistent permission failure.
+    for attempt in range(101):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError as exc:
+            if os.name != 'nt' or getattr(exc, 'winerror', None) not in (5, 32) or attempt == 100:
+                raise
+            time.sleep(.01)
+
+
+def _read_message_bytes(path):
+    with Path(path).open('rb') as stream:
+        return stream.read(1024 * 1024 + 1)
 
 
 def read_message(path):
     path = Path(path)
-    if not path.is_file():
-        return None
-    if path.stat().st_size > 1024 * 1024:
+    for attempt in range(101):
+        try:
+            raw = _read_message_bytes(path)
+            break
+        except FileNotFoundError:
+            return None
+        except PermissionError as exc:
+            if (os.name != 'nt' or (getattr(exc, 'winerror', None) not in (5, 32) and exc.errno != 13)
+                    or attempt == 100):
+                raise
+            time.sleep(.01)
+    if len(raw) > 1024 * 1024:
         raise ValueError('Viewer response exceeds protocol limit')
-    value = json.loads(path.read_text(encoding='utf-8'))
+    value = json.loads(raw.decode('utf-8'))
     if not isinstance(value, dict):
         raise ValueError('Viewer response must be an object')
     return value
@@ -238,7 +262,7 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                            operation=operation, **fields))
         return await self._wait(lambda: self._reply(self.sequence))
 
-    async def view(self, manifests, side, selected, *, sdk, worker_module, expected_hashes=None):
+    async def view(self, manifests, side, selected, *, sdk, worker_module, expected_hashes=None, focus=False):
         async with self._lock:
             if self._shutdown_requested or self.state in ('closing', 'failed'):
                 raise RuntimeError(self.error or 'Viewer is still closing; wait before opening another')
@@ -264,19 +288,19 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                     ready = await self._wait(lambda: self._reply(0))
                     if ready.get('status') != 'ready':
                         raise RuntimeError(ready.get('message', 'Viewer could not start'))
-                reply = await self._request('view', side=side, selected=selected)
+                reply = await self._request('view', side=side, selected=selected, focus=focus)
                 self.state = 'running'
                 return reply
             except Exception as exc:
                 await self._abort(exc)
                 raise
 
-    async def frame(self, selected):
+    async def frame(self, selected, *, focus=None):
         async with self._lock:
             if self.state != 'running' or self.process is None:
                 raise RuntimeError('Open View A or View B before framing a result')
             try:
-                return await self._request('frame', selected=selected)
+                return await self._request('frame', selected=selected, **({'focus': focus} if focus is not None else {}))
             except Exception as exc:
                 await self._abort(exc)
                 raise
