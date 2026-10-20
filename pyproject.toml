@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "usd-scene-review"
+version = "0.1.0"
+description = "Read-only local OpenUSD revision review"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+usd-scene-review = "usd_scene_review.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

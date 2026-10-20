@@ -1,0 +1,11 @@
+# Supported contract
+
+V1 is intentionally strict: local `.usd`, `.usda`, `.usdc` layers with relative sublayers/references/payloads that remain inside the entry directory, stable prim paths, explicit time and variant map, load=`all`. Each revision is a separate immutable bundle with hashes for the dependency closure. A bundle can cover only the declared composition configuration.
+
+Remote URLs, absolute references, path escapes/symlinks, custom resolvers, value clips, asset-valued properties, instancing/prototypes, point instancers and unsupported composition features must be rejected or yield unknown. No automatic rename matching. No proof of a complete scene when a payload/dependency is missing or a parent is inactive. Active/visibility observations carry their limitations. No animation-range claim from a single sample. Same assembly identity is a caller contract.
+
+Authored opinions are compared separately from composed effective values. A property stack difference is evidence of opinion changes, not proof of a human author or intent. Parent propagation groups describe observed transform changes; resetXformStack boundaries stop grouping. Rotation metrics apply only to rigid matrices; scale/shear/reflection/singular matrices are reported without a rotation verdict. Equivalent Euler or quaternion representations must not cause an effective pose false positive.
+
+AABB is only a broad-phase candidate. No confirmed collision verdict in V1. Missing Clash extension or unsupported geometry is unknown. Optional policy checks begin with rigid translation/relative rotation only, with units stated explicitly.
+
+Input files are hashed before/after comparison and all used source layer dirty flags are checked. A changed input invalidates the comparison. Separate revision paths avoid the global layer registry treating two revisions as one file. Mutable remote dependencies cannot form a trusted baseline.
