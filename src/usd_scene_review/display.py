@@ -145,4 +145,3 @@ class ReviewDisplay:
         xform = UsdGeom.Xformable(camera)
         xform.MakeMatrixXform().Set(transform)
         viewport.camera_path = str(path)
-
