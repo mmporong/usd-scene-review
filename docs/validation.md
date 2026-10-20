@@ -194,3 +194,42 @@ Working GPU/authorized GUI session is required for installation, A/B switching, 
 - JSON/HTML creation uses exclusive mode. A regression test introduces a file or symlink after prechecks and verifies that it is not overwritten.
 - Full 63-test suite passed again. Real CLI subprocesses accepted nested and same-prim variant configurations, produced byte-identical repeated JSON/HTML, and preserved the published dependency-only example bytes. The updated self-contained extension ZIP and source/TOML checks passed.
 - GPU/GUI blocker and all pending GUI acceptance criteria above remain unchanged. System settings and existing source USD files were not modified.
+
+
+## Light visual difference follow-up (2026-10-20)
+
+The owned panel now uses a light background/dark text, persistent blue-before /
+orange-after legend, actual attached revision label, and comparison-derived
+before/after/delta observations. Actual selected geometry uses blue/dashed world
+AABB bounds in A and orange/solid bounds in B; context is gray. A/B reuse an identical
+union-bounds camera, lens and clipping. The viewer still renders one revision at a time.
+
+- CPU: 94 tests, zero failures/errors, two symlink-privilege skips. Five new real-USD
+  tests cover parent motion/local zero with centimeter-to-meter conversion, rigid pi
+  quaternion sign and nonrigid refusal, anonymous material/subset overrides, source
+  text/dirty preservation, outline reset, repeat camera, tiny clipping and finite
+  overflow-to-unavailable. Existing policy semantics remain unchanged.
+- Actual minimal Kit synthetic acceptance: 43 checks passed; host exit 0; four
+  worker exits 0 with preservation receipts. Native buttons, A/B/A fixed camera and
+  selected bounds styles, real viewport capture, absent/non-geometric refusal and
+  recovery, close/reopen, disable/re-enable, active-viewer host quit and default
+  stage text/dirty/selection/time preservation passed.
+- Actual rendered saved-assembly recording: 23 checks passed, host/worker exit 0,
+  six genuine UI/viewport capture pairs. The rack shows (0,0,0) to (0,0.2,0) m; a
+  descendant shows local delta zero and world delta (0,0.2,0) m, with nonrigid rotation
+  unavailable. Snapshot bytes and original saved assembly hashes remained unchanged.
+- Visual inspection confirmed readable light panel, blue dashed/orange solid selected
+  rack, gray context and matching A/B camera. The GIF is 1920 x 1000, 70 frames /
+  14 seconds; private input paths are cropped. Global Kit chrome is unchanged.
+
+Two earlier recording attempts failed in probe-only widget lookup APIs, and another
+failed the probe's label query; they are not acceptance passes. The completed recording
+and acceptance runs above use the final implementation. No AI or replacement scene
+frames were used. Outlines are AABBs, not mesh edges or clash/clearance evidence.
+Independent code review approved; architecture review is CLEAR after finite-range,
+stale-highlight, tiny-clipping and non-geometric-refusal fixes.
+
+Full Isaac host normal shutdown remains **FAILED / BLOCKED** by the independently
+reproduced baseline SDK fault described above. It was not rerun for this UI follow-up;
+minimal Kit success does not qualify the full application. No driver/runtime/security
+changes, installations, reboots or unrelated live scene access occurred.

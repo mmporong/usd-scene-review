@@ -11,6 +11,7 @@ import omni.ui as ui
 
 from usd_scene_review import compare
 from usd_scene_review.presentation import details, summary, visible_changes
+from usd_scene_review.measurements import detail_rows, measurements
 from usd_scene_review.worker_client import get_viewer_client
 
 
@@ -36,10 +37,23 @@ class SceneReviewExtension(omni.ext.IExt):
         self._inherited = ui.SimpleBoolModel(False)
         self._status = ui.SimpleStringModel('Choose two local snapshot manifests. Viewer starts only on View A/B.')
         self._details = ui.SimpleStringModel('No comparison loaded.')
-        self._window = ui.Window('USD Scene Review', width=680, height=720)
+        self._revision = ui.SimpleStringModel('No revision attached')
+        self._selected_label = ui.SimpleStringModel('Select a changed prim to inspect before / after / delta')
+        self._motion = ui.SimpleStringModel('Local deltas use parent coordinates. Bounds are not collision evidence.')
+        self._window = ui.Window('USD Scene Review', width=1000, height=900)
+        self._window.frame.set_style({
+            'Window': {'background_color': 0xFFF8F7F5},
+            'Frame': {'background_color': 0xFFF8F7F5},
+            'Label': {'color': 0xFF302218, 'font_size': 18},
+            'Button': {'background_color': 0xFFECE8E2, 'color': 0xFF302218, 'font_size': 18},
+            'Button.Label': {'color': 0xFF302218, 'font_size': 18},
+            'Field': {'background_color': 0xFFFFFFFF, 'color': 0xFF302218, 'font_size': 18},
+            'StringField': {'background_color': 0xFFFFFFFF, 'color': 0xFF302218, 'font_size': 18},
+            'ScrollingFrame': {'background_color': 0xFFF8F7F5},
+        })
         with self._window.frame:
-            with ui.VStack(spacing=6):
-                ui.Label('Local snapshots: semantic revision review', height=24)
+            with ui.VStack(spacing=4):
+                ui.Label('USD SCENE REVIEW  |  static revision comparison', height=26)
                 ui.Label('Experimental. Static viewer requires existing Windows Isaac Sim 4.5.', height=24)
                 for side in ('A', 'B'):
                     with ui.HStack(height=26):
@@ -56,9 +70,23 @@ class SceneReviewExtension(omni.ext.IExt):
                     ui.StringField(model=self._query)
                     ui.CheckBox(model=self._inherited, width=20)
                     ui.Label('Inherited motion', width=130)
-                with ui.ScrollingFrame(height=220):
+                with ui.HStack(height=30):
+                    ui.Label('BEFORE A | BLUE / dashed bounds', style={'color': 0xFFBC5D0C})
+                    ui.Label('AFTER B | ORANGE / solid bounds', style={'color': 0xFF0754C0})
+                ui.Label('Selected object colored; context gray. One revision at a time; no ghost overlay.', height=25)
+                ui.StringField(model=self._revision, read_only=True, height=30)
+                with ui.ScrollingFrame(height=90):
                     self._rows = ui.VStack(spacing=3)
-                ui.StringField(model=self._details, read_only=True, multiline=True)
+                ui.StringField(model=self._selected_label, read_only=True, height=30)
+                ui.StringField(model=self._motion, read_only=True, multiline=True, height=52)
+                self._numeric = ui.VStack(spacing=3, height=255)
+                ui.Label('Translation: stage units + meters. q: rigid quaternion (w,x,y,z); shortest angle.', height=22,
+                         style={'font_size': 16})
+                ui.Label('Axis magnitudes are unsigned, not authored signed scale. Values rounded to 9 digits.', height=22,
+                         style={'font_size': 16})
+                with ui.CollapsableFrame('Raw comparison evidence', collapsed=True):
+                    ui.StringField(model=self._details, read_only=True, multiline=True, height=120)
+        self._render_numeric(None)
         self._query_callback = self._query.add_value_changed_fn(lambda _: self._render_rows())
         self._inherited_callback = self._inherited.add_value_changed_fn(lambda _: self._render_rows())
 
@@ -90,6 +118,7 @@ class SceneReviewExtension(omni.ext.IExt):
             return
         self._report = None
         self._selected = None
+        self._render_numeric(None)
         self._rows.clear()
         paths = {s: Path(model.as_string).expanduser().resolve() for s, model in self._paths.items()}
         hashes = {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in paths.items()}
@@ -119,8 +148,28 @@ class SceneReviewExtension(omni.ext.IExt):
     def _select(self, change):
         self._selected = change.get('path')
         self._details.set_value(details(change))
+        self._render_numeric(change)
         if self._viewer.state == 'running':
             self._schedule(self._frame())
+
+    def _render_numeric(self, change):
+        self._numeric.clear()
+        if change is None:
+            self._selected_label.set_value('Select a changed prim to inspect before / after / delta')
+            return
+        data = measurements(self._report, change)
+        self._selected_label.set_value(change['path'])
+        units = data['units']
+        self._motion.set_value(data['motion'] + '\nmeters / stage unit: A=' + str(units.get('before'))
+                               + ', B=' + str(units.get('after')))
+        with self._numeric:
+            for index, row in enumerate([('OBSERVATION', 'BEFORE A', 'AFTER B', 'DELTA / interpretation')]
+                                        + detail_rows(self._report, change)):
+                with ui.HStack(height=23, spacing=4):
+                    for column, (text, width) in enumerate(zip(row, (215, 220, 220, 325))):
+                        color = 0xFFBC5D0C if column == 1 else 0xFF0754C0 if column == 2 else 0xFF302218
+                        ui.Label(text, width=width, word_wrap=True,
+                                 style={'color': color, 'font_size': 17 if index else 18})
 
     async def _frame(self):
         reply = await self._viewer.frame(self._selected)
@@ -130,6 +179,9 @@ class SceneReviewExtension(omni.ext.IExt):
         if reply.get('status') == 'error':
             raise RuntimeError(reply.get('message', 'Viewer failed'))
         self._message(reply.get('message', reply.get('status', 'unknown')))
+        if reply.get('side') in ('A', 'B'):
+            self._revision.set_value('ACTUAL VIEW: ' + ('BEFORE A | BLUE | dashed bounds' if reply['side'] == 'A'
+                                                       else 'AFTER B | ORANGE | solid bounds'))
 
     def _schedule_view(self, side):
         self._schedule(self._view(side))
@@ -170,6 +222,8 @@ class SceneReviewExtension(omni.ext.IExt):
         self._inherited.remove_value_changed_fn(self._inherited_callback)
         self._rows.clear()
         self._rows = None
+        self._numeric.clear()
+        self._numeric = None
         if self._window:
             self._window.destroy()
             self._window = None

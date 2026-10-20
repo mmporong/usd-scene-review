@@ -40,3 +40,31 @@ author only into an anonymous session. Worker receipts plus observed exit 0 are 
 for a clean close; forced timeout containment is a failure. Full Isaac host normal
 shutdown still has an observed native SDK fault and is not qualified. See the current
 [validation status](validation.md) and [adapter guide](../exts/mmporong.scene.review/docs/README.md).
+
+
+## Review display observations
+
+The light review panel shows additive `observed.before/after` effective local/world
+matrices and state in comparison JSON. Existing changed fields, propagation and
+rigid-only policy semantics are unchanged. Translation deltas require matching finite
+positive stage units and up axes. Local translations use each prim's parent coordinates;
+they are not world travel distances. Meter conversion uses declared meters-per-unit.
+Unavailable/overflowing measurements remain unavailable. Values are rounded to nine
+significant digits in the UI; the report retains its original numeric evidence.
+
+Quaternion (w,x,y,z) and shortest rotation angle are displayed only for rigid matrices;
+scale, shear, reflection and singular transforms receive no rotation verdict. Orthogonal
+positive-basis axis lengths are labelled unsigned magnitudes, not authored signed scale.
+Inactive or unobserved transforms are unavailable, not identity transforms.
+
+The isolated viewer temporarily overrides materials in its anonymous session: selected
+source geometry is blue in A and orange in B; other geometry is gray. This is review
+styling, not original material comparison. Dashed/solid curves show selected world AABB
+bounds, not exact edges, clearance or collision. Raw verified snapshots supply bounds
+before any helper/light/style opinions. Matching revisions share one union-bounds camera
+per selected path; changing selection reframes. Hidden, absent, unloaded, non-geometric
+or unsupported-range bounds produce a refusal with prior highlighting cleared. The
+previous camera may remain after refusal; no object is highlighted for that selection.
+Only one revision is attached/rendered at a time; no simultaneous ghost overlay exists.
+The owned panel is light and the demonstrated scene is light neutral; global Kit chrome
+and user renderer preferences are not changed.

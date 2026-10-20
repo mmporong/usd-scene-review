@@ -58,3 +58,18 @@ selection, A/B/A, framing, capture, close/reopen, disable/re-enable, source/defa
 preservation, and host quit with a viewer active. The launcher requires both the result
 and normal process exit. See validation.md for completed versus failed/pending results;
 mock protocol tests are not rendering evidence. Do not publish private runtime logs/assets.
+
+
+## Reading the visual difference
+
+Select a changed row, then View A / View B. The persistent legend and actual-view label
+identify blue/dashed before and orange/solid after. Selected geometry is recolored in
+an anonymous session; context is gray. The same selected path uses an identical camera,
+lens and clipping across A/B. Outlines represent world AABB bounds, not mesh edges or
+collision. A refusal clears the previous highlight. One revision is rendered at a time.
+
+The light panel's before/after/delta table comes from the compared snapshots, including
+unchanged local pose for parent-propagated children. Local coordinates are parent-frame
+coordinates; meters use declared stage units. Rotation is rigid-only quaternion plus
+shortest angle. Axis magnitudes are unsigned and do not recover authored signed scale.
+Raw comparison evidence remains available in the collapsed panel.

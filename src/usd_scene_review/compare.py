@@ -119,6 +119,13 @@ def _hidden(path, records):
     return False
 
 
+def _display_observation(record):
+    """Additive UI evidence; never feed display interpretations into policy."""
+    if record is None:
+        return None
+    return {key: record[key] for key in ('active', 'visibility', 'local', 'world')}
+
+
 def rigid_delta(a, b):
     """Row-vector affine matrices; no scale/shear/reflection rotation verdict."""
     if a is None or b is None:
@@ -172,7 +179,8 @@ def compare(a_manifest_path, b_manifest_path, *, policy=None):
             if av is None or bv is None:
                 hidden = _hidden(path, aa if av is None else bb)
                 result["changes"].append({"path": path, "kind": "unobserved" if hidden else ("added" if av is None else "removed"),
-                                          "fields": {}, "reason": "inactive ancestor" if hidden else "composed path existence", "provenance": "unknown" if hidden else "composition"})
+                                          "fields": {}, "reason": "inactive ancestor" if hidden else "composed path existence", "provenance": "unknown" if hidden else "composition",
+                                          "observed": {"before": _display_observation(av), "after": _display_observation(bv)}})
                 if hidden:
                     reasons.append("inactive subtree limits comparison: " + path)
                 continue
@@ -198,6 +206,7 @@ def compare(a_manifest_path, b_manifest_path, *, policy=None):
                 if parent:
                     provenance = "local-and-parent" if "local" in fields else "parent-propagated"
             record = {"path": path, "kind": "modified", "fields": fields, "authored": authored, "provenance": provenance}
+            record['observed'] = {'before': _display_observation(av), 'after': _display_observation(bv)}
             if parent:
                 record["parent_cause"] = parent
             if "world" in fields:

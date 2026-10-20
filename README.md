@@ -8,13 +8,20 @@ Read-only semantic review of two local OpenUSD scene revisions, with a separate 
 
 ![Actual static A/B switching, changed-rack selection and framing](examples/usd-scene-review-demo.gif)
 
-Actual review-panel and isolated-viewport captures from minimal Kit using the existing
-Windows Isaac Sim 4.5 SDK. Six genuine capture pairs show the scene overview, selecting
-and framing a changed rack, A/B/A switching, and expanding inherited motion. The pairs
-are arranged side by side; the personal input-path area is cropped. This 14-second GIF
-contains 70 frames at 1440 x 860. It demonstrates static review, not collision or AI,
-and does not qualify full Isaac host normal shutdown; see [validation](docs/validation.md).
-Only the rendered demonstration is included, without source assets or raw logs.
+Actual light review-panel and isolated-viewport captures from minimal Kit using the
+existing Windows Isaac Sim 4.5 SDK. Before A uses **blue geometry and dashed world
+bounds**; after B uses **orange geometry and solid bounds**, with the same A/B camera.
+Context geometry is gray. The actual panel shows before/after/delta positions in stage
+units and meters, rigid quaternion/angle, unsigned axis magnitudes, active/visibility,
+and direct versus ancestor-propagated movement. The selected rack moves 0.2 m; its
+selected descendant keeps its local pose while its world position changes by 0.2 m.
+
+Six genuine capture pairs are arranged side by side; private input paths are cropped.
+This 14-second GIF contains 70 frames at 1920 x 1000. It shows one revision at a time:
+no ghost overlay, collision verdict or AI. Outlines are selected world AABB bounds,
+not exact object edges. Styling/camera helpers live only in an anonymous review
+session. Only the rendered demonstration is included, without source assets or raw
+logs. Full Isaac host normal shutdown remains blocked; see [validation](docs/validation.md).
 
 ## Target and checked environments
 

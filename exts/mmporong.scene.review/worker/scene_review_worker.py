@@ -8,7 +8,7 @@ import omni.ext
 import omni.kit.app
 import omni.usd
 from omni.kit.viewport.window import ViewportWindow
-from omni.kit.viewport.utility import frame_viewport_prims
+from usd_scene_review.display import ReviewDisplay, world_bounds, camera_spec
 from pxr import Sdf, Usd, UsdUtils
 
 from usd_scene_review import load_snapshot
@@ -29,6 +29,9 @@ class ReviewWorker(omni.ext.IExt):
         self.snapshot = None
         self.stage_id = None
         self.permissions = []
+        self.display = None
+        self.camera_cache = {}
+        self.display_info = {}
         self.sequence = 0
         try:
             if (not self.config or self.config.get('schema') != SCHEMA
@@ -99,7 +102,8 @@ class ReviewWorker(omni.ext.IExt):
     def respond(self, status, message=''):
         write_message(self.root / 'response.json', dict(
             schema=SCHEMA, nonce=(self.config or {}).get('nonce'), sequence=self.sequence,
-            status=status, message=message))
+            status=status, message=message, side=getattr(self, "side", None),
+            display=self.display_info))
 
     def check_manifests(self):
         for record in self.config['manifests'].values():
@@ -107,6 +111,7 @@ class ReviewWorker(omni.ext.IExt):
                 raise RuntimeError('Compared manifest changed; compare again')
 
     def release_stage(self):
+        self.display = None
         if self.context.get_stage():
             if not self.context.close_stage() or self.context.get_stage():
                 raise RuntimeError('Viewer stage close was not confirmed')
@@ -163,6 +168,7 @@ class ReviewWorker(omni.ext.IExt):
             layer.SetPermissionToSave(False)
         await omni.kit.app.get_app().next_update_async()
         self.check_current()
+        self.display = ReviewDisplay(stage)
         self.viewport.visible = True
         self.side = side
 
@@ -177,6 +183,10 @@ class ReviewWorker(omni.ext.IExt):
 
     def frame(self, selected):
         self.check_current()
+        # Requested path may not exist in this revision. Never leave a previous
+        # object's color/bounds paired with the new row's numeric observations.
+        self.display_info = self.display.style(None, self.side, None)
+        self.display_info['selected'] = None
         if not selected:
             self.respond('viewing', self.side + ': static review in separate viewer window')
             return
@@ -188,7 +198,36 @@ class ReviewWorker(omni.ext.IExt):
         if not prim or not prim.IsActive() or not prim.IsLoaded():
             self.respond('refused', self.side + ': selected prim is absent, inactive or unloaded; try the other revision')
             return
-        self.context.get_selection().set_selected_prim_paths([selected], False)
-        framed = frame_viewport_prims(self.viewport.viewport_api, prims=[selected])
-        self.respond('framed' if framed else 'refused', self.side + ': ' + (
-            'framed ' + selected if framed else 'camera is not available yet; retry framing'))
+        if path.HasPrefix(self.display.root):
+            self.respond('refused', 'Select a source prim, not a display helper')
+            return
+        if selected not in self.camera_cache:
+            bounds = {}
+            metadata = []
+            from pxr import UsdGeom
+            for side, record in self.config['manifests'].items():
+                raw = load_snapshot(record['path'])
+                if raw.errors or verify(raw):
+                    raise RuntimeError('Cannot calculate bounds from verified raw snapshots')
+                bounds[side] = world_bounds(raw, selected)
+                metadata.append((UsdGeom.GetStageMetersPerUnit(raw.stage), str(UsdGeom.GetStageUpAxis(raw.stage))))
+            if metadata[0] != metadata[1] or metadata[0][0] <= 0:
+                self.respond('refused', 'Synchronized framing requires matching units and up axis')
+                return
+            try:
+                self.camera_cache[selected] = camera_spec(bounds, metadata[0][1])
+            except ValueError as exc:
+                self.respond('refused', self.side + ': synchronized framing unavailable: ' + str(exc))
+                return
+        spec = self.camera_cache[selected]
+        if spec['bounds'][self.side] is None:
+            self.respond('refused', self.side + ': selected prim has no visible finite bounds')
+            return
+        self.context.get_selection().set_selected_prim_paths([], False)
+        self.display_info = self.display.style(selected, self.side, spec['bounds'][self.side])
+        self.display.set_camera(spec, self.viewport.viewport_api)
+        self.display_info['selected'] = selected
+        self.display_info['camera'] = spec
+        self.check_current()
+        self.respond('framed', self.side + ': framed ' + selected + '; fixed A/B camera; '
+                     + ('BLUE dashed' if self.side == 'A' else 'ORANGE solid') + ' selected world bounds')

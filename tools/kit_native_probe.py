@@ -12,7 +12,7 @@ import omni.ext
 import omni.kit.app
 import omni.timeline
 import omni.usd
-from pxr import Usd, UsdGeom
+from pxr import Usd, UsdGeom, Sdf
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'results'
@@ -109,6 +109,8 @@ class Probe(omni.ext.IExt):
                     fixture.SetDefaultPrim(parent.GetPrim())
                     parent.AddTranslateOp().Set((offset, 0, 0))
                     UsdGeom.Cube.Define(fixture, '/World/Box')
+                    UsdGeom.Scope.Define(fixture, '/NonGeometry').GetPrim().CreateAttribute(
+                        'reviewValue', Sdf.ValueTypeNames.Int).Set(offset)
                     UsdGeom.Cube.Define(fixture, '/World/' + ('Removed' if side == 'A' else 'Added'))
                     source_file = source / 'scene.usda'
                     source_file.write_text(fixture.GetRootLayer().ExportToString())
@@ -138,15 +140,30 @@ class Probe(omni.ext.IExt):
             await row.click()
             await updates(5)
             check('actual row selected stable path', owner._selected == target)
+            fixed_camera = None
             for side in ('A', 'B', 'A'):
                 await click('View ' + side)
                 check(side + ' worker running and framed', client.state == 'running' and 'framed' in owner._status.as_string)
                 check('host owns no review context', not hasattr(owner, '_context'))
+                visual = await client.frame(target)
+                check(side + ' selected geometry and bounds style', visual['display']['selected_geometry'] > 0
+                      and visual['display']['outline'] == ('dashed' if side == 'A' else 'solid'))
+                if fixed_camera is None:
+                    fixed_camera = visual['display']['camera']
+                check(side + ' fixed A/B camera', visual['display']['camera'] == fixed_camera)
             reply = await client._request('capture')
             check('real worker viewport capture', reply['status'] == 'captured' and (client.directory / 'viewport.png').stat().st_size > 1000)
             shutil.copyfile(client.directory / 'viewport.png', OUT / 'viewport.png')
             reply = await client.frame('/MissingReviewPrim')
             check('absent prim refused without dropping worker', reply['status'] == 'refused' and client.state == 'running')
+            check('refusal clears prior highlight', reply['display']['selected'] is None
+                  and reply['display']['selected_geometry'] == 0)
+            if not supplied.is_file():
+                reply = await client.frame('/NonGeometry')
+                check('non-geometric framing refused without worker exit', reply['status'] == 'refused'
+                      and client.state == 'running' and reply['display']['selected'] is None)
+            reply = await client.frame(target)
+            check('framing recovers after refusal', reply['status'] == 'framed')
             await click('Close review')
             check('graceful close plus worker exit zero', client.state == 'closed' and client.last_exit == 0 and client.process is None)
             result['worker_exits'].append(client.last_exit)
