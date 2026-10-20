@@ -12,17 +12,16 @@ Actual light review-panel and isolated-viewport captures from minimal Kit using 
 existing Windows Isaac Sim 4.5 SDK. **A means the saved scene before the change;
 B means the saved scene after the change. A difference is not automatically a defect.**
 
-The demo starts with the whole factory and retains its original geometry and material
-colors. Blue dashed bounds mark the selected object in A; orange solid bounds mark it
-in B. Only the anonymous helper outlines are colored. Optional **Focus selected** moves
-the camera closer; the default retains the whole saved scene, even if a selected object
-is absent in one version. A/B use matching cameras within either mode.
+The six-second demo starts immediately with a useful selected-rack close view:
+**before A, blue dashed bounds → after B, orange solid bounds**, using the same camera.
+Original materials and the complete captured viewport are retained, including adjacent
+racks and floor context. The enlarged numeric strip consists of actual UI pixels:
+world prim-origin position `(0, 0, 0) → (0, 0.2, 0)` m, delta `(0, 0.2, 0)` m.
 
-The actual panel shows before/after/delta positions in stage units and meters,
-rigid quaternion/angle, unsigned axis magnitudes, active/visibility, and direct versus
-ancestor-propagated movement. The rack moves 0.2 m; a descendant keeps its local pose
-while its world position changes by 0.2 m. The final demo review entry is explicitly
-marked as a demonstration, not operational approval.
+The opening distant comparisons and secondary parent-propagation/human-review scenes
+are omitted from this main comparison GIF. No lower path band, scrollbar, window shadow,
+footer rule or progress decoration is included. The app still defaults to whole-scene
+framing and retains optional Focus selected, parent-motion evidence and review history.
 
 Human reviewers can mark **intentional** or **needs review**, with a required reason.
 These decisions append to a separately chosen local `.jsonl` log, bound to exact A/B
@@ -31,11 +30,12 @@ inherit prior approval. Detected differences, independent policy failures and un
 remain visible and unchanged. This is local unverified review metadata, not multi-user
 authorization or a safety sign-off; see [support](docs/support.md#local-human-review-metadata).
 
-Genuine UI/viewport capture pairs are arranged side by side on a light canvas; private
-input paths are omitted, and outer empty viewport margins are cropped in overview pairs.
-No scene pixels or numeric results are generated or replaced. Only one saved scene is
-rendered at a time. No ghost overlay, collision verdict or AI is claimed. Outlines are
-world AABB bounds, not exact mesh edges. Source assets and private logs are excluded.
+The GIF reuses the matching close A/B captures from the verified actual minimal Kit
+run (host and worker exit 0). It contains 30 frames at 1440 x 960; no new runtime or
+application code was introduced for this media edit. Only real UI fields are cropped;
+scene pixels and numeric results are not generated or replaced. Original source hashes
+were rechecked. No ghost overlay, collision verdict or AI is claimed. Outlines are world
+AABB bounds, not exact mesh edges. Private paths, source assets and logs are excluded.
 Full Isaac host normal shutdown remains blocked; see [validation](docs/validation.md).
 
 ## Target and checked environments

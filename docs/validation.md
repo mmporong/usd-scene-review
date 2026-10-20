@@ -1,5 +1,29 @@
 # Validation status
 
+## Concise comparison media edit (2026-10-20)
+
+This media-only edit replaces the seven-state demo with the two genuine selected-rack
+close-up captures (source indices 3/4) from the successful 30-check minimal Kit run below.
+It starts directly before A → after B, fixed camera, full original viewport/materials,
+and an enlarged actual-UI world-position before/after/delta strip. Duration is 6 seconds,
+30 frames at 1440 x 960. Every encoded frame was decoded and representative A/B frames
+were inspected. No application code or functionality changed, and no new Kit run was
+claimed for this edit: the reused source run has observed host/worker exit 0. Original
+saved assembly and immutable snapshot hashes were rechecked after editing.
+
+Removed storyboard scenes 1–3 were the distant whole-factory A/B views. Old scene 6
+selected the lower FrontBeam_0 child to show local-zero / ancestor-propagated world
+movement. Its orange horizontal shape was the selected beam's world AABB outline.
+Old scene 7 showed separate human disposition/reason save/reload. These app features
+remain implemented; they are omitted from the concise comparison media.
+
+The old lower dark UI strip came from a crop extending below the actual 900px window
+into background/shadow (the overflow frame height was used). The thin full-width footer
+line was explicitly drawn by the encoder. Neither was a timeline/progress indicator.
+The concise edit removes these and nonessential controls/path bands without altering
+actual scene pixels or numeric evidence. Runtime/support limitations below remain.
+
+
 ## Current context-preserving review follow-up (2026-10-20)
 
 This supersedes the earlier gray-context/material-replacement demo below. The apparent
