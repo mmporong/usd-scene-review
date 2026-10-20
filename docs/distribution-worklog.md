@@ -117,3 +117,21 @@ must include post-run verify and a second run from the unchanged original packag
   `b5e002a139d5bf687ee6a141a816ebb182c8419527511d655802deb70465fd09`,
   66,442 bytes. Independent rebuild is byte-identical. Final native repeated-use
   acceptance remains pending at this checkpoint.
+
+## Final review boundary
+
+- Independent review identified that whole-tree copying could follow an unlisted
+  directory link. Replaced it with manifest-file-only copying and a full hash
+  verification of the private runtime before native launch. No unlisted directory
+  is copied. A regression injects corruption during copy and requires refusal.
+- The first new full CPU attempt had one test-fixture root-binding error (117 tests,
+  one error, two skips); the explicit verify(ROOT) call fixes it. All seven targeted
+  distribution tests then passed. Final full CPU rerun is pending at this boundary.
+- Two native sessions from the same earlier canonical package both passed, and its
+  post-run original-package verification passed. The manifest-only copy candidate
+  also passed native acceptance. The final reviewed archive is now isolated under
+  deliverables/reviewed; its exact-byte native acceptance is pending here.
+- Final reviewed archive SHA-256:
+  `01003fa832166444d4e3278601a4f62f20b87542516ccf09b25b888ed3adf921`,
+  size 66,558 bytes. Earlier preview archive identities above are historical.
+- Final code follow-up is approved; terminal validation is kept separate from review.

@@ -113,14 +113,26 @@ def sample(output):
     print('Sample ready; JSON/HTML saved in '+str(output/'reports'))
 
 
+def materialize_runtime(state):
+    manifest = verify(ROOT)
+    runtime = state/'runtime'
+    runtime.mkdir(exist_ok=False)
+    # Copy the verified file allowlist only; never follow unlisted directory links.
+    for name in sorted(set(manifest['files']) | {'candidate.json'}):
+        target = runtime/name
+        target.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(ROOT/name,target)
+    verify(runtime)
+    return runtime
+
+
 def launch(args, sdk, env):
     from usd_scene_review.worker_client import WindowsJob, resume_owned_process
     state = outside_package(args.workspace)
     state.mkdir(exist_ok=False)
     # Kit's embedded Python may ignore PYTHONDONTWRITEBYTECODE. Materialize the
     # verified payload in private state so native caches never mutate the package.
-    runtime = state/'runtime'
-    shutil.copytree(ROOT, runtime)
+    runtime = materialize_runtime(state)
     env = env.copy()
     env['PYTHONPATH'] = env['PYTHONPATH'].replace(
         str(ROOT/'exts/mmporong.scene.review/python'),

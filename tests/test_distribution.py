@@ -47,6 +47,26 @@ class DistributionTests(unittest.TestCase):
             (extracted/'README.md').write_text('changed',encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'PACKAGE_HASH'):launcher.verify(extracted)
 
+    def test_runtime_copy_uses_verified_allowlist_and_rechecks_bytes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);builder.build(root/'candidate.zip')
+            extracted=root/'package';extracted.mkdir()
+            with zipfile.ZipFile(root/'candidate.zip') as z:z.extractall(extracted)
+            (extracted/'unlisted-empty-directory').mkdir()
+            state=root/'private';state.mkdir()
+            with patch.object(launcher,'ROOT',extracted):
+                runtime=launcher.materialize_runtime(state)
+            launcher.verify(runtime)
+            self.assertFalse((runtime/'unlisted-empty-directory').exists())
+            state2=root/'private2';state2.mkdir()
+            real_copy=launcher.shutil.copyfile
+            def damaged_copy(source,target):
+                real_copy(source,target)
+                if Path(target).name=='README.md':Path(target).write_bytes(b'changed during copy')
+            with patch.object(launcher,'ROOT',extracted), patch.object(launcher.shutil,'copyfile',side_effect=damaged_copy):
+                with self.assertRaisesRegex(ValueError,'PACKAGE_HASH'):
+                    launcher.materialize_runtime(state2)
+
     def test_manifest_path_escape_and_extra_files_refused(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);archive=root/'candidate.zip';builder.build(archive)
