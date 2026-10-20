@@ -34,6 +34,17 @@ class BoundaryTests(unittest.TestCase):
         self.assertIn('attribute_types', change['fields'])
         self.assertNotEqual(change['provenance'], 'authored-only')
 
+    def test_relationship_opinions_at_explicit_sample(self):
+        a, b = self.pair(
+            '#usda 1.0\ndef Xform "World" {\n custom rel target = </A>\n}\n',
+            '#usda 1.0\ndef Xform "World" {\n custom rel target = </B>\n}\n', time=2.0)
+        report = compare(a, b)
+        self.assertEqual(report['status'], 'changed', report)
+        change = self.change(report, '/World')
+        self.assertEqual(change['fields']['attributes']['before']['target'], ['/A'])
+        self.assertEqual(change['fields']['attributes']['after']['target'], ['/B'])
+        self.assertIn('target', change['authored'])
+
     def test_large_coordinate_motion_not_relative_tolerance(self):
         a, b = self.pair(helpers.pose_scene((100000000, 0, 0)), helpers.pose_scene((100000000.5, 0, 0)))
         self.assertIn('world', self.change(compare(a, b), '/World')['fields'])
@@ -52,6 +63,10 @@ class BoundaryTests(unittest.TestCase):
                 html = self.base/'race.html'
                 target = self.base/'sentinel.txt'
                 target.write_text('keep')
+                if kind == 'symlink':
+                    probe = self.base/'symlink-privilege-probe'
+                    helpers.symlink_or_skip(self, probe, target)
+                    probe.unlink()
                 raced = html if kind == 'html' else output
                 triggered = []
                 def race(path, mode='r', *args, **kwargs):

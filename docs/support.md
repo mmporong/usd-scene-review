@@ -2,7 +2,7 @@
 
 V1 is intentionally strict: local `.usd`, `.usda`, `.usdc` layers with relative sublayers/references/payloads that remain inside the entry directory, stable prim paths, explicit time and variant map, load=`all`. Each revision is a separate immutable bundle with hashes for the dependency closure. A bundle can cover only the declared composition configuration.
 
-Remote URLs, absolute references, path escapes/symlinks, custom resolvers, value clips, asset-valued properties, instancing/prototypes, point instancers and unsupported composition features must be rejected or yield unknown. No automatic rename matching. No proof of a complete scene when a payload/dependency is missing or a parent is inactive. Active/visibility observations carry their limitations. No animation-range claim from a single sample. Same assembly identity is a caller contract.
+Remote URLs, absolute references, path escapes/symlinks/junctions, unverifiable resolver behavior, value clips, asset-valued properties, instancing/prototypes, point instancers and unsupported composition features must be rejected or yield unknown. No automatic rename matching. No proof of a complete scene when a payload/dependency is missing or a parent is inactive. Active/visibility observations carry their limitations. No animation-range claim from a single sample. Same assembly identity is a caller contract.
 
 Authored opinions are compared separately from composed effective values. A property stack difference is evidence of opinion changes, not proof of a human author or intent. Parent propagation groups describe observed transform changes; resetXformStack boundaries stop grouping. Rotation metrics apply only to rigid matrices; scale/shear/reflection/singular matrices are reported without a rotation verdict. Equivalent Euler or quaternion representations must not cause an effective pose false positive.
 
@@ -16,9 +16,15 @@ Floating values use an absolute tolerance of 1e-8; integer/boolean values and au
 
 Source files are checked again after all copies. This detects ordinary mutations but is not an atomic filesystem transaction or protection against a malicious concurrent writer changing and restoring bytes. Freeze upstream files while snapshotting; otherwise supply an independently immutable filesystem revision. Snapshots are integrity-checked, not cryptographically signed provenance. Editing files and rewriting the manifest creates a new, untrusted revision identity.
 
-A bundle has to preserve relative directory structure inside the entry directory. External sibling dependencies require preparing a common local root upstream; this tool will not rewrite the original source. Inherits/specializes/relocates, remote/package paths, asset-valued properties and custom resolvers are rejected conservatively. Missing Clash support remains an explicit unknown; no AABB or narrow-phase adapter is implemented yet.
+A bundle has to preserve relative directory structure inside the entry directory. External sibling dependencies require preparing a common local root upstream; this tool will not rewrite the original source. Inherits/specializes/relocates, remote/package paths and asset-valued properties are rejected conservatively. Missing Clash support remains an explicit unknown; no AABB or narrow-phase adapter is implemented yet.
 
-The engine currently requires `Ar.GetUnderlyingResolver()` to expose DefaultResolver. A Kit app using a custom resolver will receive unknown even for a local bundle until that resolver is separately qualified; the GUI baseline has not established this behavior yet.
+## Verified local resolution
+
+The engine does not trust the Python class name of a resolver. Absolute file identifiers, anchored dependency identifiers and their resolved paths must all name the exact expected native local file. Each Sdf source layer's identifier and real path must agree with that file. URI/package identifiers, file-format arguments, relative/drive-relative resolved identifiers, network paths, symlinks and Windows reparse points are refused. Native drive paths use Windows path semantics, including case and slash differences.
+
+Every used composed layer must be a pinned manifest file, except the review's own anonymous session. Extra local files, outside layers and anonymous dependency layers are unknown. Resolution and cached-vs-disk layer contents are checked again on verification, in both the current and stage resolver contexts, so changed mappings cannot reuse a previous verdict. Snapshot creation also rediscovers source dependencies after copying. Failures produce local-contract reasons rather than exposing remote URLs or native exception paths.
+
+This qualifies observed local filesystem behavior in the tested Kit 106.5 environment, not arbitrary custom resolver plugins or remote workflows. It assumes a functioning USD/file-format implementation and a frozen local filesystem; it is not a defense against malicious native plugins or a writer that changes and restores bytes between checks. Full revalidation is synchronous and has not been performance-qualified for production assemblies.
 
 ## Dependent variant configurations
 

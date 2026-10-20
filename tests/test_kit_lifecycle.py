@@ -26,7 +26,8 @@ def harness(outcome=True, remains_attached=False):
         "carb": SimpleNamespace(log_error=lambda text: events.append("error"),
                                 log_warn=lambda text: events.append("warn")),
         "omni": SimpleNamespace(usd=SimpleNamespace(
-            destroy_context=lambda name: events.append("context_destroy") or True)),
+            destroy_context=lambda name: events.append("context_destroy") or True),
+            timeline=SimpleNamespace(destroy_timeline=lambda name: events.append("timeline_destroy") or True)),
         "UsdUtils": SimpleNamespace(StageCache=SimpleNamespace(Get=lambda: cache)),
         "_CLEANUP_TASKS": set(), "_RETAINED_OWNERS": set(),
     }
@@ -59,6 +60,7 @@ def harness(outcome=True, remains_attached=False):
     owner._context = Context()
     owner._context.outcome = outcome
     owner._context_name = "owned-only"
+    owner._timeline = object()
     owner._viewport = SimpleNamespace(destroy=lambda: events.append("viewport_destroy"))
     owner._window = SimpleNamespace(destroy=lambda: events.append("panel_destroy"))
     owner._attachment_pending = False
@@ -141,6 +143,7 @@ class CloseOwnershipTests(unittest.TestCase):
         self.assertIsNone(owner._context)
         self.assertIsNone(owner._snapshot)
         self.assertLess(events.index("cache_erase"), events.index("context_destroy"))
+        self.assertLess(events.index("context_destroy"), events.index("timeline_destroy"))
         self.assertNotIn(owner, namespace["_RETAINED_OWNERS"])
 
 

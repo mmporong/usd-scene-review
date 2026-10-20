@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 import shutil
 from pxr import Ar, Sdf, Usd, UsdUtils
+from .local_contract import check_absolute, check_layer, check_dependency, used_layer_errors
 
 
 def canonical(value):
@@ -23,20 +24,21 @@ def _relative(path, base):
     if path.is_symlink():
         raise ValueError("symlink dependency unsupported")
     resolved = path.resolve()
-    resolved.relative_to(base)
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        raise ValueError('dependency escapes root or uses symlink') from None
     # Reject symlink components, including ones resolving inside the directory.
     for component in (path, *path.parents):
         if component == base.parent:
             break
-        if component.is_symlink():
+        if component.is_symlink() or (component.exists() and getattr(component.lstat(), 'st_file_attributes', 0) & 0x400):
             raise ValueError("symlink dependency unsupported")
     return resolved
 
 
 def _discover(entry):
     base = entry.parent.resolve()
-    if type(Ar.GetUnderlyingResolver()).__name__ != "DefaultResolver":
-        return {}, ["custom resolver unsupported"]
     pending, found, reasons = [entry], {}, []
     while pending:
         candidate = pending.pop()
@@ -56,9 +58,11 @@ def _discover(entry):
             continue
         found[rel] = digest(path)
         try:
+            check_absolute(path)
             layer = Sdf.Layer.FindOrOpen(str(path))
             if not layer:
                 raise ValueError("cannot open layer")
+            check_layer(layer, path)
             if layer.dirty:
                 reasons.append("dirty source layer: " + rel)
             fresh = Sdf.Layer.OpenAsAnonymous(str(path))
@@ -82,12 +86,16 @@ def _discover(entry):
             for ref in sorted(set(x for group in groups for x in group)):
                 if not ref:
                     continue
-                if ":" in ref or Path(ref).is_absolute() or "[" in ref:
-                    reasons.append("non-local or package dependency unsupported: " + rel)
-                else:
-                    pending.append(path.parent / ref)
-        except Exception:
-            reasons.append("unreadable USD layer: " + rel)
+                dependency = _relative(path.parent / ref, base)
+                check_dependency(layer, ref, dependency)
+                # Missing lexical dependencies are still rejected below, never replaced
+                # by resolver search-path or remote fallbacks.
+                pending.append(dependency)
+        except Exception as error:
+            if isinstance(error, ValueError):
+                reasons.append("unverified local layer " + rel + ": " + str(error))
+            else:
+                reasons.append("unreadable USD layer or resolver API failed: " + rel)
     return found, sorted(set(reasons))
 
 
@@ -123,6 +131,10 @@ def create_snapshot(entry, destination, *, time="default", variants=None, load="
                 reasons.append("input changed while snapshotting: " + rel)
         except OSError:
             reasons.append("input missing while snapshotting: " + rel)
+    final_files, final_reasons = _discover(entry)
+    reasons.extend(final_reasons)
+    if final_files != files:
+        reasons.append('dependency resolution changed while snapshotting')
     manifest = {"schema": 1, "entry": entry.name, "config": {"time": time, "variants": variants, "load": load},
                 "files": files, "status": "unknown" if reasons else "ready", "reasons": sorted(set(reasons))}
     (destination / "manifest.json").write_text(canonical(manifest), encoding="utf-8")
@@ -154,10 +166,22 @@ def verify(snapshot):
                 errors.append("bundle hash mismatch: " + rel)
         except (ValueError, OSError):
             errors.append("missing or unsafe bundle dependency: " + rel)
-    if snapshot.stage:
-        for layer in snapshot.stage.GetUsedLayers():
-            if layer != snapshot.stage.GetSessionLayer() and layer.dirty:
-                errors.append("source layer dirty")
+    # Recheck resolution on every verification, including under the stage's own
+    # resolver context. Context/cache changes must not reuse a formerly good verdict.
+    def resolution_errors():
+        files, reasons = _discover(snapshot.root)
+        if files != snapshot.manifest.get('files', {}):
+            reasons.append('resolved dependency closure differs from manifest')
+        if snapshot.stage:
+            reasons.extend(used_layer_errors(snapshot.stage, snapshot.root.parent, snapshot.manifest.get('files', {})))
+        return reasons
+    try:
+        errors.extend(resolution_errors())
+        if snapshot.stage:
+            with Ar.ResolverContextBinder(snapshot.stage.GetPathResolverContext()):
+                errors.extend(resolution_errors())
+    except Exception:
+        errors.append('local resolver context could not be verified')
     return sorted(set(errors))
 
 

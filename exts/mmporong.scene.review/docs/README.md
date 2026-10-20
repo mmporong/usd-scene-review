@@ -1,9 +1,13 @@
 # Kit adapter (early implementation)
 
-The adapter targets the inspected Kit 107.3.3 / Python 3.11 / OpenUSD 24.05 API.
-It has **not been run in a Kit GUI**. Source compilation and installed API inspection
-are not GUI validation or compatibility certification. The inspected Isaac Sim
-installation also has an RC build marker.
+The Windows target is Isaac Sim 4.5 / Kit 106.5 / Python 3.10 / OpenUSD 22.11.
+A self-contained ZIP has passed synthetic static A/B checks in an isolated native Kit
+GUI: actual button callbacks, attachment, rendering, selection/framing, repeated
+switching, close/reopen, modified/missing inputs, animation refusal and attached-stage
+cleanup on disable/re-enable. The minimal test app uses `app.asyncRendering=false`,
+matching the installed Isaac base setting. The full Isaac app, asynchronous rendering
+and large user assemblies are not certified. The earlier Linux baseline was not rerun
+after these Windows changes.
 
 ## Install from this checkout
 
@@ -31,20 +35,24 @@ large production assemblies and responsive background comparison are not validat
 
 ## Read-only boundary and limitations
 
-- The adapter creates a unique named USD context. It never opens, closes, selects
+- The adapter creates a unique named USD context and timeline. It never opens, closes, selects
   prims in, or saves the user's default USD context.
 - Snapshot source layers are temporarily non-editable and non-saveable. The edit
   target is an anonymous session, so viewport cameras cannot author into bundle files.
+  Kit 106 resets permissions during attachment, so the viewport remains hidden until
+  permissions and the anonymous edit target are reestablished and checked after attach.
   In-memory permissions are restored on detach, and source dirty state is checked.
   The extension never calls a USD save/export operation.
 - Drag-and-drop USD loading is disabled in the review viewport. No editing commands,
   transform controls, ghost geometry or automatic fixes are supplied.
 - **Viewport review supports static stages only.** Any time-sampled attribute causes
-  a refusal. Kit 107's `ViewportWindow` consumes the global timeline even with a named
-  context; changing the user's timeline to match the comparison time would violate
-  the isolation boundary. Time-specific semantic results remain available in the report.
-- The default viewport camera/framing appearance, render startup, selection, renderer
-  cleanup and rapid enable/disable behavior still require actual Kit GUI validation.
+  a refusal. The owned context uses its own timeline so attach/close cannot synchronize
+  frame range or FPS back into the user's stage. Viewport widgets may still consume
+  global timeline time, so animated viewport review is not enabled. Time-specific
+  semantic results remain available in the report.
+- Native camera/framing, rendering, selection, repeated A/B and ordinary
+  close/disable/re-enable passed for synthetic static scenes. Disable during an
+  in-flight native attachment and rapid stress cycling still require native testing.
 - Close is deferred while a viewport attachment is running. Extension disable hides
   its windows immediately, then an owned asynchronous cleanup waits for the attachment
   task to finish before detaching/destroying its context. It never cancels the native
@@ -57,10 +65,11 @@ large production assemblies and responsive background comparison are not validat
   Close actions with an error message. Disabling the extension makes one conservative
   cleanup attempt; failed detach retains the owned context and source protections.
   Failed shutdown owners remain strongly referenced until process exit. This boundary
-  has GPU-free stub regression tests, but native Kit close behavior remains unverified.
+  has GPU-free failure-path tests and native successful-close coverage; injected
+  native close failures remain unverified.
 - No Clash extension is enabled, downloaded or assumed present by this adapter.
 
-## Pending GUI acceptance checklist
+## GUI acceptance checklist
 
 Run with a working GPU driver and an authorized graphical session. Record the exact
 Kit/Python/USD/extension versions separately from CPU results.
@@ -72,4 +81,6 @@ Kit/Python/USD/extension versions separately from CPU results.
 - Confirm animated stages are refused rather than displayed at a misleading time.
 - Verify source hashes and dirty state before and after review; inspect errors on cleanup.
 
-These checks are pending; no pass result is claimed.
+The listed synthetic checks passed in the Windows test environment. They do not
+certify production scenes, arbitrary resolver plugins or in-flight failure cleanup.
+See the repository validation report for exact scope and remaining tests.

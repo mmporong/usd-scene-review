@@ -38,9 +38,10 @@ def same(a, b):
     return a == b
 
 
-def _opinions(prop, snapshot):
+def _opinions(prop, snapshot, time):
     records = []
-    for spec in prop.GetPropertyStack():
+    # USD 22.11 requires the time argument; use the same sample as effective values.
+    for spec in prop.GetPropertyStack(time):
         if spec.layer == snapshot.stage.GetSessionLayer():
             continue
         try:
@@ -91,7 +92,7 @@ def _observe(snapshot):
         attr_types = {}
         authored = {"@prim": _prim_opinions(prim, snapshot)}
         for prop in prim.GetProperties():
-            authored[prop.GetName()] = _opinions(prop, snapshot)
+            authored[prop.GetName()] = _opinions(prop, snapshot, time)
             if isinstance(prop, Usd.Attribute):
                 attr_types[prop.GetName()] = str(prop.GetTypeName())
                 if not prop.GetName().startswith("xformOp:") and prop.GetName() not in ("xformOpOrder", "visibility"):

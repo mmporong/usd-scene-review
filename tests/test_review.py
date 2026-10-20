@@ -17,6 +17,15 @@ from usd_scene_review.snapshot import canonical
 HEADER = '#usda 1.0\n'
 
 
+def symlink_or_skip(test, link, target):
+    try:
+        link.symlink_to(target)
+    except OSError as error:
+        if getattr(error, 'winerror', None) == 1314:
+            test.skipTest('Windows account lacks symbolic-link privilege; no security settings changed')
+        raise
+
+
 def pose_scene(translation=(0, 0, 0), rotation=0, scale=None, child=True, reset=False, child_translation=(0, 1, 0)):
     stage = Usd.Stage.CreateInMemory()
     parent = UsdGeom.Xform.Define(stage, '/World')
@@ -73,6 +82,13 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(one['changes'], [])
         self.assertEqual(canonical(one), canonical(compare(a, b)))
         self.assertEqual(one['clash']['status'], 'unknown')
+
+    def test_unverifiable_resolver_remains_unknown(self):
+        with mock.patch('usd_scene_review.local_contract.Ar.GetResolver', return_value=object()):
+            manifest = self.snapshot({'scene.usda': pose_scene()})
+            snapshot = load_snapshot(manifest)
+            self.assertIsNone(snapshot.stage)
+            self.assertTrue(any('resolver API' in error for error in snapshot.errors))
 
     def test_root_equal_dependency_only_change_is_observed(self):
         root = HEADER + '(subLayers = [@part.usda@])\n'
@@ -148,7 +164,7 @@ class ReviewTests(unittest.TestCase):
 
     def test_symlink_dependency_is_unknown(self):
         source = self.source({'scene.usda': HEADER + '(subLayers = [@part.usda@])\n', 'real.usda': pose_scene()})
-        (source.parent / 'part.usda').symlink_to('real.usda')
+        symlink_or_skip(self, source.parent / 'part.usda', 'real.usda')
         a = create_snapshot(source, self.base / 'symlink-bundle')
         self.assertEqual(compare(a, a)['status'], 'unknown')
 

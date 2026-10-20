@@ -2,7 +2,10 @@
 import importlib.util
 from pathlib import Path
 import tempfile
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import toml as tomllib  # Already bundled in Isaac Sim 4.5's pip archive.
 import unittest
 import zipfile
 

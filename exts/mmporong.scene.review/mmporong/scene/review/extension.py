@@ -13,6 +13,7 @@ from omni.kit.viewport.utility import frame_viewport_prims
 from omni.kit.viewport.window import ViewportWindow
 import omni.ui as ui
 import omni.usd
+import omni.timeline
 from pxr import Usd, UsdUtils
 
 from usd_scene_review import compare, load_snapshot
@@ -30,6 +31,10 @@ class SceneReviewExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         self._context_name = "usd_scene_review_" + uuid4().hex
         self._context = omni.usd.create_context(self._context_name)
+        # Stage attachment synchronizes timeline metadata. Give the owned context
+        # its own timeline so it cannot rewrite the user's stage frame range/FPS.
+        self._timeline = omni.timeline.get_timeline_interface(self._context_name)
+        self._context.set_timeline(self._context_name)
         self._viewport = None
         self._snapshot = None
         self._stage_id = None
@@ -47,7 +52,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._status = ui.SimpleStringModel("Choose two local snapshot manifest files.")
         self._details = ui.SimpleStringModel("No comparison loaded.")
         self._window = ui.Window("USD Scene Review", width=600, height=640)
-        self._window.set_style({
+        self._window.frame.set_style({
             "Window": {"background_color": 0xFFF7F7F7},
             "Label": {"color": 0xFF202020},
             "Button": {"background_color": 0xFFE7E7E7, "color": 0xFF202020},
@@ -56,7 +61,7 @@ class SceneReviewExtension(omni.ext.IExt):
         with self._window.frame:
             with ui.VStack(spacing=8):
                 ui.Label("Local snapshots · semantic revision review", height=24)
-                ui.Label("Early implementation. Kit GUI verification is pending.", height=22)
+                ui.Label("Experimental local review. Static stages only.", height=22)
                 for side in ("A", "B"):
                     with ui.HStack(height=26):
                         ui.Label(side + " manifest", width=90)
@@ -159,6 +164,8 @@ class SceneReviewExtension(omni.ext.IExt):
             return
         if not self._release_stage():
             return
+        if self._viewport:
+            self._viewport.visible = False
         try:
             if compare(self._comparison_paths["A"], self._comparison_paths["B"]) != self._report:
                 self._message("Inputs changed since comparison. Compare again before viewing.")
@@ -191,7 +198,7 @@ class SceneReviewExtension(omni.ext.IExt):
             if self._viewport is None:
                 self._viewport = ViewportWindow(
                     "USD Scene Review A/B", self._context_name,
-                    width=960, height=640, usd_drop_support=False,
+                    width=960, height=640, usd_drop_support=False, visible=False,
                 )
             self._stage_id = UsdUtils.StageCache.Get().Insert(snapshot.stage)
             self._attachment_pending = True
@@ -199,6 +206,15 @@ class SceneReviewExtension(omni.ext.IExt):
             self._attachment_pending = False
             if not success:
                 raise RuntimeError("Review stage attachment failed: " + error)
+            # Kit 106 resets layer permissions (and may choose an edit target) on
+            # attach. Reestablish the boundary before exposing the viewport or
+            # yielding another frame, then verify that it remains intact.
+            snapshot.stage.SetEditTarget(Usd.EditTarget(session))
+            for layer, _, _, was_dirty in self._layer_permissions:
+                if layer.dirty != was_dirty:
+                    raise RuntimeError("Source dirty state changed during attachment")
+                layer.SetPermissionToEdit(False)
+                layer.SetPermissionToSave(False)
             if self._shutting_down:
                 return
             await omni.kit.app.get_app().next_update_async()
@@ -206,6 +222,10 @@ class SceneReviewExtension(omni.ext.IExt):
                 return
             if verify(snapshot):
                 raise RuntimeError("Snapshot integrity changed during attachment")
+            if (snapshot.stage.GetEditTarget().GetLayer() != session
+                    or any(l.permissionToEdit or l.permissionToSave for l, *_ in self._layer_permissions)):
+                raise RuntimeError("Source protections changed after attachment")
+            self._viewport.visible = True
             self._message(side + ": static snapshot in a dedicated review viewport.")
             self._frame_selection()
         except asyncio.CancelledError:
@@ -363,4 +383,7 @@ class SceneReviewExtension(omni.ext.IExt):
                 _RETAINED_OWNERS.add(self)
                 return
         self._task = None
+        self._timeline = None
+        if not omni.timeline.destroy_timeline(self._context_name):
+            carb.log_warn("USD Scene Review: owned timeline is still referenced after context cleanup.")
         _RETAINED_OWNERS.discard(self)
