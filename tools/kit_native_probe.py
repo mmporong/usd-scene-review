@@ -130,6 +130,11 @@ class Probe(omni.ext.IExt):
             before = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
             await click('Compare')
             check('Compare changed report', owner._report and owner._report['status'] == 'changed')
+            owner._export_path.set_value(str(OUT / 'saved-evidence'))
+            await click('Save results')
+            check('actual Save results exports matching JSON and HTML',
+                  json.loads((OUT / 'saved-evidence/review.json').read_text(encoding='utf-8')) == owner._report
+                  and (OUT / 'saved-evidence/review.html').stat().st_size > 100)
             result['changed_prims'] = len(owner._report['changes'])
             result['direct_rows'] = len(visible_changes(owner._report))
             check('inherited motion collapsed', len(visible_changes(owner._report)) < len(owner._report['changes']))

@@ -1,0 +1,7 @@
+[package]
+version="0.1.0"
+title="USD Scene Review sample workflow"
+[dependencies]
+"mmporong.scene.review"={}
+[[python.module]]
+name="distribution_bootstrap"

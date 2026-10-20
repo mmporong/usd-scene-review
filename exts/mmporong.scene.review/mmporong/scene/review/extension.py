@@ -4,6 +4,7 @@ from functools import partial
 import hashlib
 from pathlib import Path
 import sys
+import weakref
 
 import carb
 import omni.ext
@@ -14,6 +15,13 @@ from usd_scene_review.presentation import details, summary, visible_changes
 from usd_scene_review.measurements import detail_rows, measurements
 from usd_scene_review.dispositions import change_identity, record, history, latest
 from usd_scene_review.worker_client import get_viewer_client
+from usd_scene_review.exports import save_report
+
+_active = None
+
+
+def get_active_extension():
+    return _active() if _active else None
 
 
 def installed_sdk():
@@ -44,6 +52,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._ghost = ui.SimpleBoolModel(False)
         self._normalized = ui.SimpleBoolModel(True)
         self._review_event = {}
+        self._export_path = ui.SimpleStringModel()
         self._status = ui.SimpleStringModel('Choose two local snapshot manifests. Viewer starts only on View A/B.')
         self._details = ui.SimpleStringModel('No comparison loaded.')
         self._revision = ui.SimpleStringModel('No saved scene attached')
@@ -73,6 +82,10 @@ class SceneReviewExtension(omni.ext.IExt):
                     ui.Button('View A', clicked_fn=partial(self._schedule_view, 'A'))
                     ui.Button('View B', clicked_fn=partial(self._schedule_view, 'B'))
                     ui.Button('Close review', clicked_fn=self._close_review)
+                    ui.Button('Save results', clicked_fn=lambda: self._schedule(self._save_results()))
+                with ui.HStack(height=26):
+                    ui.Label('New output folder', width=150)
+                    ui.StringField(model=self._export_path)
                 ui.StringField(model=self._status, read_only=True, multiline=True, height=52)
                 with ui.HStack(height=26):
                     ui.Label('Path search', width=85)
@@ -122,6 +135,23 @@ class SceneReviewExtension(omni.ext.IExt):
         self._ghost_callback = self._ghost.add_value_changed_fn(
             lambda _: self._schedule(self._frame()) if self._viewer.state == 'running' else None)
         self._inherited_callback = self._inherited.add_value_changed_fn(lambda _: self._render_rows())
+        global _active
+        _active = weakref.ref(self)
+
+    async def _save_results(self):
+        if not self._report:
+            raise ValueError('Compare snapshots before saving results')
+        if not self._export_path.as_string.strip():
+            raise ValueError('Enter a new output folder with an existing parent')
+        if compare(self._comparison_paths['A'], self._comparison_paths['B']) != self._report:
+            raise ValueError('Inputs changed since comparison; compare again before saving')
+        actual = {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in self._comparison_paths.items()}
+        if actual != self._comparison_hashes:
+            raise ValueError('Compared manifests changed; compare again before saving')
+        target = save_report(self._report, self._export_path.as_string,
+                             forbidden_roots=[p.parent for p in self._comparison_paths.values()])
+        self._message('Saved review.json and review.html: ' + str(target))
+        return target
 
     def _message(self, text):
         if self._window:
@@ -309,6 +339,9 @@ class SceneReviewExtension(omni.ext.IExt):
             self._message('Review cleanup failed: ' + self._viewer.error)
 
     def on_shutdown(self):
+        global _active
+        if get_active_extension() is self:
+            _active = None
         self._shutting_down = True
         self._query.remove_value_changed_fn(self._query_callback)
         self._inherited.remove_value_changed_fn(self._inherited_callback)

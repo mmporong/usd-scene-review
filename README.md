@@ -40,6 +40,15 @@ The GIF contains actual native scene and evidence-panel pixels. Private input pa
 source files and logs are excluded. No AI, clash verdict or operational approval is
 claimed. Full Isaac host normal shutdown remains blocked by the reproduced SDK fault.
 
+## Distribution candidate
+
+Build a versioned project-only candidate with `python tools/package_candidate.py <new.zip>`.
+Use the [English quick start](docs/quickstart-en.md) or [한국어 빠른 시작](docs/quickstart-ko.md)
+for checksum verification, existing-SDK diagnostics, independent synthetic sample,
+comparison/export and isolated minimal Kit launch. See [distribution support](docs/distribution-support.md).
+No runtime is installed. A project license still awaits the maintainer’s choice; this is
+an evaluation candidate, not a formal licensed release.
+
 ## Target and checked environments
 
 The Windows target is Isaac Sim 4.5: installed Kit 106.5.0 / Python 3.10.15 / OpenUSD 22.11. CPU/CLI and actual packaged-extension tests use its bundled runtime. Native GUI checks cover static A/B attachment, rendering, selection/framing, repeated switching, close/reopen, negative inputs and source/default-context isolation. Tests use a separate minimal Kit app with synchronous rendering, as configured in the installed Isaac base app; the full Isaac application and production assemblies are not certified. See [Windows validation](docs/validation.md#windows-isaac-sim-45).
@@ -88,11 +97,12 @@ The optional `test` extra declares Pillow for capture-image tests and TOML for P
 To repeat the native Windows acceptance in a new private directory:
 
 ```powershell
-python tools/run_kit_validation.py --isaac-root $sdk --output artifacts/new-kit-run --full-app --timeout 360
+python tools/run_kit_validation.py --isaac-root $sdk --output artifacts/new-kit-run --timeout 360
 ```
 
-This builds and extracts a project-only ZIP, launches a separate installed full Isaac app,
-and uses synthetic stages. It does not attach to running user apps. Logs and screenshots
+This builds and extracts a project-only ZIP, launches the qualified separate minimal Kit app,
+and uses synthetic stages. The optional `--full-app` flag is a diagnostic route whose
+normal shutdown is currently unqualified; it is not the distribution quick start. It does not attach to running user apps. Logs and screenshots
 stay in the selected output directory; do not publish raw machine logs.
 
 Optional policy flags are `--max-translation` (stage units) and `--max-rotation-degrees`. They apply to changed world rigid poses only, not collision, animation trajectories or application safety. Exit codes: `0` observed equal/changed, `2` unknown comparison/policy or invalid input, `3` observed policy violation. A clash status of unknown is always present; code 0 is never a collision clearance certificate. Destinations must be new paths.

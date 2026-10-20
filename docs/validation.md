@@ -450,3 +450,27 @@ Full Isaac host normal shutdown remains **FAILED / BLOCKED** by the independentl
 reproduced baseline SDK fault described above. It was not rerun for this UI follow-up;
 minimal Kit success does not qualify the full application. No driver/runtime/security
 changes, installations, reboots or unrelated live scene access occurred.
+
+
+## Distribution candidate 0.1.0-rc.1 (2026-10-20)
+
+The versioned project-only candidate adds existing-SDK diagnostics, checksum verification,
+new-workspace public synthetic sample generation, compare/export, a minimal Kit launcher,
+and English/Korean quick starts. No runtime or vendor assets are bundled or installed.
+
+- Windows SDK CPU: 116 tests, zero failures, two symlink privilege skips.
+- Packaged native extension regression: 67 checks, host exit 0, four worker exits 0,
+  including actual Save results widget, source/default-context isolation and lifecycle.
+- Fresh extracted candidate: 12 actual native smoke checks, A/B render captures,
+  before-right/current-left projection and negative delta, unchanged snapshot bytes,
+  matching JSON/HTML, close/reopen and normal host quit with an active owned worker.
+  Host exit 0 and both worker sessions exit 0 with preservation confirmed.
+- Two same-toolchain builds are byte-identical; archive privacy/type audit excludes
+  SDK binaries, MDL sources, private assets and raw logs. Existing approved GIF unchanged.
+- GPU smoke is separate from CPU CI. Human interactive/early manual window close,
+  other SDK/GPUs, production assemblies and full Isaac normal shutdown are unqualified.
+  Early startup cancellation has a CPU regression; it is not a claimed native pass.
+
+See [distribution work log](distribution-worklog.md) for review findings and archive
+identity. License selection remains pending; this is not a formal release. No system
+or driver/security settings, unrelated apps, scenes or unsaved work were changed.
