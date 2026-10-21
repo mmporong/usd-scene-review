@@ -13,6 +13,13 @@ def evidence_rows(report,change,review=None):
           ('Local delta [stage units]',vector(local['delta']))]
     angle=world['rotation_degrees']
     rows.append(('Rigid rotation delta',number(angle)+' deg' if angle is not None else 'UNKNOWN (non-rigid or unavailable)'))
+    for label,space in [('Local',local),('World',world)]:
+        angle=space['effective_rotation_degrees']
+        rows.append((label+' effective orientation delta',
+                     number(angle)+' deg; scale-normalized, not authored rotation' if angle is not None
+                     else 'UNKNOWN: '+str(space['effective_orientation_reason'])))
+        rows.append((label+' unsigned axis magnitudes',
+                     'A '+vector(space['axis_magnitudes']['before'])+' / B '+vector(space['axis_magnitudes']['after'])))
     policies=[p for p in report.get('policy',[]) if p.get('path')==change['path']]
     rows.append(('Independent policy',', '.join(p.get('status','unknown').upper() for p in policies) if policies else 'NOT EVALUATED (no thresholds configured)'))
     rows.append(('Clash',report.get('clash',{}).get('status','unknown').upper()+'; no collision verdict'))

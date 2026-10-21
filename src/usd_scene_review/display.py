@@ -119,6 +119,27 @@ class ReviewDisplay:
                     label='selected world AABB bounds only; original scene appearance', color=list(COLORS[side]),
                     appearance='original', source_geometry=len(self.geometry))
 
+    def style_pair(self, pair, side):
+        info = self.style(None, side, None)
+        root = self.root.AppendChild('SelectedWorldBounds')
+        UsdGeom.Scope.Define(self.stage, root)
+        for index, item in enumerate(pair['objects']['before' if side == 'A' else 'after']):
+            bounds = item.get('bounds_stage')
+            if bounds is None:
+                continue
+            points = outline_points(bounds, side == 'A')
+            curves = UsdGeom.BasisCurves.Define(self.stage, root.AppendChild('Object'+str(index)))
+            curves.CreateTypeAttr(UsdGeom.Tokens.linear)
+            curves.CreateWrapAttr(UsdGeom.Tokens.nonperiodic)
+            curves.CreateCurveVertexCountsAttr([2]*(len(points)//2))
+            curves.CreatePointsAttr([Gf.Vec3f(*p) for p in points])
+            curves.CreateWidthsAttr([max(math.dist(*bounds)*.006, 1e-6)])
+            curves.SetWidthsInterpolation(UsdGeom.Tokens.constant)
+            UsdShade.MaterialBindingAPI.Apply(curves.GetPrim()).Bind(self.materials[side])
+        info.update(selected_geometry=2, pair_id=pair['id'], selected_paths=list(pair['paths']),
+                    label='two point-derived geometry AABBs; collision unknown')
+        return info
+
     def set_camera(self, spec, viewport):
         path = self.root.AppendChild('Camera')
         camera = UsdGeom.Camera.Define(self.stage, path)

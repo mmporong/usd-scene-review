@@ -2,6 +2,7 @@
 import math
 from pxr import Gf
 from .compare import EPS, rigid_delta
+from .transform_analysis import analyze_change
 
 
 def affine(matrix):
@@ -45,6 +46,11 @@ def quaternion(matrix):
 
 def motion_label(change):
     provenance = change.get('provenance')
+    context = change.get('motion_context', {})
+    if context.get('direct_reset'):
+        return 'DIRECT RESET-STACK BOUNDARY CHANGE; A/B ancestor dependencies recorded separately'
+    if context.get('boundary_changed') and provenance == 'parent-propagated':
+        return 'ANCESTOR FRAME BOUNDARY CHANGE from ' + change.get('parent_cause','?')
     if provenance == 'parent-propagated':
         return 'ANCESTOR MOTION from ' + change.get('parent_cause', '?') + '; local transform unchanged'
     if provenance == 'local-and-parent':
@@ -69,6 +75,7 @@ def measurements(report, change):
                         and metadata.get('up_axis', {}).get('before') in ('Y', 'Z')
                         and metadata.get('up_axis', {}).get('before') == metadata.get('up_axis', {}).get('after'))
     observed = change.get('observed', {})
+    effective = change.get('transform_analysis') or analyze_change(observed, metadata, report.get('analysis_config'))
     result = {'units': units, 'coordinate_match': coordinate_match, 'spaces': {},
               'motion': motion_label(change), 'active': {}, 'visibility': {}}
     for key in ('active', 'visibility'):
@@ -76,7 +83,7 @@ def measurements(report, change):
     for space in ('local', 'world'):
         matrices = {s: (observed.get(s) or {}).get(space) if result['active'][s] is True else None
                     for s in ('before', 'after')}
-        positions = {s: list(m[3][:3]) if affine(m) else None for s, m in matrices.items()}
+        positions = {s: effective['spaces'][space][s]['translation']['value'] for s in ('before','after')}
         delta = ([positions['after'][i] - positions['before'][i] for i in range(3)]
                  if coordinate_match and all(p is not None for p in positions.values()) else None)
         delta = finite_vector(delta)
@@ -90,8 +97,12 @@ def measurements(report, change):
             meters={s: (finite_vector([x*units[s] for x in p]) if valid_units and p is not None else None)
                     for s, p in positions.items()},
             delta_meters=finite_vector([x*units['before'] for x in delta]) if delta is not None else None,
-            axis_magnitudes={s: axis_magnitudes(m) for s, m in matrices.items()},
-            quaternion=rotations, rotation_degrees=angle)
+            axis_magnitudes={s: effective['spaces'][space][s]['axis_magnitudes'] for s in ('before','after')},
+            quaternion=rotations, rotation_degrees=angle,
+            effective_quaternion={s: effective['spaces'][space][s]['orientation']['quaternion'] for s in ('before','after')},
+            effective_rotation_degrees=effective['spaces'][space]['orientation_delta']['degrees'],
+            effective_orientation_reason=effective['spaces'][space]['orientation_delta']['reason'],
+            effective_analysis=effective['spaces'][space])
     return result
 
 
@@ -120,6 +131,10 @@ def detail_rows(report, change):
                      vector(r['quaternion']['after']),
                      (number(r['rotation_degrees'])+' deg shortest' if r['rotation_degrees'] is not None
                       else 'unknown: non-rigid / unavailable')))
+        rows.append((label+' effective q', vector(r['effective_quaternion']['before']),
+                     vector(r['effective_quaternion']['after']),
+                     (number(r['effective_rotation_degrees'])+' deg shortest; scale-normalized, not authored'
+                      if r['effective_rotation_degrees'] is not None else 'unknown: '+str(r['effective_orientation_reason']))))
     for key in ('active', 'visibility'):
         r = data[key]
         rows.append((key.title(), str(r['before']) if r['before'] is not None else 'unobserved', str(r['after']) if r['after'] is not None else 'unobserved',

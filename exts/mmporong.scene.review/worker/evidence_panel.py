@@ -1,6 +1,7 @@
 """Owned child UI, populated exclusively by comparator evidence and human metadata."""
 import omni.ui as ui
 from usd_scene_review.evidence import evidence_rows
+from usd_scene_review.overlap_analysis import pair_by_id, pair_rows
 
 class EvidencePanel:
     def __init__(self):
@@ -14,6 +15,9 @@ class EvidencePanel:
     def update(self,report,selected,side,review,display,lighting):
         change=next((c for c in report.get('changes',[]) if c['path']==selected),None)
         rows=evidence_rows(report,change,review)
+        if display.get('pair_id'):
+            rows=pair_rows(report,pair_by_id(report,display['pair_id']))
+            rows.append(('Human review', (review or {}).get('disposition','unreviewed')+'; no policy waiver'))
         self.rows.clear()
         with self.rows:
             ui.Label('BEFORE A / CURRENT B',height=26,style={'font_size':22})

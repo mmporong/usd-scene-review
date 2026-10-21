@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import time
 from uuid import uuid4
+from .analysis_config import normalize as normalize_analysis
 
 SCHEMA = 1
 _REGISTRY = '_usd_scene_review_viewer_v1'
@@ -163,6 +164,7 @@ class ViewerClient:
         self.nonce = None
         self.sequence = 0
         self.manifests = None
+        self.analysis_context = None
         self._launch = launch or self._launch_kit
         self.timeout = timeout
         self._lock = asyncio.Lock()
@@ -257,6 +259,8 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
             return None
         if response.get('status') == 'error':
             raise RuntimeError(response.get('message', 'Viewer failed'))
+        if self.analysis_context and self.analysis_context.get('report_sha256') and response.get('report_sha256') != self.analysis_context['report_sha256']:
+            raise ValueError('Worker analysis/report identity mismatch')
         return response
 
     async def _request(self, operation, **fields):
@@ -267,7 +271,7 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                            operation=operation, **fields))
         return await self._wait(lambda: self._reply(self.sequence))
 
-    async def view(self, manifests, side, selected, *, sdk, worker_module, expected_hashes=None, focus=False, ghost=False, normalized=True, review=None):
+    async def view(self, manifests, side, selected, *, sdk, worker_module, expected_hashes=None, focus=False, ghost=False, normalized=True, review=None, analysis_config=None, policy=None, expected_report_hash=None, pair_id=None):
         async with self._lock:
             if self._shutdown_requested or self.state in ('closing', 'failed'):
                 raise RuntimeError(self.error or 'Viewer is still closing; wait before opening another')
@@ -278,29 +282,33 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                 raise ValueError('Viewer requires the compared A and B manifests')
             if expected_hashes is not None and {s: r['sha256'] for s, r in pinned.items()} != expected_hashes:
                 raise RuntimeError('Compared manifest identity changed; compare again')
+            context = dict(analysis_config=normalize_analysis(analysis_config), policy=dict(policy or {}), report_sha256=expected_report_hash)
+            if self.process and self.analysis_context != context:
+                raise RuntimeError('Close the current viewer before changing analysis configuration or identity')
             if self.process and self.manifests != pinned:
                 raise RuntimeError('Close the current viewer before changing snapshots')
             try:
                 if self.process is None:
                     self.nonce = uuid4().hex; self.sequence = 0; self.manifests = pinned
+                    self.analysis_context = context
                     self._last_operation = None
                     self.directory = Path(tempfile.mkdtemp(prefix='usd-scene-review-'))
                     config = dict(schema=SCHEMA, nonce=self.nonce, manifests=pinned,
-                                  sdk=str(sdk), worker_module=str(worker_module))
+                                  sdk=str(sdk), worker_module=str(worker_module), **context)
                     write_message(self.directory / 'config.json', config)
                     self.state = 'starting'
                     self.process, self.job = self._launch(self.directory, config)
                     ready = await self._wait(lambda: self._reply(0))
                     if ready.get('status') != 'ready':
                         raise RuntimeError(ready.get('message', 'Viewer could not start'))
-                reply = await self._request('view', side=side, selected=selected, focus=focus, ghost=ghost, normalized=normalized, review=review or {})
+                reply = await self._request('view', side=side, selected=selected, pair_id=pair_id, focus=focus, ghost=ghost, normalized=normalized, review=review or {})
                 self.state = 'running'
                 return reply
             except Exception as exc:
                 await self._abort(exc)
                 raise
 
-    async def frame(self, selected, *, focus=None, ghost=None, review=None):
+    async def frame(self, selected, *, focus=None, ghost=None, review=None, pair_id=None):
         async with self._lock:
             if self.state != 'running' or self.process is None:
                 raise RuntimeError('Open View A or View B before framing a result')
@@ -309,7 +317,7 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                 if focus is not None:fields['focus']=focus
                 if ghost is not None:fields['ghost']=ghost
                 if review is not None:fields['review']=review
-                return await self._request('frame', selected=selected, **fields)
+                return await self._request('frame', selected=selected, pair_id=pair_id, **fields)
             except Exception as exc:
                 await self._abort(exc)
                 raise

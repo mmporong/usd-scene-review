@@ -45,6 +45,11 @@ for the actual RTX material check behind this revised appearance.
 
 ## Distribution candidate
 
+Rc.3 adds separate scale-normalized effective orientation and point-derived
+static Cube/Mesh AABB candidates. Rigid policy rules are unchanged; collision remains
+unknown. Candidate scope, exclusions and work budgets are recorded in the report.
+See the [supported analysis contract](docs/support.md#static-aabb-candidates).
+
 Build a versioned project-only candidate with `python tools/package_candidate.py <new.zip>`.
 Use the [English quick start](docs/quickstart-en.md) or [한국어 빠른 시작](docs/quickstart-ko.md)
 for checksum verification, existing-SDK diagnostics, independent synthetic sample,

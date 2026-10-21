@@ -498,3 +498,15 @@ The initial commit/push was denied before execution while authorization was pend
 The exact repository/branch/code/docs/media publication was subsequently authorized.
 CPU CI is checked at the exact published SHA and reported with its terminal receipt;
 it does not qualify native GPU behavior. License and full Isaac shutdown limits remain.
+
+## Local effective-transform / static-AABB rc.3 validation (2026-10-21)
+
+The separate local analysis work is documented in [analysis validation](analysis-validation.md).
+Terminal evidence: CPU 131 cases (129 pass, two privilege skips), actual packaged Kit
+86 checks with host/five workers exit 0, final fresh rc.3 extraction smoke 12 checks
+with normal shutdown and preserved inputs/package, deterministic CLI JSON/HTML and
+reproducible ZIP. Rigid policy stays unchanged, auxiliary AABB candidates are not
+collision confirmation, and unknown/partial scope is explicit. Two intermediate failures
+are retained in that record; desktop mouse QA never ran and full Isaac shutdown remains
+unresolved. Rc.2 is preserved. The reviewed code/tests/docs were subsequently authorized
+for the existing public review branch; main merge and formal release remain excluded.

@@ -5,6 +5,9 @@ import math
 from pathlib import Path
 from pxr import Usd, UsdGeom, Sdf
 from .snapshot import load_snapshot, verify
+from .analysis_config import normalize as normalize_analysis
+from .transform_analysis import analyze_change, coverage as transform_coverage
+from .overlap_analysis import analyze_overlaps
 
 EPS = 1e-8
 
@@ -123,7 +126,7 @@ def _display_observation(record):
     """Additive UI evidence; never feed display interpretations into policy."""
     if record is None:
         return None
-    return {key: record[key] for key in ('active', 'visibility', 'local', 'world')}
+    return {key: record[key] for key in ('active', 'visibility', 'local', 'world', 'reset')}
 
 
 def rigid_delta(a, b):
@@ -145,11 +148,43 @@ def rigid_delta(a, b):
     return {"status": "known", "translation_stage_units": math.dist(a[3][:3], b[3][:3]), "rotation_degrees": angle}
 
 
-def compare(a_manifest_path, b_manifest_path, *, policy=None):
+def _dependencies(path, records):
+    result = []
+    if records.get(path, {}).get('reset'):
+        return result
+    ancestor = Sdf.Path(path).GetParentPath()
+    while ancestor != Sdf.Path.absoluteRootPath:
+        name = str(ancestor)
+        result.append(name)
+        if records.get(name, {}).get('reset'):
+            break
+        ancestor = ancestor.GetParentPath()
+    return result
+
+
+def _motion_context(path, av, bv, aa, bb, fields):
+    chains = {'before': _dependencies(path, aa), 'after': _dependencies(path, bb)}
+    candidates = list(dict.fromkeys(chains['before'] + chains['after']))
+    changed = [p for p in candidates if p in aa and p in bb and
+               (not same(aa[p]['local'], bb[p]['local']) or aa[p]['reset'] != bb[p]['reset'])]
+    # A cause requires dependency in both revisions. Removed/introduced frame
+    # influence is recorded separately rather than as certain parent movement.
+    parent = next((p for p in changed if p in chains['before'] and p in chains['after']), None)
+    context = {'direct_local': 'local' in fields, 'direct_reset': 'reset' in fields,
+               'ancestor_dependencies': chains, 'changed_ancestors': changed,
+               'boundary_changed': chains['before'] != chains['after'] or 'reset' in fields}
+    return parent, context
+
+
+def compare(a_manifest_path, b_manifest_path, *, policy=None, analysis_config=None):
+    analysis_config = normalize_analysis(analysis_config)
     a, b = load_snapshot(a_manifest_path), load_snapshot(b_manifest_path)
-    result = {"schema": 1, "status": "unknown", "config": a.manifest.get("config"), "reasons": [], "changes": [], "parent_groups": [], "layer_changes": [],
+    result = {"schema": 1, "policy_config": dict(sorted((policy or {}).items())), "analysis_config": analysis_config, "status": "unknown", "config": a.manifest.get("config"), "reasons": [], "changes": [], "parent_groups": [], "layer_changes": [],
               "revision_files": {"A": a.manifest.get("files", {}), "B": b.manifest.get("files", {})},
               "policy": [], "clash": {"status": "unknown", "reason": "Clash adapter not available in V1"}}
+    result['overlap_analysis'] = {'coverage': {'status': 'unknown'}, 'pairs': [],
+                                  'reason': 'verified snapshots unavailable'}
+    result['transform_coverage'] = transform_coverage([])
     reasons = ["A: " + x for x in verify(a)] + ["B: " + x for x in verify(b)]
     if a.manifest.get("config") != b.manifest.get("config"):
         reasons.append("composition configuration mismatch")
@@ -172,7 +207,12 @@ def compare(a_manifest_path, b_manifest_path, *, policy=None):
             va, vb = getter(a.stage), getter(b.stage)
             if va != vb:
                 reasons.append("stage metadata mismatch: " + name)
-            metadata[name] = {"before": va, "after": vb}
+            if ((name == 'meters_per_unit' and any(not math.isfinite(v) or v <= 0 for v in (va, vb)))
+                    or (name == 'up_axis' and any(v not in ('Y', 'Z') for v in (va, vb)))
+                    or (name in ('time_codes_per_second', 'frames_per_second')
+                        and any(not math.isfinite(v) or v <= 0 for v in (va, vb)))):
+                reasons.append('invalid stage metadata: '+name)
+            metadata[name] = {"before": value(va), "after": value(vb)}
         result["stage_metadata"] = metadata
         for path in sorted(aa.keys() | bb.keys()):
             av, bv = aa.get(path), bb.get(path)
@@ -191,23 +231,15 @@ def compare(a_manifest_path, b_manifest_path, *, policy=None):
             authored = {k: {"before": av["authored"].get(k), "after": bv["authored"].get(k)} for k in sorted(av["authored"].keys() | bv["authored"].keys()) if av["authored"].get(k) != bv["authored"].get(k)}
             if not fields and not authored:
                 continue
-            provenance = "local" if "local" in fields else "authored-only" if not fields else "effective"
-            ancestor = Sdf.Path(path).GetParentPath()
-            parent = None
-            if "world" in fields and not bv["reset"]:
-                while ancestor != Sdf.Path.absoluteRootPath:
-                    ap = str(ancestor)
-                    if ap in aa and ap in bb and not same(aa[ap]["local"], bb[ap]["local"]):
-                        parent = ap
-                        break
-                    if ap in bb and bb[ap]["reset"]:
-                        break
-                    ancestor = ancestor.GetParentPath()
-                if parent:
-                    provenance = "local-and-parent" if "local" in fields else "parent-propagated"
+            direct = 'local' in fields or 'reset' in fields
+            provenance = "local" if direct else "authored-only" if not fields else "effective"
+            parent, motion = _motion_context(path, av, bv, aa, bb, fields)
+            if 'world' in fields and parent:
+                provenance = 'local-and-parent' if direct else 'parent-propagated'
             record = {"path": path, "kind": "modified", "fields": fields, "authored": authored, "provenance": provenance}
+            record['motion_context'] = motion
             record['observed'] = {'before': _display_observation(av), 'after': _display_observation(bv)}
-            if parent:
+            if parent and 'world' in fields:
                 record["parent_cause"] = parent
             if "world" in fields:
                 record["world_delta"] = rigid_delta(av["world"], bv["world"])
@@ -234,6 +266,11 @@ def compare(a_manifest_path, b_manifest_path, *, policy=None):
         result["parent_groups"] = [{"parent": p, "affected": paths} for p, paths in sorted(groups.items())]
     except Exception:
         reasons.append("unsupported or unreadable scene data")
+    try:
+        result['overlap_analysis'] = analyze_overlaps(a, b, result.get('stage_metadata', {}), analysis_config)
+    except Exception:
+        result['overlap_analysis'] = {'coverage': {'status': 'unknown'}, 'pairs': [],
+                                      'reason': 'auxiliary geometry analysis unavailable'}
     for label, snapshot in (("A", a), ("B", b)):
         reasons.extend(label + ": " + x for x in verify(snapshot))
         after = {str(l.identifier): l.dirty for l in snapshot.stage.GetUsedLayers()}
@@ -244,4 +281,8 @@ def compare(a_manifest_path, b_manifest_path, *, policy=None):
     if reasons:
         for verdict in result["policy"]:
             verdict.update(status="unknown", reason="comparison evidence incomplete")
+    for change in result['changes']:
+        change['transform_analysis'] = analyze_change(change.get('observed', {}),
+                                                       result.get('stage_metadata', {}), analysis_config)
+    result['transform_coverage'] = transform_coverage(result['changes'])
     return result

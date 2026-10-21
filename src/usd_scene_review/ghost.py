@@ -66,9 +66,12 @@ def extract(snapshot, selected, *, max_prims=512, max_points=200000):
             if any(a.GetNumTimeSamples() for a in ancestor.GetAttributes()):
                 return unsupported('Animated geometry/ancestor is unsupported')
             ancestor=ancestor.GetParent()
-        bound=UsdShade.MaterialBindingAPI(p).ComputeBoundMaterial()[0]
-        if bound and bound.GetDisplacementOutput() and bound.GetDisplacementOutput().HasConnectedSource():
-            return unsupported('Material displacement is unsupported')
+        from .overlap_analysis import has_displacement
+        try:
+            if has_displacement(p,max_prims):
+                return unsupported('Material displacement, including subsets/render contexts, is unsupported')
+        except ValueError:
+            return unsupported('Material subset budget exceeded')
         matrix=cache.GetLocalToWorldTransform(p)
         values=[[float(x) for x in row] for row in matrix]
         if not affine(values) or abs(matrix.GetDeterminant())<1e-12 or any(abs(x)>1e25 for row in values for x in row):

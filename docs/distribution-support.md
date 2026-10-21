@@ -1,6 +1,6 @@
 # Candidate support and release boundary
 
-Candidate 0.1.0-rc.2 is a project-only archive for Windows and a separately installed
+Candidate 0.1.0-rc.3 is a project-only archive for Windows and a separately installed
 Isaac Sim 4.5 SDK. The qualified machine uses Kit 106.5, SDK Python 3.10.15,
 OpenUSD 22.11 and an RTX 3060. Other SDK/ABI combinations are rejected rather than
 silently mixed. Doctor checks imports and read-only GPU health; native smoke provides
@@ -51,7 +51,21 @@ contribution candidates remain a separate researched list, not completed contrib
 and not a replacement for this candidate's implementation/testing. No upstream issue,
 PR or vendor report is submitted by the distribution workflow.
 
-The rc.2 helper uses visible translucent green faces at OmniPBR fractional opacity
+The rc.3 helper retains visible translucent green faces at OmniPBR fractional opacity
 0.22, zero opacity threshold and half-width secondary edge cues. Face-only actual
 RTX comparisons preserve recognizable original geometry behind the helper. This
 changes anonymous preview helpers only; source material networks stay unchanged.
+
+Rc.3 adds separate scale-normalized effective orientation for positive orthogonal
+nonuniform scales. It does not change rigid-only policy checks or infer authored rotation.
+Static AABB candidates use actual Cube vertices and Mesh nonhole face points transformed
+to world coordinates. Authored extent and subtree bounds are excluded from this analysis.
+Only known disjoint A to overlapping B is newly introduced; existing, resolved, boundary,
+added-geometry and unknown-baseline cases remain separate. Hidden/animated/deformed,
+displaced (including subset/render-context and allPurpose/full/preview material bindings)
+and unsupported geometry is unknown.
+The report includes the versioned configuration, meter tolerance, budgets and exclusions;
+budget exhaustion is auxiliary partial coverage and does not rewrite semantic status.
+Collision/clearance remains unknown. Candidate selection frames both objects with a
+common A/B union; unknown bounds refuse focus. Intentional marks grant no policy waiver.
+The worker independently recomputes the pinned report and validates candidate IDs.

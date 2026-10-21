@@ -4,7 +4,7 @@ V1 is intentionally strict: local `.usd`, `.usda`, `.usdc` layers with relative 
 
 Remote URLs, absolute references, path escapes/symlinks/junctions, unverifiable resolver behavior, value clips, asset-valued properties, instancing/prototypes, point instancers and unsupported composition features must be rejected or yield unknown. No automatic rename matching. No proof of a complete scene when a payload/dependency is missing or a parent is inactive. Active/visibility observations carry their limitations. No animation-range claim from a single sample. Same assembly identity is a caller contract.
 
-Authored opinions are compared separately from composed effective values. A property stack difference is evidence of opinion changes, not proof of a human author or intent. Parent propagation groups describe observed transform changes; resetXformStack boundaries stop grouping. Rotation metrics apply only to rigid matrices; scale/shear/reflection/singular matrices are reported without a rotation verdict. Equivalent Euler or quaternion representations must not cause an effective pose false positive.
+Authored opinions are compared separately from composed effective values. A property stack difference is evidence of opinion changes, not proof of a human author or intent. Parent propagation groups require world motion and dependency in both revisions; resetXformStack boundary transitions are recorded separately. Rigid policy rotation remains restricted to rigid matrices. Separate normalized effective orientation supports orthogonal positive nonuniform scale without claiming authored rotation. Equivalent Euler or quaternion representations must not cause an effective pose false positive.
 
 AABB is only a broad-phase candidate. No confirmed collision verdict in V1. Missing Clash extension or unsupported geometry is unknown. Optional policy checks begin with rigid translation/relative rotation only, with units stated explicitly.
 
@@ -16,7 +16,7 @@ Floating values use an absolute tolerance of 1e-8; integer/boolean values and au
 
 Source files are checked again after all copies. This detects ordinary mutations but is not an atomic filesystem transaction or protection against a malicious concurrent writer changing and restoring bytes. Freeze upstream files while snapshotting; otherwise supply an independently immutable filesystem revision. Snapshots are integrity-checked, not cryptographically signed provenance. Editing files and rewriting the manifest creates a new, untrusted revision identity.
 
-A bundle has to preserve relative directory structure inside the entry directory. External sibling dependencies require preparing a common local root upstream; this tool will not rewrite the original source. Inherits/specializes/relocates, remote/package paths and asset-valued properties are rejected conservatively. Missing Clash support remains an explicit unknown; no AABB or narrow-phase adapter is implemented yet.
+A bundle has to preserve relative directory structure inside the entry directory. External sibling dependencies require preparing a common local root upstream; this tool will not rewrite the original source. Inherits/specializes/relocates, remote/package paths and asset-valued properties are rejected conservatively. Missing Clash support remains an explicit unknown. Static AABB candidate analysis is auxiliary; no narrow-phase collision adapter is implemented.
 
 ## Verified local resolution
 
@@ -52,10 +52,46 @@ they are not world travel distances. Meter conversion uses declared meters-per-u
 Unavailable/overflowing measurements remain unavailable. Values are rounded to nine
 significant digits in the UI; the report retains its original numeric evidence.
 
-Quaternion (w,x,y,z) and shortest rotation angle are displayed only for rigid matrices;
-scale, shear, reflection and singular transforms receive no rotation verdict. Orthogonal
-positive-basis axis lengths are labelled unsigned magnitudes, not authored signed scale.
+Rigid quaternion/angle rows retain their existing rigid-only interpretation. Separate
+effective quaternion (w,x,y,z), shortest angle and unsigned axis magnitudes normalize
+orthogonal positive basis rows, including nonuniform scale. This is effective orientation,
+not authored rotation or signed scale. Shear/nonorthogonality, reflection, singular,
+ill-conditioned, nonfinite and nonaffine bases have explicit unknown reasons. Translation
+has separate validity and can remain available when orientation is unknown. Cross-revision
+translation/orientation deltas require matching valid units and up axes.
 Inactive or unobserved transforms are unavailable, not identity transforms.
+
+## Static AABB candidates
+
+The independent auxiliary analysis transforms actual Cube vertices and Mesh points
+referenced by nonhole faces into world coordinates. It never uses authored extent or
+display/subtree aggregate bounds. Mesh results bound face control points; they do not
+evaluate a displaced render surface or confirm triangle intersection. Hidden, animated,
+instanced, skinned/deformed, displaced (including subsets and allPurpose/full/preview bindings), unsupported or
+unreadable geometry is excluded with reasons. Purposes default/render/proxy are included.
+Containers, self pairs, duplicate order and ancestor/descendant geometry pairs are
+excluded; geometry sharing a parent remains eligible.
+
+Only a known disjoint A pair followed by a known overlapping B pair is labelled
+`newly-introduced-aabb-overlap`. Existing overlap, resolved candidate, boundary-to-overlap,
+added geometry and unknown baseline are distinct. Per-axis positive intersection depth
+must exceed tolerance for overlap; near-touching and degenerate AABBs are boundary.
+Tolerance is the larger of 1e-6 m and eight ULPs of the bounds coordinates. Invalid or
+mismatched coordinate metadata prevents cross-revision classification.
+
+Versioned report configuration records all settings and deterministic budgets: 20,000
+prims, 2,048 geometry targets, 200,000 points and 1,000,000 face vertices per geometry,
+1,000,000 total transformed points, 1,000,000 examined pairs, 20,000 stored records.
+Budget exhaustion yields auxiliary `partial` coverage, independently of semantic report
+status. Coverage lists examined geometry, exclusions, pairs and classification counts.
+`clash.status` remains unknown; candidates and human intentional marks grant no clearance.
+
+Expand Static AABB candidates and choose a row to outline both objects. A/B use the same
+union camera over both objects' actual bounds in both revisions; missing/unknown bounds
+refuse pair focus explicitly. A stationary object gains no fake change or old-A ghost.
+The worker checks the pair ID against its recomputed, configuration-pinned report.
+JSON, HTML, host and worker evidence share formatted candidate rows. No execution time
+or elapsed duration enters the report identity.
 
 The isolated viewer preserves original geometry, material/subset bindings, display
 colors, active and visibility state. Owned anonymous helper curves receive blue A

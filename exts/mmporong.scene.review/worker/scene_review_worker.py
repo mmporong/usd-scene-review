@@ -14,8 +14,9 @@ from pxr import Sdf, Usd, UsdUtils
 from usd_scene_review import load_snapshot, compare
 from usd_scene_review.ghost import extract, GhostOverlay
 from evidence_panel import EvidencePanel
-from usd_scene_review.snapshot import verify
+from usd_scene_review.snapshot import verify, canonical
 from usd_scene_review.preview import prepare_lighting
+from usd_scene_review.overlap_analysis import pair_by_id, union_bounds
 from usd_scene_review.worker_client import SCHEMA, read_message, write_message
 
 
@@ -51,7 +52,11 @@ class ReviewWorker(omni.ext.IExt):
             if self.context.get_stage() is not None:
                 raise RuntimeError('Viewer default context was not empty')
             self.ghost_material_available = (Path(self.config.get('sdk','')) / 'kit/mdl/core/Base/OmniPBR.mdl').is_file()
-            self.report = compare(self.config['manifests']['A']['path'], self.config['manifests']['B']['path'])
+            self.report = compare(self.config['manifests']['A']['path'], self.config['manifests']['B']['path'],
+                                  analysis_config=self.config.get('analysis_config'), policy=self.config.get('policy'))
+            self.report_hash = hashlib.sha256(canonical(self.report).encode('utf-8')).hexdigest()
+            if self.config.get('report_sha256') and self.config['report_sha256'] != self.report_hash:
+                raise ValueError('Worker recomputed report does not match the host analysis identity')
             self.panel = EvidencePanel()
             self.respond('ready')
             while True:
@@ -102,9 +107,9 @@ class ReviewWorker(omni.ext.IExt):
                         self.review = review
                     if operation == 'view':
                         await self.view(message.get('side'))
-                        self.frame(message.get('selected'))
+                        self.frame(message.get('selected'), message.get('pair_id'))
                     elif operation == 'frame':
-                        self.frame(message.get('selected'))
+                        self.frame(message.get('selected'), message.get('pair_id'))
                     elif operation == 'capture':
                         # Diagnostic output is fixed inside the owned private run,
                         # never an arbitrary destination supplied by the caller.
@@ -144,6 +149,10 @@ class ReviewWorker(omni.ext.IExt):
                         renderer_capture.wait_async_capture()
                         if not (self.root / 'review.png').is_file():
                             raise RuntimeError('Renderer swapchain capture did not produce an image')
+                        # Do not retain a native capture interface across later UI
+                        # requests and SDK shutdown in this long-lived coroutine.
+                        renderer_capture = None
+                        previous = current = None
                         self.respond('captured')
                     else:
                         raise ValueError('Unsupported viewer operation')
@@ -162,7 +171,7 @@ class ReviewWorker(omni.ext.IExt):
                               self.review, self.display_info, self.lighting)
         write_message(self.root / 'response.json', dict(
             schema=SCHEMA, nonce=(self.config or {}).get('nonce'), sequence=self.sequence,
-            status=status, message=message, side=getattr(self, "side", None),
+            status=status, message=message, report_sha256=getattr(self, 'report_hash', None), side=getattr(self, "side", None),
             display=self.display_info))
 
     def check_manifests(self):
@@ -272,13 +281,16 @@ class ReviewWorker(omni.ext.IExt):
             self.camera_cache[key] = camera_spec(bounds, metadata[0][1])
         return self.camera_cache[key]
 
-    def frame(self, selected):
+    def frame(self, selected, pair_id=None):
         self.check_current()
         self.ghost.clear()
         self.display_info = self.display.style(None, self.side, None)
         self.display_info['ghost'] = {'status': 'off', 'count': 0}
         self.display_info['review'] = dict(self.review)
         self.display_info.update(selected=None, camera_scope='previous camera; selection not framed')
+        if pair_id is not None:
+            self.frame_pair(pair_id)
+            return
         # Whole-scene context is independent of whether a selected change exists
         # or has geometric bounds in this revision.
         if not self.focus or not selected:
@@ -334,3 +346,46 @@ class ReviewWorker(omni.ext.IExt):
         self.respond('framed', self.side + ': framed ' + selected + '; ' + label
                      + '; original geometry/materials; ' + self.lighting['label'] + '; '
                      + self.display_info['camera_scope'])
+
+    def frame_pair(self, pair_id):
+        try:
+            pair = pair_by_id(self.report, pair_id)
+            if pair['focus_bounds_stage'] is None:
+                raise ValueError('both objects require known point bounds in A and B with matching coordinates')
+            bounds = {side: union_bounds([v['bounds_stage'] for v in pair['objects'][sample]])
+                      for side, sample in [('A', 'before'), ('B', 'after')]}
+            spec = camera_spec(bounds, self.report['stage_metadata']['up_axis']['before'])
+        except ValueError as exc:
+            try:
+                fallback = self.camera_for('/')
+                self.display.set_camera(fallback, self.viewport.viewport_api)
+                self.display_info.update(camera=fallback, camera_scope='whole saved scene')
+            except ValueError:
+                self.display_info['camera_scope'] = 'whole scene and pair framing unavailable'
+            self.respond('refused', 'AABB pair framing refused: '+str(exc))
+            return
+        self.display_info = self.display.style_pair(pair, self.side)
+        self.display.set_camera(spec, self.viewport.viewport_api)
+        self.display_info.update(selected=None, camera=spec, camera_scope='A/B union of both pair objects',
+                                 review=dict(self.review), lighting=self.lighting,
+                                 ghost={'status': 'off', 'count': 0})
+        if self.ghost_enabled and self.side == 'B':
+            changed = [c['path'] for c in self.report['changes'] if c['path'] in pair['paths']
+                       and any(k in c.get('fields', {}) for k in ('world', 'local', 'attributes', 'type'))]
+            if changed and self.ghost_material_available:
+                old = load_snapshot(self.config['manifests']['A']['path'])
+                if old.errors or verify(old):
+                    raise RuntimeError('Old A snapshot verification failed')
+                geometry = []
+                for path in changed:
+                    data = extract(old, path, max_prims=256, max_points=100000)
+                    if data['status'] != 'ready':
+                        self.display_info['ghost'] = {'status': 'unsupported', 'count': 0, 'reason': data['reason']}
+                        break
+                    geometry.extend(data['geometry'])
+                else:
+                    self.display_info['ghost'] = self.ghost.show({'status': 'ready', 'geometry': geometry})
+            elif changed:
+                self.display_info['ghost'] = {'status': 'unsupported', 'count': 0, 'reason': 'Installed OmniPBR template unavailable'}
+        self.check_current()
+        self.respond('framed', self.side+': two geometry AABBs; '+pair['classification']+'; collision unknown')

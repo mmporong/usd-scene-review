@@ -64,6 +64,10 @@ class Probe(omni.ext.IExt):
         async def click(label):
             import omni.kit.ui_test as ui_test
             button = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='" + label + "'")
+            deadline = time.monotonic()+5
+            while button is None and time.monotonic()<deadline:
+                await updates(1)
+                button = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='" + label + "'")
             check(label + ' actual widget found', button is not None)
             import omni.ui as ui
             if ui.Workspace.get_main_window_width() <= 0 or ui.Workspace.get_main_window_height() <= 0:
@@ -229,6 +233,108 @@ class Probe(omni.ext.IExt):
             await click('Close review')
             check('graceful close plus worker exit zero', client.state == 'closed' and client.last_exit == 0 and client.process is None)
             result['worker_exits'].append(client.last_exit)
+            if not supplied.is_file():
+                # New auxiliary analysis: separate synthetic inputs, no user scenes.
+                from pxr import Gf
+                from usd_scene_review import compare
+                from usd_scene_review.snapshot import canonical
+                from usd_scene_review.overlap_analysis import pair_rows
+                from usd_scene_review.exports import save_report
+                analysis_paths = {}
+                for side, offset, angle in [('A', 4, 350), ('B', .5, 10)]:
+                    source = ROOT / ('analysis-source-'+side)
+                    source.mkdir()
+                    fixture = Usd.Stage.CreateInMemory()
+                    UsdGeom.SetStageMetersPerUnit(fixture, 1)
+                    UsdGeom.SetStageUpAxis(fixture, 'Z')
+                    UsdGeom.Xform.Define(fixture, '/World')
+                    for name, x in [('Moving', offset), ('Static', 0)]:
+                        cube = UsdGeom.Cube.Define(fixture, '/World/'+name)
+                        cube.CreateSizeAttr(2)
+                        cube.AddTranslateOp().Set(Gf.Vec3d(x, 0, 0))
+                        if name == 'Moving':
+                            cube.AddRotateZOp().Set(angle)
+                            cube.AddScaleOp().Set(Gf.Vec3f(1, 1.5, 1))
+                    source_file = source/'scene.usda'
+                    source_file.write_text(fixture.GetRootLayer().ExportToString())
+                    analysis_paths[side] = str(create_snapshot(source_file, ROOT/('analysis-snapshot-'+side)))
+                analysis_files = [p for m in analysis_paths.values() for p in Path(m).parent.rglob('*') if p.is_file()]
+                analysis_before = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in analysis_files}
+                for side in ('A', 'B'): owner._paths[side].set_value(analysis_paths[side])
+                await click('Compare')
+                from usd_scene_review.analysis_config import normalize
+                custom = normalize()
+                custom['overlap']['tolerance_m'] = 2e-5
+                custom['transform']['orthogonality_tolerance'] = 2e-7
+                owner._report = compare(analysis_paths['A'], analysis_paths['B'], analysis_config=custom,
+                                        policy={'max_rotation_degrees': 1})
+                owner._render_pairs()
+                pair, = owner._report['overlap_analysis']['pairs']
+                change, = [c for c in owner._report['changes'] if c['path']=='/World/Moving']
+                check('scaled effective orientation is 20 degrees with rigid policy unchanged',
+                      abs(change['transform_analysis']['spaces']['world']['orientation_delta']['degrees']-20)<1e-6
+                      and change['world_delta']['status']=='unknown')
+                check('static same-parent newly introduced AABB candidate without fake change',
+                      pair['classification']=='newly-introduced-aabb-overlap'
+                      and not any(c['path']=='/World/Static' for c in owner._report['changes']))
+                owner._pair_frame.collapsed = False
+                await updates(5)
+                pair_label = pair['classification']+'  '+' / '.join(pair['paths'])
+                pair_button = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='"+pair_label+"'")
+                check('actual AABB pair widget found', pair_button is not None)
+                await pair_button.click()
+                pair_button = None
+                await updates(5)
+                check('pair row selects separate candidate and common evidence', owner._selected_pair==pair
+                      and owner._selected_change is None and owner._selected is None)
+                owner._pair_frame.collapsed = True
+                await click('View B')
+                response = await client.frame(None, pair_id=pair['id'], ghost=True)
+                digest = hashlib.sha256(canonical(owner._report).encode()).hexdigest()
+                check('worker recomputed full analysis matches host report hash', response['report_sha256']==digest)
+                check('nondefault config and rigid policy pinned across host and worker',
+                      client.analysis_context['analysis_config']==custom
+                      and client.analysis_context['policy']=={'max_rotation_degrees':1}
+                      and owner._report['policy'][0]['status']=='unknown')
+                check('pair view frames two actual point bounds with A/B union',
+                      response['display']['selected_geometry']==2
+                      and response['display']['camera_scope']=='A/B union of both pair objects'
+                      and response['display']['selected_paths']==pair['paths'])
+                check('pair ghost contains only moved object', response['display']['ghost']['status']=='shown'
+                      and response['display']['ghost']['count']==1
+                      and response['display']['ghost']['opacity']==.22)
+                pair_camera = response['display']['camera']
+                startup = json.loads((client.directory/'config.json').read_text())
+                invalid_view = await client.view(analysis_paths, 'A', None,
+                    sdk=startup['sdk'], worker_module=startup['worker_module'],
+                    analysis_config=custom, policy={'max_rotation_degrees':1}, expected_report_hash=digest,
+                    pair_id='invalid-on-newly-attached-revision')
+                check('fresh A view with invalid pair retains whole scene framing',
+                      invalid_view['status']=='refused' and invalid_view['display']['camera_scope']=='whole saved scene')
+                pair_a = await client.frame(None, pair_id=pair['id'])
+                check('pair A/B union camera is identical across actual revision attachment',
+                      pair_a['display']['camera']==pair_camera)
+                invalid = await client.frame(None, pair_id='invalid-not-in-recomputed-report')
+                check('worker refuses stale pair ID and remains usable', invalid['status']=='refused' and client.state=='running')
+                recovered = await client.frame(None, pair_id=pair['id'])
+                check('pair recovers after invalid ID', recovered['status']=='framed')
+                saved = save_report(owner._report, OUT/'analysis-export',
+                                    forbidden_roots=[Path(p).parent for p in analysis_paths.values()])
+                exported = json.loads((OUT/'analysis-export/review.json').read_text(encoding='utf-8'))
+                html = (OUT/'analysis-export/review.html').read_text(encoding='utf-8')
+                check('analysis export equals host and worker identity with shared pair rows',
+                      exported==owner._report and all(row[1] in html for row in pair_rows(exported,pair)))
+                frozen_analysis = copy.deepcopy(owner._report)
+                owner._reason.set_value('Synthetic pair intentional review; collision remains unknown')
+                owner._record_review('intentional')
+                check('pair human disposition preserves unknown collision and observed evidence',
+                      owner._report==frozen_analysis and owner._report['clash']['status']=='unknown')
+                await click('Close review')
+                check('analysis viewer normal exit zero and inputs preserved', client.last_exit==0
+                      and analysis_before=={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in analysis_files})
+                result['worker_exits'].append(client.last_exit)
+                for side in ('A', 'B'): owner._paths[side].set_value(paths[side])
+                await click('Compare')
             if supplied.is_file() and inputs.get('shutdown_while_starting'):
                 await ui_test.find("USD Scene Review//Frame/**/Button[*].text=='View B'").click()
                 await updates(1)

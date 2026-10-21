@@ -16,6 +16,8 @@ from usd_scene_review.measurements import detail_rows, measurements
 from usd_scene_review.dispositions import change_identity, record, history, latest
 from usd_scene_review.worker_client import get_viewer_client
 from usd_scene_review.exports import save_report
+from usd_scene_review.snapshot import canonical
+from usd_scene_review.overlap_analysis import pair_rows
 
 _active = None
 
@@ -42,6 +44,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._report = None
         self._selected = None
         self._selected_change = None
+        self._selected_pair = None
         self._review_path = ui.SimpleStringModel()
         self._reason = ui.SimpleStringModel()
         self._disposition = ui.SimpleStringModel('Human review: unreviewed. This does not change independent rule verdicts.')
@@ -107,6 +110,10 @@ class SceneReviewExtension(omni.ext.IExt):
                 ui.StringField(model=self._revision, read_only=True, height=30)
                 with ui.ScrollingFrame(height=90):
                     self._rows = ui.VStack(spacing=3)
+                with ui.CollapsableFrame('Static AABB candidates (collision unknown)', collapsed=True) as pair_frame:
+                    self._pair_frame = pair_frame
+                    with ui.ScrollingFrame(height=100):
+                        self._pair_rows = ui.VStack(spacing=3)
                 ui.StringField(model=self._selected_label, read_only=True, height=30)
                 ui.StringField(model=self._motion, read_only=True, multiline=True, height=52)
                 with ui.CollapsableFrame('Human review metadata (separate from evidence)', collapsed=True) as review_frame:
@@ -121,8 +128,9 @@ class SceneReviewExtension(omni.ext.IExt):
                             ui.Button('Mark intentional', width=160, clicked_fn=partial(self._record_review, 'intentional'))
                             ui.Button('Needs review', width=140, clicked_fn=partial(self._record_review, 'needs-review'))
                         ui.StringField(model=self._disposition, read_only=True, multiline=True, height=40)
-                self._numeric = ui.VStack(spacing=3, height=255)
-                ui.Label('Translation: stage units + meters. q: rigid quaternion (w,x,y,z); shortest angle.', height=22,
+                with ui.ScrollingFrame(height=255):
+                    self._numeric = ui.VStack(spacing=3)
+                ui.Label('Translation: stage units + meters. q: rigid and scale-normalized effective orientation; shortest angle.', height=22,
                          style={'font_size': 16})
                 ui.Label('Axis magnitudes are unsigned, not authored signed scale. Values rounded to 9 digits.', height=22,
                          style={'font_size': 16})
@@ -143,7 +151,7 @@ class SceneReviewExtension(omni.ext.IExt):
             raise ValueError('Compare snapshots before saving results')
         if not self._export_path.as_string.strip():
             raise ValueError('Enter a new output folder with an existing parent')
-        if compare(self._comparison_paths['A'], self._comparison_paths['B']) != self._report:
+        if compare(self._comparison_paths['A'], self._comparison_paths['B'], analysis_config=self._report.get('analysis_config'), policy=self._report.get('policy_config')) != self._report:
             raise ValueError('Inputs changed since comparison; compare again before saving')
         actual = {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in self._comparison_paths.items()}
         if actual != self._comparison_hashes:
@@ -182,6 +190,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._report = None
         self._selected = None
         self._selected_change = None
+        self._selected_pair = None
         self._review_event = {}
         self._disposition.set_value('Human review: no changed prim selected')
         self._render_numeric(None)
@@ -196,6 +205,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._comparison_hashes = hashes
         self._details.set_value(summary(self._report))
         self._render_rows()
+        self._render_pairs()
         self._message(summary(self._report).splitlines()[0])
 
     def _render_rows(self):
@@ -212,6 +222,7 @@ class SceneReviewExtension(omni.ext.IExt):
                           height=24, clicked_fn=partial(self._select, change))
 
     def _select(self, change):
+        self._selected_pair = None
         self._selected = change.get('path')
         self._selected_change = change
         self._reason.set_value('')
@@ -221,15 +232,45 @@ class SceneReviewExtension(omni.ext.IExt):
         if self._viewer.state == 'running':
             self._schedule(self._frame())
 
+    def _render_pairs(self):
+        self._pair_rows.clear()
+        analysis = self._report.get('overlap_analysis', {})
+        pairs = sorted(analysis.get('pairs', []), key=lambda p: (p['classification'] != 'newly-introduced-aabb-overlap', p['paths']))
+        with self._pair_rows:
+            ui.Label(str(len(pairs))+' recorded pairs; coverage '+analysis.get('coverage', {}).get('status', 'unknown')+'; first 100 shown', height=22)
+            for pair in pairs[:100]:
+                ui.Button(pair['classification']+'  '+' / '.join(pair['paths']), height=24,
+                          clicked_fn=partial(self._select_pair, pair))
+
+    def _select_pair(self, pair):
+        self._selected = self._selected_change = None
+        self._selected_pair = pair
+        self._reason.set_value('')
+        self._load_review()
+        self._selected_label.set_value(' / '.join(pair['paths']))
+        self._motion.set_value('AABB candidate only. Both objects framed with A/B union. Collision / clearance UNKNOWN.')
+        self._details.set_value(canonical(pair))
+        self._numeric.clear()
+        with self._numeric:
+            for name, value in pair_rows(self._report, pair):
+                with ui.HStack(height=26):
+                    ui.Label(name, width=220)
+                    ui.Label(value, word_wrap=True)
+        if self._viewer.state == 'running':
+            self._schedule(self._frame())
+
     def _review_identity(self):
-        if not self._report or not self._selected_change:
-            raise ValueError('Compare and select a changed prim first')
+        if not self._report or not (self._selected_change or self._selected_pair):
+            raise ValueError('Compare and select a changed prim or AABB pair first')
         actual = {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in self._comparison_paths.items()}
-        if actual != self._comparison_hashes or compare(self._comparison_paths['A'], self._comparison_paths['B']) != self._report:
+        if actual != self._comparison_hashes or compare(self._comparison_paths['A'], self._comparison_paths['B'], analysis_config=self._report.get('analysis_config'), policy=self._report.get('policy_config')) != self._report:
             raise ValueError('Inputs changed; compare again. Prior dispositions do not apply.')
         if {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in self._comparison_paths.items()} != actual:
             raise ValueError('Manifests changed during review verification; compare again.')
-        return change_identity(self._comparison_hashes, self._selected_change)
+        selection = self._selected_change or {'path': 'pair:'+self._selected_pair['id'],
+                                              'pair': self._selected_pair,
+                                              'analysis_config': self._report['analysis_config']}
+        return change_identity(self._comparison_hashes, selection)
 
     def _show_review(self, event):
         self._review_event = {k: event[k] for k in ('disposition', 'reason')} if event else {}
@@ -239,7 +280,7 @@ class SceneReviewExtension(omni.ext.IExt):
 
     def _load_review(self):
         try:
-            if not self._review_path.as_string.strip() or not self._selected_change:
+            if not self._review_path.as_string.strip() or not (self._selected_change or self._selected_pair):
                 self._show_review(None)
                 return
             identity = self._review_identity()
@@ -292,7 +333,8 @@ class SceneReviewExtension(omni.ext.IExt):
 
     async def _frame(self):
         reply = await self._viewer.frame(self._selected, focus=self._focus.as_bool,
-                                         ghost=self._ghost.as_bool, review=self._review_event)
+                                         ghost=self._ghost.as_bool, review=self._review_event,
+                                         pair_id=self._selected_pair['id'] if self._selected_pair else None)
         self._accept_reply(reply)
 
     def _accept_reply(self, reply):
@@ -313,7 +355,7 @@ class SceneReviewExtension(omni.ext.IExt):
         if self._report.get('status') == 'unknown':
             self._message('Incomplete comparison: inspect the reasons and repair or recreate the snapshot bundles.')
             return
-        if compare(self._comparison_paths['A'], self._comparison_paths['B']) != self._report:
+        if compare(self._comparison_paths['A'], self._comparison_paths['B'], analysis_config=self._report.get('analysis_config'), policy=self._report.get('policy_config')) != self._report:
             self._message('Inputs changed since comparison. Compare again.')
             return
         worker = Path(__file__).resolve().parents[3] / 'worker'
@@ -321,7 +363,10 @@ class SceneReviewExtension(omni.ext.IExt):
                                         sdk=installed_sdk(), worker_module=worker,
                                         expected_hashes=self._comparison_hashes, focus=self._focus.as_bool,
                                         ghost=self._ghost.as_bool, normalized=self._normalized.as_bool,
-                                        review=self._review_event)
+                                        review=self._review_event, analysis_config=self._report.get('analysis_config'),
+                                        policy=self._report.get('policy_config'),
+                                          pair_id=self._selected_pair['id'] if self._selected_pair else None,
+                                        expected_report_hash=hashlib.sha256(canonical(self._report).encode('utf-8')).hexdigest())
         self._accept_reply(reply)
 
     def _close_review(self):
@@ -349,6 +394,9 @@ class SceneReviewExtension(omni.ext.IExt):
         self._ghost.remove_value_changed_fn(self._ghost_callback)
         self._rows.clear()
         self._rows = None
+        self._pair_rows.clear()
+        self._pair_rows = None
+        self._pair_frame = None
         self._numeric.clear()
         self._numeric = None
         if self._window:
