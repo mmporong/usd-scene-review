@@ -2,11 +2,14 @@
 
 Read-only semantic review of two local OpenUSD scene revisions, with a separate Python engine and NVIDIA Omniverse Kit interface.
 
+![Actual Kit before A, current B and translucent green old-A geometry with evidence panel](examples/usd-scene-review-demo.gif)
+
+Before A, current B, and translucent green geometry at the previous position.
+The visual demo uses fixed lighting and camera.
+
 **Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native SDK fault.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
 
 ## Demonstration
-
-![Actual Kit before A, current B and translucent green old-A geometry with evidence panel](examples/usd-scene-review-demo.gif)
 
 Actual isolated minimal Kit rendering from the installed Windows Isaac Sim 4.5 SDK.
 **A is the saved scene before the change; B is the saved scene after the change.
