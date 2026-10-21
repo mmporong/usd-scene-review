@@ -2,6 +2,13 @@
 
 Read-only semantic review of two local OpenUSD scene revisions, with a separate Python engine and NVIDIA Omniverse Kit interface.
 
+![Before A, current B, and translucent green geometry at the previous position](examples/usd-scene-review-demo.gif)
+
+Visual demo of the saved scenes before and after movement, with translucent green
+geometry marking the previous position under fixed lighting and camera.
+The demonstrated implementation is on the
+[feature branch](https://github.com/mmporong/usd-scene-review/tree/fix/factory-review-lifecycle).
+
 **Early development. Synthetic static A/B review is tested in Windows Kit 106.5 from Isaac Sim 4.5.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
 
 ## Target and checked environments
