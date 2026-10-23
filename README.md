@@ -9,6 +9,14 @@ geometry marking the previous position under fixed lighting and camera.
 
 **Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native failure whose current cause is not isolated.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
 
+Follow-up validation: 27 actual Full Isaac feature checks passed before a native
+texture teardown warning stopped the run. Full-app use remains unsupported.
+The earlier filename-only safety check failed to recognize that Full host. The
+corrected guard recognizes the suffix-free filename and enabled Full experience;
+eight actual Full Isaac checks confirm the button is disabled and both APIs refuse
+before review ownership. App shutdown still crashes. See
+[current evidence](docs/in-app-sdk-diagnosis.md).
+
 The experimental **in-app A/B split review** candidate renders both revisions, synchronized
 cameras and green old-position faces in minimal Kit. Narrow Full Isaac topology
 controls now render after first-frame/serialized-binding correction, but full-app

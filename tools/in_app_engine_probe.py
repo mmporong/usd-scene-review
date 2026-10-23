@@ -57,6 +57,20 @@ class Probe(omni.ext.IExt):
                 await asyncio.wait_for(initial_frame(),60);await updates(20)
                 phase('default-viewport-frame-ready')
             original=host_identity()
+            result['app_identity']={'filename':app.get_app_filename(),'name':app.get_app_name(),
+                'full_experience_enabled':app.get_extension_manager().is_extension_enabled('isaacsim.exp.full')}
+            if settings.get('/exts/in.app.probe/verifyFullGuard'):
+                manager=app.get_extension_manager()
+                manager.set_extension_enabled_immediate('mmporong.scene.review',True)
+                from mmporong.scene.review.extension import get_active_extension
+                from mmporong.scene.review.in_app import full_host_blocked
+                owner=get_active_extension();refused=False
+                try:await owner._open_in_app()
+                except RuntimeError as exc:refused='Full Isaac' in str(exc)
+                guarded=bool(full_host_blocked() and owner._in_app_blocked and refused and owner._in_app is None)
+                result['checks'].append(dict(name='Full product refuses before review ownership',passed=guarded))
+                if not guarded:raise RuntimeError('Product full-host guard failed')
+                phase('full-product-guard-confirmed')
             for current in modes:
                 layout=topology_layout(current)
                 for index in range(max(layout)+1):
@@ -97,6 +111,10 @@ class Probe(omni.ext.IExt):
                     phase('before-destroy-viewport-'+str(index),self.resources[layout[index]]['ctx'])
                     widget.destroy()
                     phase('after-destroy-viewport-'+str(index),self.resources[layout[index]]['ctx'])
+                    # Isolate asynchronous texture release from the next widget
+                    # destruction before attributing failures to context close.
+                    await updates(2)
+                    phase('after-destroy-frame-barrier-'+str(index),self.resources[layout[index]]['ctx'])
                 widget=None;self.widgets.clear();frames.clear();self.window.frame.clear();self.window.destroy();self.window=None
                 await updates(10)
                 for item in self.resources:

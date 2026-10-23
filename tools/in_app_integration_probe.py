@@ -35,6 +35,13 @@ class Probe(omni.ext.IExt):
             async def ready():
                 while not app.is_app_ready():await app.next_update_async()
             await asyncio.wait_for(ready(),timeout=120)
+            if app.get_extension_manager().is_extension_enabled('isaacsim.app.setup'):
+                from omni.kit.viewport.utility import get_active_viewport,next_viewport_frame_async
+                async def first_frame():
+                    while omni.usd.get_context().get_stage() is None or get_active_viewport() is None:
+                        await app.next_update_async()
+                    await next_viewport_frame_async(get_active_viewport())
+                await asyncio.wait_for(first_frame(),60)
             await updates(60)
             check('app reports ready before review setup',app.is_app_ready())
             manager=app.get_extension_manager();manager.set_extension_enabled_immediate('mmporong.scene.review',True)
@@ -42,7 +49,22 @@ class Probe(omni.ext.IExt):
             from mmporong.scene.review.extension import get_active_extension
             from usd_scene_review import create_snapshot
             self.owner=owner=get_active_extension();check('actual packaged extension loaded',owner is not None)
+            from mmporong.scene.review import in_app
+            async def open_review():
+                # This explicit switch exists only in the disposable validation
+                # probe, never in the distributed product. Keep the public button
+                # and guard blocked before/after every test-only opening.
+                if not in_app.full_host_blocked():return await owner._open_in_app()
+                if not carb.settings.get_settings().get('/exts/in.app.probe/fullFeatureValidation'):
+                    raise RuntimeError('Full-host feature probe requires explicit owned-host validation opt-in')
+                check('product full-app guard remains enabled before test-only opening',owner._in_app_blocked)
+                blocked=in_app.full_host_blocked
+                owner._in_app_blocked=False;in_app.full_host_blocked=lambda:False
+                try:await owner._open_in_app()
+                finally:owner._in_app_blocked=True;in_app.full_host_blocked=blocked
+                check('product full-app guard restored after test-only opening',in_app.full_host_blocked() and owner._in_app_blocked)
             host=omni.usd.get_context();await host.new_stage_async();stage=host.get_stage()
+            self.fixture_stages=[stage]
             UsdGeom.Xform.Define(stage,'/Sentinel');UsdGeom.Camera.Define(stage,'/Sentinel/SourceCamera')
             host.get_selection().set_selected_prim_paths(['/Sentinel'],False)
             timeline=omni.timeline.get_timeline_interface();timeline.set_current_time(7);await updates(20)
@@ -72,7 +94,7 @@ class Probe(omni.ext.IExt):
                            '/rtx/post/tonemap/exposureTime','/rtx/post/tonemap/fNumber',
                            '/rtx/post/tonemap/op','/rtx/ecoMode/enabled','/rtx/raytracing/fractionalCutoutOpacity')
             settings_before={key:settings.get(key) for key in exposure_keys}
-            await owner._open_in_app();review=owner._in_app;await updates(60)
+            await open_review();review=owner._in_app;await updates(60)
             check('two in-process viewports without worker',review.state=='open' and len(review.resources)==2 and owner._viewer.process is None)
             changes={c['path']:c for c in owner._report['changes']}
             for path in ('/World/Translated','/World/Rotated','/World/Added','/World/Removed','/World/Parent/Child'):
@@ -138,13 +160,14 @@ class Probe(omni.ext.IExt):
                    host.get_selection().get_selected_prim_paths(),timeline.get_current_time())
             check('working stage source camera session selection dirty timeline preserved',original==after)
             for cycle in range(2):
-                await owner._open_in_app();await updates(20);await owner._close();await updates(10)
+                await open_review();await updates(20);await owner._close();await updates(10)
                 check('repeat close '+str(cycle),owner._in_app.state=='closed')
-            await owner._open_in_app();await updates(15)
+            await open_review();await updates(15)
             await host.new_stage_async();await updates(20)
+            self.fixture_stages.append(host.get_stage())
             if owner._in_app._close_task:await owner._in_app._close_task
             check('working stage switch clears review',owner._in_app.state=='closed')
-            await owner._open_in_app();await updates(15)
+            await open_review();await updates(15)
             disabled_review=owner._in_app
             manager.set_extension_enabled_immediate(manager.get_enabled_extension_id('mmporong.scene.review'),False)
             await updates(15);check('extension disable clears owned contexts',disabled_review.state=='closed')
@@ -153,7 +176,7 @@ class Probe(omni.ext.IExt):
             from mmporong.scene.review.extension import get_active_extension as active
             self.owner=owner=active()
             for s,p in paths.items():owner._paths[s].set_value(p)
-            await owner._compare_async();await owner._open_in_app();await updates(15)
+            await owner._compare_async();await open_review();await updates(15)
             self.review=owner._in_app
             check('re-enabled extension opens internal viewports',owner._in_app.state=='open')
             check('all original file bytes preserved',hashes=={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
@@ -171,4 +194,9 @@ class Probe(omni.ext.IExt):
             result.update(status='failed',error=traceback.format_exc());print(result['error'],flush=True)
             if self.owner and getattr(self.owner,'_in_app',None):self.owner._in_app.close_sync()
         self.result=result;(root/'result.json').write_text(json.dumps(result,indent=2))
-        app.post_quit(0 if result['status'] in ('passed','awaiting_shutdown') else 1)
+        code=0 if result['status'] in ('passed','awaiting_shutdown') else 1
+        private_host=bool(carb.settings.get_settings().get('/exts/in.app.probe/fullFeatureValidation'))
+        stage=omni.usd.get_context().get_stage()
+        if private_host and stage in getattr(self,'fixture_stages',[]) and stage.GetRootLayer().anonymous:
+            app.post_uncancellable_quit(code)
+        else:app.post_quit(code)

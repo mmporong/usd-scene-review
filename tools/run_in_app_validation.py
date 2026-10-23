@@ -33,11 +33,17 @@ def main():
     parser.add_argument('--timeout',type=float,default=180)
     parser.add_argument('--full-app',action='store_true',help='Use the existing full Isaac app in a fresh portable profile')
     parser.add_argument('--baseline',action='store_true',help='Project-free full-app control; does not package or expose the review extension')
+    parser.add_argument('--full-feature-validation',action='store_true',help='Explicit owned-host probe-only access behind the unchanged full-app product guard')
+    parser.add_argument('--verify-full-guard',action='store_true',help='SDK topology probe also checks product Full Isaac refusal before native review ownership')
     parser.add_argument('--fail-fast-native',action='store_true',help='Contain the owned Job at the first known native graphics failure')
     parser.add_argument('--topology',choices=('single','shared','two-contexts','sequence'),default='shared',
                         help='SDK-only engine probe control; unused by product acceptance probes')
     args=parser.parse_args();sdk=args.isaac_root.resolve();root=args.output.resolve()
     if args.baseline and not args.full_app:parser.error('--baseline requires --full-app')
+    if args.full_feature_validation and (not args.full_app or args.baseline):
+        parser.error('--full-feature-validation requires --full-app without --baseline')
+    if args.verify_full_guard and (not args.full_app or args.baseline):
+        parser.error('--verify-full-guard requires --full-app without --baseline')
     root.mkdir(parents=True,exist_ok=False)
     if not args.baseline:
         package(root/'extension.zip')
@@ -84,6 +90,8 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
              '--/app/userConfigPath='+str(root/'user.config.json'),
              '--/exts/in.app.probe/output='+str(root),
              '--/exts/in.app.probe/topology='+args.topology,
+             '--/exts/in.app.probe/fullFeatureValidation='+str(args.full_feature_validation).lower(),
+             '--/exts/in.app.probe/verifyFullGuard='+str(args.verify_full_guard).lower(),
              '--/app/fastShutdown=false','--/app/settings/persistent=false',
              '--/app/extensions/registryEnabled=false','--/app/extensions/syncRegistryOnStartup=false',
              '--/renderer/multiGpu/autoEnable=false','--/app/asyncRendering=false',
