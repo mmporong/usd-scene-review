@@ -92,8 +92,11 @@ The separate `-Candidate viewport-bounds` treatment exercises only stage-free
 review UI callbacks. Its [single exit attempt](viewport-bounds-overlay.md#reduced-profile-exit-follow-up-failed-before-public-close)
 did not reach file.close: dynamic activation reintroduced excluded navigation,
 and a diagnostic read after SDK instance clearing failed. The new precondition
-guard and unload receipt are CPU-tested; no follow-up GPU rerun or normal exit is
-claimed. Original baseline records are preserved.
+guard and unload receipt were CPU-only at that checkpoint. A later distinct
+[persistent manager exclusion treatment](viewport-bounds-overlay.md#persistent-owned-exclusions-actual-exit0-with-diagnostics)
+now preserves the profile through enable/disable and reaches public close/native
+exit0. Its 10 errors/644 warnings keep strict-clean false and wrapper exit2.
+Original baseline records are preserved; stock Full and live A/B remain unqualified.
 
 `process-result.json` separates native exit, all probe checks, fixture preservation,
 stage event order, navigation/inventory agreement, actual admission, owned root

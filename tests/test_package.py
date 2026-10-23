@@ -1,5 +1,6 @@
 """The installable archive contains only authored source and configuration."""
 import importlib.util
+import json
 from pathlib import Path
 import tempfile
 try:
@@ -34,6 +35,10 @@ class PackageTests(unittest.TestCase):
                 self.assertIn('docs/viewport-reuse-assessment.md',archive.namelist())
                 self.assertIn('examples/usd-scene-review-in-app.png',archive.namelist())
                 self.assertIn(b'(in-app-review.md)',archive.read('docs/README.md'))
+                observation=json.loads(archive.read('diagnostics/bounds-persistent-exclusions-v1.json').decode('utf-8-sig'))
+                self.assertEqual(observation['process_exit'],0)
+                self.assertFalse(observation['strict_clean_shutdown'])
+                self.assertFalse(observation['stock_full_app_shutdown_qualified'])
                 self.assertFalse(any(n.endswith(('.so', '.dll', '.pyc')) for n in archive.namelist()))
             with self.assertRaises(ValueError):
                 module.package(a)

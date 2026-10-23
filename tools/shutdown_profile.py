@@ -111,7 +111,9 @@ def assess(report, process, log, profile=None):
                 and len(candidate_checks)==len(names) and {c.get('name') for c in candidate_checks if c.get('passed') is True}==names
                 and candidate.get('owned_resources_remaining') is False and candidate.get('working_stage_preserved') is True
                 and report.get('candidate_settings_preserved') is True)
-            if bounds:required['candidate']=required['candidate'] and candidate.get('pending_before') is False and candidate.get('pending_after') is False
+            if bounds:required['candidate']=(required['candidate'] and candidate.get('pending_before') is False and candidate.get('pending_after') is False
+                and candidate.get('activation_mode')=='persistent-manager-exclusions-v1'
+                and candidate.get('exclusion_preflight',{}).get('navigation_absent') is True)
         if profile.get('attach_control'):
             control=report.get('attach_control',{})
             required['attach_control']=(profile['variant']=='no-navigation' and not profile.get('candidate')

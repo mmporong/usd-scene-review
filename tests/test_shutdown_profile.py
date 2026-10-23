@@ -17,6 +17,58 @@ policy=importlib.util.module_from_spec(spec);spec.loader.exec_module(policy)
 
 
 class ShutdownProfileTests(unittest.TestCase):
+    def test_recorded_bounds_exit0_keeps_diagnostics_and_baseline_separate(self):
+        record=json.loads((ROOT/'diagnostics/bounds-persistent-exclusions-v1.json').read_text(encoding='utf-8-sig'))
+        baseline,_=policy.load_profile('no-navigation')
+        self.assertEqual(record['fixture_sha256'],baseline['fixture_sha256'])
+        self.assertEqual((record['completed_treatment_runs'],record['candidate_checks']),(1,23))
+        self.assertEqual((record['process_exit'],record['wrapper_exit']),(0,2))
+        self.assertTrue(record['native_exit_ok']);self.assertTrue(record['profile_conditions_met'])
+        self.assertFalse(record['strict_clean_shutdown']);self.assertEqual(record['status'],'exited_with_diagnostics')
+        self.assertEqual((record['diagnostics']['error_lines'],record['diagnostics']['warning_lines']),(10,644))
+        self.assertEqual(record['stage_events'],['CLOSING','CLOSED'])
+        self.assertFalse(record['pending_before']);self.assertFalse(record['pending_after'])
+        self.assertFalse(record['navigation_after_disable']['core_dll_loaded'])
+        self.assertFalse(record['descendant_containment_required']);self.assertTrue(record['shared_lock_naturally_released'])
+        self.assertEqual((baseline['observation']['errors'],baseline['observation']['warnings']),(82,824))
+
+    def test_product_manifest_does_not_inherit_full_or_navigation(self):
+        import toml
+        config=toml.loads((ROOT/'exts/mmporong.scene.review/config/extension.toml').read_text())
+        self.assertNotIn('isaacsim.exp.full',config['dependencies'])
+        self.assertFalse(any(name.startswith('omni.anim.navigation.') for name in config['dependencies']))
+
+    def test_persistent_exclusion_dry_solve_precedes_any_enable(self):
+        from viewport_bounds_candidate import persist_owned_exclusions
+        profile,_=policy.load_profile('no-navigation')
+        manager=Mock();manager.is_extension_enabled.side_effect=lambda name:name in ('omni.anim.navigation.schema','isaacsim.exp.full')
+        solution=['isaacsim.exp.full-4.5.0','mmporong.scene.review-0.1.0','omni.anim.navigation.schema-106.4.0']
+        manager.solve_extensions.return_value=(True,solution,'')
+        receipt=persist_owned_exclusions(manager,profile)
+        self.assertTrue(receipt['navigation_absent'])
+        manager.solve_extensions.return_value=(True,[{'id':identifier,'path':'not retained'} for identifier in solution],'')
+        self.assertEqual(persist_owned_exclusions(manager,profile)['solution'],solution)
+        self.assertLess([call[0] for call in manager.mock_calls].index('set_extensions_excluded'),[call[0] for call in manager.mock_calls].index('solve_extensions'))
+        manager.set_extension_enabled_immediate.assert_not_called()
+        for extra in ('omni.anim.navigation.recast-106.4.0','omni.anim.navigation.core-106.4.0'):
+            manager.solve_extensions.return_value=(True,solution+[extra],'')
+            with self.assertRaisesRegex(ValueError,'solve failed'):persist_owned_exclusions(manager,profile)
+        manager.solve_extensions.return_value=(False,[],'conflict')
+        with self.assertRaisesRegex(ValueError,'solve failed'):persist_owned_exclusions(manager,profile)
+        for value in ({},{'id':12},{'id':'private/path'},object()):
+            manager.solve_extensions.return_value=(True,[value],'')
+            with self.assertRaisesRegex(ValueError,'Unexpected excluded solve item'):persist_owned_exclusions(manager,profile)
+
+    def test_persistent_exclusion_never_repairs_live_navigation_or_broadens_scope(self):
+        from viewport_bounds_candidate import persist_owned_exclusions
+        profile,_=policy.load_profile('no-navigation');manager=Mock()
+        manager.is_extension_enabled.return_value=True
+        with self.assertRaisesRegex(ValueError,'never force unload'):persist_owned_exclusions(manager,profile)
+        manager.set_extensions_excluded.assert_not_called();manager.set_extension_enabled_immediate.assert_not_called()
+        for variant,excluded in (('matched-full',profile['exclusions']),('no-navigation',profile['exclusions']+['omni.anim.navigation.schema'])):
+            changed=dict(profile,variant=variant,exclusions=excluded)
+            with self.assertRaisesRegex(ValueError,'pinned owned'):persist_owned_exclusions(manager,changed)
+
     def test_dynamic_activation_navigation_drift_refuses_treatment(self):
         from viewport_bounds_candidate import navigation_exclusions_retained
         manager=Mock()
@@ -41,7 +93,8 @@ class ShutdownProfileTests(unittest.TestCase):
         report['checks']=[row for row in report['checks'] if row['name']!='review extension never enabled']
         report['checks'] += [{'name':name,'passed':True} for name in ('review initially disabled','review disabled after candidate')]
         report['candidate']={'status':'passed','owned_resources_remaining':False,'working_stage_preserved':True,
-            'pending_before':False,'pending_after':False,'checks':[{'name':name,'passed':True} for name in check_names()]}
+            'pending_before':False,'pending_after':False,'activation_mode':'persistent-manager-exclusions-v1',
+            'exclusion_preflight':{'navigation_absent':True},'checks':[{'name':name,'passed':True} for name in check_names()]}
         report['candidate_settings_preserved']=True
         log+='\n[1s] [ext: mmporong.scene.review-0.1.0] startup'
         self.assertTrue(policy.assess(report,process,log,profile)['passed'])
@@ -54,6 +107,7 @@ class ShutdownProfileTests(unittest.TestCase):
         self.assertFalse(policy.assess(report,failed,log,profile)['native_exit_ok'])
         observed=policy.assess(report,process,log+'\n[Warning] [fixture] SDK warning',profile)
         self.assertTrue(observed['native_exit_ok']);self.assertFalse(observed['strict_clean_shutdown'])
+        self.assertTrue(observed['profile_conditions_met']);self.assertEqual(observed['status'],'exited_with_diagnostics')
 
     def test_bounds_inputs_are_prepared_before_host_without_changing_baseline(self):
         from viewport_bounds_candidate import prepare

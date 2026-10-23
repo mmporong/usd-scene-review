@@ -19,6 +19,7 @@ def package(destination):
     # Keep candidate installation/qualification guidance usable after extraction.
     files['docs/in-app-review.md'] = (repo/'docs/in-app-review.md').read_bytes()
     files['docs/viewport-bounds-overlay.md'] = (repo/'docs/viewport-bounds-overlay.md').read_bytes()
+    files['diagnostics/bounds-persistent-exclusions-v1.json'] = (repo/'diagnostics/bounds-persistent-exclusions-v1.json').read_bytes()
     files['examples/usd-scene-review-viewport-bounds.png'] = (repo/'examples/usd-scene-review-viewport-bounds.png').read_bytes()
     files['docs/in-app-sdk-diagnosis.md'] = (repo/'docs/in-app-sdk-diagnosis.md').read_bytes()
     files['docs/teardown-investigation.md'] = (repo/'docs/teardown-investigation.md').read_bytes()
