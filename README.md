@@ -9,6 +9,12 @@ geometry marking the previous position under fixed lighting and camera.
 
 **Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native failure whose current cause is not isolated.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
 
+Same-app review must preserve the working stage and its save state when only the
+review closes. [Current preservation evidence](docs/review-preservation.md) separates
+that requirement from whole-app exit: named-context controls preserved contents and
+closed owned resources but changed the save indicator in both minimal and Full-derived
+hosts. General in-app deployment remains unqualified and the Full guard stays enabled.
+
 Follow-up validation: 27 actual Full Isaac feature checks passed before a native
 texture teardown warning stopped the run. Full-app use remains unsupported.
 The earlier filename-only safety check failed to recognize that Full host. The

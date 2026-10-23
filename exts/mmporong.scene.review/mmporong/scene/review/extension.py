@@ -16,6 +16,7 @@ from usd_scene_review.measurements import detail_rows, measurements
 from usd_scene_review.dispositions import change_identity, record, history, latest
 from usd_scene_review.worker_client import get_viewer_client
 from usd_scene_review.exports import save_report
+from usd_scene_review.in_app_logic import FULL_HOST_REVIEW_LIMITATION
 from usd_scene_review.snapshot import canonical
 from usd_scene_review.overlap_analysis import pair_rows
 
@@ -61,7 +62,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._export_path = ui.SimpleStringModel()
         self._status = ui.SimpleStringModel('Compare two frozen snapshots, then Open A/B in Isaac (experimental).')
         if self._in_app_blocked:
-            self._status.set_value('In-app A/B is unavailable in this full Isaac build after a native engine failure. Compare/export and Legacy worker A/B remain available.')
+            self._status.set_value(FULL_HOST_REVIEW_LIMITATION)
         self._details = ui.SimpleStringModel('No comparison loaded.')
         self._revision = ui.SimpleStringModel('No saved scene attached')
         self._selected_label = ui.SimpleStringModel('Select a changed prim to inspect before / after / delta')
@@ -364,7 +365,7 @@ class SceneReviewExtension(omni.ext.IExt):
 
     async def _open_in_app(self):
         if self._in_app_blocked:
-            raise RuntimeError('Full Isaac in-app A/B failed native validation; use Compare/export or the legacy worker')
+            raise RuntimeError(FULL_HOST_REVIEW_LIMITATION)
         if not self._report or self._report.get('status')=='unknown':
             raise ValueError('Compare verified static snapshots before opening in-app A/B')
         if not await self._viewer.close():raise RuntimeError('Legacy worker cleanup unconfirmed')

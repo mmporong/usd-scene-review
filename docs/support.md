@@ -34,6 +34,13 @@ CLI report files are created with exclusive mode, including when a file or symli
 
 ## Experimental viewer boundary
 
+The [review preservation contract](review-preservation.md) separates working-stage
+content/save state, actual review-window close/reopen and whole-app exit. An SDK
+pending notice with unchanged source hashes is not a content-change verdict, but
+can still affect save confirmation. Neither forcing a clean flag nor dismissing a
+save dialog is part of review. Current same-app candidates are not qualified for
+general use in an editing user's stage; the Full guard remains enabled.
+
 The local same-process A/B candidate is documented in [in-app review](in-app-review.md).
 It has actual settled green-face rendering/interaction evidence in minimal Kit,
 but full feature qualification and native shutdown remain blocked. Narrow full-app
