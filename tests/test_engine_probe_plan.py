@@ -5,6 +5,42 @@ import unittest
 
 
 class EngineProbePlanTests(unittest.TestCase):
+    def test_native_reproducer_refuses_launch_without_containment(self):
+        import contextlib
+        import importlib.util
+        import io
+        import sys
+        import tempfile
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        tool=Path(__file__).resolve().parents[1]/'tools/run_in_app_validation.py'
+        spec=importlib.util.spec_from_file_location('validation_containment',tool)
+        module=importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules,{'package_extension':SimpleNamespace(package=None)}):
+            spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp:
+            output=Path(temp)/'not-created'
+            argv=[str(tool),'--isaac-root',temp,'--output',str(output),'--full-app',
+                  '--probe',str(tool.with_name('in_app_native_texture_probe.py'))]
+            with patch.object(sys,'argv',argv),contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as error:module.main()
+            self.assertEqual(error.exception.code,2)
+            self.assertFalse(output.exists())
+
+    def test_child_python_isolation_preserves_parent_and_unrelated_environment(self):
+        source=Path(__file__).resolve().parents[1]/'tools/run_in_app_validation.py'
+        node=next(n for n in ast.parse(source.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='kit_environment')
+        env={};exec(compile(ast.Module(body=[node],type_ignores=[]),str(source),'exec'),env)
+        original={'PYTHONPATH':'cpu-search-path','PYTHONHOME':'cpu-runtime',
+                  'PXR_USD_WINDOWS_DLL_PATH':'cpu-usd-bins','PATH':'keep-path',
+                  'UNRELATED_VALUE':'keep-value'}
+        baseline=dict(original)
+        inherited=env['kit_environment'](original)
+        self.assertEqual(inherited,original);self.assertIsNot(inherited,original)
+        child=env['kit_environment'](original,True)
+        self.assertEqual(child,{'PATH':'keep-path','UNRELATED_VALUE':'keep-value'})
+        self.assertEqual(original,baseline)
+
     def test_controls_allocate_exact_context_and_viewport_counts(self):
         source=Path(__file__).resolve().parents[1]/'tools/in_app_engine_probe.py'
         node=next(n for n in ast.parse(source.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='topology_layout')

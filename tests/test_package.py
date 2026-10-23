@@ -30,6 +30,7 @@ class PackageTests(unittest.TestCase):
                 self.assertIn('mmporong/scene/review/in_app.py',archive.namelist())
                 self.assertIn('python/usd_scene_review/in_app_logic.py',archive.namelist())
                 self.assertIn('docs/in-app-review.md',archive.namelist())
+                self.assertIn('docs/teardown-investigation.md',archive.namelist())
                 self.assertIn('examples/usd-scene-review-in-app.png',archive.namelist())
                 self.assertIn(b'(in-app-review.md)',archive.read('docs/README.md'))
                 self.assertFalse(any(n.endswith(('.so', '.dll', '.pyc')) for n in archive.namelist()))

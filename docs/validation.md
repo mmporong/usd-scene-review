@@ -1,5 +1,28 @@
 # Validation status
 
+## SDK-only teardown reduction, 2026-10-23
+
+Six hypothesis-driven owned controls distinguish the project-free tf.dll shutdown
+crash from the released-texture-interface warning. Serial widget destruction does
+not avoid the warning. A native-only control with one owned context and two public
+textures renders both, then warns inside the second update-stop call before any
+UI/stage/context destruction. An async creation request gives the same warning.
+An environment-isolated baseline retains `0xc0000005` at `tf.dll+0xec7b`.
+See [hypotheses, limits and the minimal reproducer](teardown-investigation.md).
+
+These controls fail qualification and their owned Jobs were contained. The setter
+returned and no immediate device loss was observed; the warning alone is not proof
+of double-free or universal failure. No failed ordering was applied to product code.
+The verified Full Isaac guard remains unchanged. Clean close/reopen/disable and
+normal app exit remain unqualified; no native repair is claimed.
+
+Validated tooling changes add child-only Python path isolation, enforce fail-fast
+containment for the native-only reproducer and include its diagnosis in packaged
+docs. Final Windows CPU: **157 cases, 155 passed, two privilege skips, zero
+failures/errors** (71.322 s). Repeated local ZIP builds match byte-for-byte; Python
+compilation and packaged document links pass. Raw logs/dumps and SDK assets are
+excluded. CPU CI does not qualify native lifecycle behavior.
+
 ## Full Isaac follow-up and verified guard, 2026-10-23
 
 The guard correction is validated independently of the still-failing feature lifecycle.

@@ -1,6 +1,7 @@
 """Owned, isolated installed-Kit test host; never attaches to an existing app."""
 import argparse
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -25,6 +26,15 @@ def native_failures(log):
     return [name for name,signature in NATIVE_FAILURES.items() if signature in log]
 
 
+def kit_environment(parent,isolated_python=False):
+    """Diagnostic child-only isolation; never mutate parent/system settings."""
+    env=dict(parent)
+    if isolated_python:
+        for key in ('PYTHONPATH','PYTHONHOME','PXR_USD_WINDOWS_DLL_PATH'):
+            env.pop(key,None)
+    return env
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--isaac-root',type=Path,required=True)
@@ -36,9 +46,12 @@ def main():
     parser.add_argument('--full-feature-validation',action='store_true',help='Explicit owned-host probe-only access behind the unchanged full-app product guard')
     parser.add_argument('--verify-full-guard',action='store_true',help='SDK topology probe also checks product Full Isaac refusal before native review ownership')
     parser.add_argument('--fail-fast-native',action='store_true',help='Contain the owned Job at the first known native graphics failure')
+    parser.add_argument('--isolated-python-environment',action='store_true',help='Diagnostic control: Kit bootstraps its own Python/USD paths in the owned child only')
     parser.add_argument('--topology',choices=('single','shared','two-contexts','sequence'),default='shared',
                         help='SDK-only engine probe control; unused by product acceptance probes')
     args=parser.parse_args();sdk=args.isaac_root.resolve();root=args.output.resolve()
+    if args.probe.name=='in_app_native_texture_probe.py' and (not args.full_app or not args.fail_fast_native):
+        parser.error('native texture reproducer requires --full-app and --fail-fast-native')
     if args.baseline and not args.full_app:parser.error('--baseline requires --full-app')
     if args.full_feature_validation and (not args.full_app or args.baseline):
         parser.error('--full-feature-validation requires --full-app without --baseline')
@@ -97,9 +110,14 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
              '--/renderer/multiGpu/autoEnable=false','--/app/asyncRendering=false',
              '--/app/window/width=1600','--/app/window/height=900']
     process=job=None
+    parent_env=dict(os.environ)
+    env=kit_environment(parent_env,args.isolated_python_environment)
+    (root/'launch-environment.json').write_text(json.dumps({
+        'isolated_python':args.isolated_python_environment,
+        'removed_variable_names':sorted(set(parent_env)-set(env))},indent=2))
     try:
         with (root/'console.log').open('w',encoding='utf-8') as log:
-            process=subprocess.Popen(command,cwd=sdk,stdout=log,stderr=subprocess.STDOUT,creationflags=4)
+            process=subprocess.Popen(command,cwd=sdk,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=4)
             job=WindowsJob(process);resume_owned_process(process)
             try:
                 deadline=time.monotonic()+args.timeout
