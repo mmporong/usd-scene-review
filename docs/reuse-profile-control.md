@@ -43,16 +43,47 @@ separately exited 0 with 82 error/824 warning lines. Matched Full reproduced the
 navigation crash under exclusive admission. Neither result proves this combined
 candidate's exit behavior.
 
-This new treatment is **NOT RUN**: its first normal acquisition returned 73 while
-RL Triage v2 owned the shared lease. No child/native output was created. CPU tests
-verify fixture independence, all-40-check qualification, no independent quit or
+This treatment **ran once on 2026-10-23 and failed the shutdown qualification**.
+Earlier acquisitions returned 73 without creating a child. The later single
+official wrapper acquired the shared exclusive lock after contention cleared;
+admission observed 3% GPU utilization and 1725 MiB used of 12288 MiB. The pinned
+426-extension startup inventory matched, navigation core/recast were disabled,
+schema remained enabled and the native navigation core module was absent.
+
+All 40 candidate checks passed across both cycles: real red/blue/red captures,
+matching camera matrices, independent revision namespaces, source preservation,
+actual viewport/context/timeline removal and recreation, and preserved working
+stage/selection/time. The additional renderer-settings preservation check passed.
+These observations cover this synthetic sequential candidate's rendering and
+local teardown only; the combined treatment did not qualify.
+
+After the candidate, the probe invoked public file.close but its callback and
+default-stage CLOSING/CLOSED receipts were absent through 600 updates. The probe
+reported `normal shutdown did not finish within 600 updates`. The launcher then
+contained its owned Job and returned 1; this is **not a natural native exit or a
+clean shutdown**. The owned process was reaped, the Job was empty and closed, no
+owned PID/direct child remained, fixture bytes matched the pinned hash, and the
+official wrapper naturally released the matching lease. No other process was
+terminated or lease modified.
+
+The captured console had zero error lines and 715 warning lines, including repeated
+UI-query failures to find window `*`. No known native crash signature was detected
+before containment. Forced containment means neither later crash freedom nor clean
+resource shutdown can be inferred. The installed file extension's public close
+wrapper can return without action if its internal singleton is absent; otherwise
+it schedules prompt/async stage-close work. This receipt does not trace those
+branches, so it cannot distinguish an absent singleton, queued close work or UI
+prompt failure. The warnings alone do not establish the cause. This failed
+treatment will not be repeated unchanged.
+
+CPU tests verify fixture independence, all-40-check qualification, no independent quit or
 official Window menu layers, and refusal on Full. They are not SDK acceptance.
 Final Windows CPU regression: 175 cases, 173 passed, two privilege skips, no
 failures/errors (55.258s). PowerShell entry syntax also passed.
 
-The next experiment must use normal shared admission after contention clears. Stop
-at the first native/functional failure and do not repeat identical failures. Even
-if all candidate checks and native exit 0 are observed, the usable scope is only a
-reduced sequential fixture/capture route. Product change-list navigation, ghost,
+Any follow-up must first add evidence that distinguishes the public close branches
+and state a new hypothesis. It must use normal shared admission and stop at the
+first native/functional failure. The observed usable scope is only the reduced
+sequential fixture/capture route before shutdown. Product change-list navigation, ghost,
 simultaneous live panes, user workspace recovery and original Full support remain
 unqualified. Raw local logs/captures are not published by this diagnostic change.
