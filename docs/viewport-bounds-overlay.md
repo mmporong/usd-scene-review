@@ -168,3 +168,77 @@ Remaining qualification priorities:
    current evidence is native rendering plus UI callbacks on synthetic fixtures.
 3. Keep live A/B named-context/texture lifecycle and green mesh faces as separate
    unresolved work. Their Full guard stays enabled; bounds do not replace them.
+
+## Persistent owned exclusions: actual exit0 with diagnostics
+
+The earlier log identifies the dependency triggers explicitly:
+`isaacsim.exp.full -> omni.anim.navigation.recast -> omni.anim.navigation.core`.
+The installed Full manifest requires recast; recast requires core. No navigation
+or Full experience dependency is declared by the project. Its UI/USD/viewport and
+camera dependencies are used by the existing routes, so they were not arbitrarily
+removed. The source of the observed activation is the Full app root's later solver
+pass, not a demonstrated broad project dependency.
+
+The [official startup exclusion setting](https://docs.omniverse.nvidia.com/kit/docs/kit-manual/110.0.0/guide/extensions_advanced.html)
+is scoped to startup dependency solving. The installed 4.5 Python stub and
+[official ExtensionManager API](https://docs.omniverse.nvidia.com/kit/docs/kit-manual/latest/omni.ext/omni.ext.ExtensionManager.html)
+also expose `set_extensions_excluded`: it retains exclusions for subsequent solver
+and startup calls until changed. The new diagnostic calls this public API only in
+the admitted owned reduced host, with the same two already-excluded extensions.
+It refuses active navigation, any broader exclusion set, or another profile. It
+never forcibly unloads navigation, edits SDK files or changes a user's app.
+
+Before enabling the review, `solve_extensions` includes the Full root, the project
+and already-enabled dependencies. The treatment requires a successful solution
+containing Full/project/schema but no core/recast. The installed Extensions UI
+reads solver records using `ext['id']`, despite the string-list description in the
+stub. A first preflight stopped before product enable on that shape mismatch; the
+adapter now accepts validated string IDs or dict IDs and refuses malformed records.
+Only IDs are retained, not SDK paths. That setup failure was contained, not a
+normal-exit pass or a repeated overlay/native-crash experiment.
+
+The ensuing actual treatment used the same pinned fixture/build and shared lease.
+It passed 23 candidate checks plus 18 outer checks, including both UI callback
+cycles, extension disable, pending false-to-false and the public file.close route.
+The dry solution contained 427 extensions. Core/recast remained disabled after
+enable and disable, schema remained enabled, and the native core DLL was absent.
+Working content, camera/selection/time, render settings and inputs were preserved.
+No real mouse or Play operation was exercised.
+
+| Independent result | Project-free reduced baseline | Bounds with persistent owned exclusions |
+| --- | --- | --- |
+| Completed treatment observations | 1 | 1 |
+| Native app exit | 0 | 0 |
+| Public close events | CLOSING then CLOSED | CLOSING then CLOSED |
+| Owned PID/Job | Reaped, empty, closed | Reaped, empty, closed; no containment |
+| Fixture hash / natural shared-lock release | Preserved / confirmed | Preserved / confirmed |
+| Console errors / warnings | 82 / 824 | 10 / 644 |
+| Graphics live-device refs / outstanding Fabric history | 36 / 1 | 36 / 1 |
+| Strict clean-shutdown verdict | False | False |
+
+The wrapper returned **2**, retaining the `exited_with_diagnostics` classification;
+it did not hide warnings behind native exit0. The new errors name SDK shutdown
+callbacks (XRDF editor, PhysX UI, prim manipulator and menu callbacks), with the same
+error categories present in the original baseline. Matching categories/leak counts
+are not proof of a unique cause or that every diagnostic is unrelated to the project.
+Counts from one run are not a performance or stability improvement claim.
+The [sanitized observation](../diagnostics/bounds-persistent-exclusions-v1.json)
+preserves both this boundary and the exact tested candidate-source digest. Raw
+logs, fixture bundles, PIDs, lease IDs and private paths remain local.
+
+A startup-loaded diagnostic `.kit` could declare Full, review and probe as
+dependencies under the same startup exclusions. That alternative was reviewed but
+not executed: startup loading alone does not protect the later disable/reload solver
+pass. The explicit persistent manager exclusion was the smaller supported route
+and leaves the stock experience and project manifest intact.
+
+Final Windows CPU regression: 206 cases, 204 passed, two privilege skips, no
+failures/errors (47.267s). The updated deterministic-package check also passes and
+includes the sanitized observation with its strict-clean and stock-Full flags false.
+
+The earlier Full overlay rendering/preservation result remains separate from this
+reduced normal-exit result. Neither unblocks the stock Full navigation shutdown
+fault, certifies diagnostic-free teardown, qualifies live A/B or supplies green mesh
+faces. Remaining priorities are SDK shutdown diagnostics, actual mouse/assembly QA,
+then the separately guarded live A/B lifecycle. No user-wide navigation disabling
+or guard removal is prescribed.

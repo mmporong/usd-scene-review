@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "id": "isaac45-bounds-persistent-exclusions-v1",
+  "date": "2026-10-23",
+  "completed_treatment_runs": 1,
+  "baseline_profile": "isaac45-static-shutdown-v1",
+  "variant": "no-navigation",
+  "activation_mode": "persistent-manager-exclusions-v1",
+  "candidate_source_sha256": "a7977def102b663a1d663a246054dfbcd06ae02c6ce5cc31cd047bccb9349d26",
+  "fixture_sha256": "7e91da55105e78d9f34bea389c11009715111737f3fb816280988b4ab1aa9da7",
+  "outer_checks": 18,
+  "candidate_checks": 23,
+  "candidate_status": "passed",
+  "solver_extensions": 427,
+  "navigation_after_enable": {
+    "core": false,
+    "recast": false,
+    "schema": true
+  },
+  "navigation_after_disable": {
+    "core": false,
+    "recast": false,
+    "schema": true,
+    "core_dll_loaded": false
+  },
+  "pending_before": false,
+  "pending_after": false,
+  "working_stage_preserved": true,
+  "owned_resources_remaining": false,
+  "public_close_callback": true,
+  "stage_events": [
+    "CLOSING",
+    "CLOSED"
+  ],
+  "discard_clicked": false,
+  "process_exit": 0,
+  "wrapper_exit": 2,
+  "native_exit_ok": true,
+  "profile_conditions_met": true,
+  "strict_clean_shutdown": false,
+  "status": "exited_with_diagnostics",
+  "diagnostics": {
+    "error_lines": 10,
+    "warning_lines": 644,
+    "error_categories": {
+      "carb.scripting-python.plugin": 3,
+      "omni.ext.plugin": 3,
+      "omni.kit.menu.utils.app_menu": 4
+    },
+    "traceback_observed": true,
+    "graphics_objects_leaked": true,
+    "fabric_history_outstanding": true
+  },
+  "graphics_live_device_refcount": 36,
+  "outstanding_fabric_history": 1,
+  "owned_process_reaped": true,
+  "owned_job_empty": true,
+  "owned_job_closed": true,
+  "descendant_containment_required": false,
+  "fixture_preserved": true,
+  "shared_lock_naturally_released": true,
+  "manual_mouse_tested": false,
+  "stock_full_app_shutdown_qualified": false,
+  "preflight_setup_failures_before_enable": 1
+}

@@ -6,7 +6,7 @@ import sys
 
 
 def check_names():
-    names={'fresh extracted engine','navigation exclusions retained','Full A/B guard retained','comparison callback completed',
+    names={'fresh extracted engine','persistent exclusion solve','navigation exclusions retained','navigation exclusions after disable','Full A/B guard retained','comparison callback completed',
            'extension disabled','working state preserved','inputs preserved'}
     for cycle in range(2):
         names.update(label+str(cycle) for label in ('show empty ','select before/after ',
@@ -18,6 +18,34 @@ def navigation_exclusions_retained(manager):
     return (not manager.is_extension_enabled('omni.anim.navigation.core')
         and not manager.is_extension_enabled('omni.anim.navigation.recast')
         and manager.is_extension_enabled('omni.anim.navigation.schema'))
+
+
+def persist_owned_exclusions(manager,profile):
+    """Preflight only: no enable/unload; called only by admitted owned treatment."""
+    excluded=['omni.anim.navigation.recast','omni.anim.navigation.core']
+    if profile.get('variant')!='no-navigation' or profile.get('exclusions')!=excluded:
+        raise ValueError('Only the pinned owned reduced exclusion set is allowed')
+    if not navigation_exclusions_retained(manager):
+        raise ValueError('Navigation must already be excluded; never force unload')
+    if not manager.is_extension_enabled('isaacsim.exp.full') or manager.is_extension_enabled('mmporong.scene.review'):
+        raise ValueError('Owned Full-derived baseline required before treatment')
+    manager.set_extensions_excluded(excluded)
+    ok,solution,_=manager.solve_extensions(['isaacsim.exp.full','mmporong.scene.review'],
+        add_enabled=True,return_only_disabled=False)
+    # Installed 4.5 Extensions UI reads ext['id']; its stub describes strings.
+    # Keep only validated IDs rather than serializing SDK records/private paths.
+    ids=[]
+    for value in solution:
+        identifier=value if isinstance(value,str) else value.get('id') if isinstance(value,dict) else None
+        if not isinstance(identifier,str) or not identifier or '/' in identifier or '\\' in identifier:
+            raise ValueError('Unexpected excluded solve item; review will not be enabled')
+        ids.append(identifier)
+    def has(name):return any(value==name or value.startswith(name+'-') for value in ids)
+    if (not ok or any(has(name) for name in excluded)
+            or not all(has(name) for name in ('isaacsim.exp.full','mmporong.scene.review','omni.anim.navigation.schema'))):
+        raise ValueError('Excluded dependency solve failed; review will not be enabled')
+    return {'solver_success':True,'excluded':excluded,'solution':ids,
+            'navigation_absent':True,'schema_retained':True}
 
 
 def disable_review(manager,resources_remaining):
@@ -79,6 +107,10 @@ async def evaluate(probe,root):
     import usd_scene_review
     check('fresh extracted engine',Path(usd_scene_review.__file__).is_relative_to(package/'python'))
     manager=app.get_extension_manager();owner=held=None
+    profile=json.loads((root/'shutdown-profile.json').read_text())
+    result['activation_mode']='persistent-manager-exclusions-v1'
+    result['exclusion_preflight']=persist_owned_exclusions(manager,profile)
+    check('persistent exclusion solve',True)
     try:
         manager.set_extension_enabled_immediate('mmporong.scene.review',True);await updates()
         result['navigation_after_enable']={name:manager.is_extension_enabled('omni.anim.navigation.'+name) for name in ('core','recast','schema')}
@@ -112,6 +144,12 @@ async def evaluate(probe,root):
         unload=disable_review(manager,resources_remaining)
         await updates()
     check('extension disabled',unload['extension_disabled'])
+    import ctypes
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.GetModuleHandleW.argtypes=[ctypes.c_wchar_p];kernel.GetModuleHandleW.restype=ctypes.c_void_p
+    result['navigation_after_disable']={name:manager.is_extension_enabled('omni.anim.navigation.'+name) for name in ('core','recast','schema')}
+    result['navigation_after_disable']['core_dll_loaded']=bool(kernel.GetModuleHandleW('omni.anim.navigation.core.plugin.dll'))
+    check('navigation exclusions after disable',navigation_exclusions_retained(manager) and not result['navigation_after_disable']['core_dll_loaded'])
     result['pending_after']=ctx.has_pending_edit()
     result['working_stage_preserved']=state()==before
     result['owned_resources_remaining']=unload['owned_resources_remaining']
