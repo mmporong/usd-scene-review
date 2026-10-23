@@ -44,6 +44,8 @@ class ReuseCandidate:
         result['ownership']='explicit public Widget in plain UI Window'
         def phase(name):
             result['phases'].append(name);(root/'reuse-checkpoint.json').write_text(json.dumps(result,indent=2))
+            observer=getattr(parent,'native_observe',None)
+            if observer is not None:observer('candidate:'+name)
             print('REUSE_PHASE',name,flush=True)
         def check(name,value):
             result['checks'].append({'name':name,'passed':bool(value)});phase('check '+name)
@@ -65,11 +67,15 @@ class ReuseCandidate:
             for cycle in range(2):
                 phase('cycle-'+str(cycle)+'-create-context')
                 name='review_reuse_'+uuid4().hex;ctx=omni.usd.create_context(name)
+                phase('cycle-'+str(cycle)+'-context-created')
                 timeline=omni.timeline.get_timeline_interface(name);ctx.set_timeline(name)
+                phase('cycle-'+str(cycle)+'-timeline-created')
                 stages={s:revision_fixture(s) for s in ('A','B')}
+                phase('cycle-'+str(cycle)+'-fixtures-authored')
                 source={s:stage.GetRootLayer().ExportToString() for s,stage in stages.items()}
                 cameras={s:UsdGeom.Camera(stage.GetPrimAtPath('/ReviewCamera')).GetCamera().transform for s,stage in stages.items()}
                 cache={s:UsdUtils.StageCache.Get().Insert(stage) for s,stage in stages.items()}
+                phase('cycle-'+str(cycle)+'-cache-inserted')
                 self.resources=[dict(name=name,ctx=ctx,stages=stages,cache=cache,timeline=timeline)]
                 matrices=[];captures=[]
                 for step,side in enumerate(('A','B','A')):
