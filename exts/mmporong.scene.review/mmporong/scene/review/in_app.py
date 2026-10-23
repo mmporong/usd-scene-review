@@ -20,7 +20,7 @@ from usd_scene_review.display import ReviewDisplay
 from usd_scene_review.ghost import GhostOverlay, extract
 from usd_scene_review.preview import prepare_lighting
 from usd_scene_review.evidence import evidence_rows
-from usd_scene_review.in_app_logic import focus_plan, copy_review_camera, pair_light_mode
+from usd_scene_review.in_app_logic import focus_plan, copy_review_camera, pair_light_mode, FULL_HOST_REVIEW_LIMITATION
 from usd_scene_review.overlap_analysis import pair_by_id, pair_rows
 
 # Retain uncertain native ownership across extension disable/reload. A failed
@@ -75,7 +75,7 @@ class InAppReview:
         if not omni.kit.app.get_app().is_app_ready():
             raise RuntimeError('Isaac app startup is not complete; wait before opening review')
         if full_host_blocked():
-            raise RuntimeError('Full Isaac 4.5 in-app A/B remains blocked until the corrected Hydra lifecycle passes full feature acceptance; Compare/export and the legacy worker remain available')
+            raise RuntimeError(FULL_HOST_REVIEW_LIMITATION)
         await self._await_host_frame()
         timeline=omni.timeline.get_timeline_interface()
         if not timeline.is_stopped():raise ValueError('In-app review requires stopped timeline; Play is not controlled by this tool')

@@ -1,5 +1,18 @@
 # Validation status
 
+## Working-stage contract versus whole-app exit, 2026-10-23
+
+One [grounded minimal/Full-derived named-open pair](review-preservation.md) used
+80/426 startup extensions, the same SDK/fixture and 60 updates. Both preserved
+working contents/selection/camera/time/selected settings/window metadata and closed owned
+named resources, but changed default pending. No review window was created; actual
+review-window lifecycle is not proven. Host quit was not requested because of the
+pending barrier; both owned Jobs were contained (exit1, errors0, warnings5/109).
+Fixture/PID/Job/lease cleanup was verified. This rules out sole dependence on Full's
+extra extension graph, not a unique native/shared callback cause. Save-state, review
+close and whole-app exit are now documented separately and product guard messages
+reflect the outstanding preservation/cleanup qualification. Guard behavior is unchanged.
+
 ## Named-context public open is not a validated workaround, 2026-10-23
 
 The [owned-file open control](attach-only-control.md#named-context-public-open-control)

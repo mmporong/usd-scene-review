@@ -4,6 +4,10 @@ from .display import camera_spec, world_bounds
 from .overlap_analysis import pair_by_id
 from .transform_analysis import coordinates
 
+FULL_HOST_REVIEW_LIMITATION=(
+    'Full Isaac 4.5 in-app A/B remains blocked: working-stage save-state preservation '
+    'and review-resource cleanup are not qualified. Compare/export and Legacy worker A/B remain available.')
+
 
 def focus_plan(report, snapshots, selected=None, pair_id=None):
     if coordinates(report.get('stage_metadata', {}))['status'] != 'known':

@@ -1,5 +1,11 @@
 # Local in-app A/B candidate: full Isaac blocked
 
+Current [review-close/preservation contract and minimal/Full-derived pair](review-preservation.md)
+separate window/resource closure from whole-app exit. Named-open controls closed
+their owned contexts and preserved working contents/interaction in both hosts, but
+changed the working save indicator. They did not create a review window. General
+same-app deployment remains unqualified; no guard was removed by these controls.
+
 Follow-up status (2026-10-23): an actual Full Isaac attempt passed 27
 functional checks and captured green faces, then failed at the first review close
 with a released Hydra-texture-interface warning. A project-free control and the

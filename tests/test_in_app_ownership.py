@@ -17,6 +17,11 @@ def product_class():
     timeline=NS(destroy_timeline=Mock(return_value=True),get_timeline_interface=Mock())
     env={'asyncio':asyncio,'gc':gc,'_OWNERS':owners,'omni':NS(usd=usd,timeline=timeline),
          'carb':NS(settings=NS(get_settings=Mock())), 'ui':NS(Workspace=NS(restore_workspace=Mock()))}
+    logic=Path(__file__).resolve().parents[1]/'src/usd_scene_review/in_app_logic.py'
+    # The extracted class uses the same shared product guard explanation.
+    constant=next(item for item in ast.parse(logic.read_text()).body if isinstance(item,ast.Assign)
+                  and isinstance(item.targets[0],ast.Name) and item.targets[0].id=='FULL_HOST_REVIEW_LIMITATION')
+    exec(compile(ast.Module(body=[constant],type_ignores=[]),str(logic),'exec'),env)
     exec(compile(ast.Module(body=[node],type_ignores=[]),str(path),'exec'),env)
     return env['InAppReview'],owners,usd,timeline
 
@@ -69,7 +74,7 @@ class InAppOwnershipTests(unittest.IsolatedAsyncioTestCase):
         cls,owners,usd,timeline=product_class();owner=cls(Mock());env=cls.open.__globals__
         env['omni'].kit=NS(app=NS(get_app=lambda:NS(is_app_ready=lambda:True)))
         env['full_host_blocked']=lambda:True
-        with self.assertRaisesRegex(RuntimeError,'Hydra'):await owner.open({}, {})
+        with self.assertRaisesRegex(RuntimeError,'save-state preservation'):await owner.open({}, {})
         self.assertEqual(owner.state,'closed');self.assertFalse(owner.resources);self.assertFalse(owners)
 
     async def test_float32_setting_is_restored_using_canonical_written_value(self):
