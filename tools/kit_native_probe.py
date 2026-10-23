@@ -1,20 +1,20 @@
-"""Native Kit acceptance runner; loaded only in a fresh synthetic test process."""
+"""Native acceptance in a fresh process, with synthetic source fixtures only."""
 import asyncio
+import copy
 import gc
 import hashlib
 import json
 from pathlib import Path
+import shutil
+import time
 import traceback
-import faulthandler
-faulthandler.dump_traceback_later(40, repeat=True)
+from capture_metrics import mean_rgb_difference
 
-import carb
 import omni.ext
 import omni.kit.app
-import omni.ui as ui
-import omni.usd
 import omni.timeline
-from pxr import Ar, Usd, UsdGeom, UsdLux
+import omni.usd
+from pxr import Usd, UsdGeom, Sdf
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'results'
@@ -22,48 +22,75 @@ OUT = ROOT / 'results'
 
 class Probe(omni.ext.IExt):
     def on_startup(self, ext_id):
+        self.result = None
+        self.client = None
         self.task = asyncio.ensure_future(self.run())
+
+    def on_shutdown(self):
+        if self.result and self.result.get('status') == 'passed':
+            client = self.client
+            clean = (client.state == 'closed' and client.process is None
+                     and client.last_exit == 0 and client.last_receipt.get('preserved') is True)
+            self.result['checks'].append(dict(name='active viewer closed by host shutdown', passed=clean))
+            self.result['worker_exits'].append(client.last_exit)
+            self.result['status'] = 'passed' if clean else 'failed'
+            (OUT / 'result.json').write_text(json.dumps(self.result, indent=2))
 
     async def run(self):
         app = omni.kit.app.get_app()
-        result = {'checks': [], 'status': 'running'}
         OUT.mkdir(exist_ok=True)
+        result = {'status': 'running', 'checks': [], 'worker_exits': []}
+        owner = None
+        client = None
 
         def check(label, condition):
+            result['checks'].append({'name': label, 'passed': bool(condition)})
+            (OUT / 'checkpoint.json').write_text(json.dumps(result, indent=2))
+            print('SCENE_REVIEW_CHECK', label, bool(condition), flush=True)
             assert condition, label
-            result['checks'].append(label)
-            print('SCENE_REVIEW_CHECK:', label, flush=True)
 
-        async def updates(count=5):
-            for _ in range(count):
+        async def updates(n=10):
+            for _ in range(n):
                 await app.next_update_async()
 
-        async def screenshot(name):
-            import omni.kit.renderer.capture
-            capture = omni.kit.renderer.capture.acquire_renderer_capture_interface()
-            capture.capture_next_frame_swapchain(str(OUT / name))
-            await updates(4)
-            capture.wait_async_capture()
+        async def done(task, seconds=140):
+            start = time.monotonic()
+            while not task.done():
+                if time.monotonic() - start > seconds:
+                    raise TimeoutError('Native acceptance operation exceeded its deadline')
+                await updates(1)
+            await task
+
+        async def click(label):
+            import omni.kit.ui_test as ui_test
+            button = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='" + label + "'")
+            deadline = time.monotonic()+5
+            while button is None and time.monotonic()<deadline:
+                await updates(1)
+                button = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='" + label + "'")
+            check(label + ' actual widget found', button is not None)
+            import omni.ui as ui
+            if ui.Workspace.get_main_window_width() <= 0 or ui.Workspace.get_main_window_height() <= 0:
+                button.widget.call_clicked_fn()
+                result.setdefault('input_modes', []).append('native callback: '+label)
+            else:
+                await button.click()
+            await updates(2)
+            await done(owner._task)
 
         try:
-            await updates(20)
-            import omni.kit.ui_test as ui_test
+            await updates(100)
             manager = app.get_extension_manager()
             manager.set_extension_enabled_immediate('mmporong.scene.review', True)
-            await updates()
+            await updates(10)
             from mmporong.scene.review.extension import SceneReviewExtension
             from usd_scene_review import create_snapshot
-            ext_id = manager.get_enabled_extension_id('mmporong.scene.review')
-            check('packaged extension enabled by native manager', bool(ext_id))
-            instances = [obj for obj in gc.get_objects() if isinstance(obj, SceneReviewExtension)]
-            check('one actual extension instance', len(instances) == 1)
-            owner = instances[0]
-            check('native review panel visible', owner._window.visible)
-            result['resolver'] = type(Ar.GetUnderlyingResolver()).__name__
-            result['usd'] = Usd.GetVersion()
-            await screenshot('panel.png')
-
-            # This process owns its default context; it has no user-authored scenes.
+            from usd_scene_review.presentation import visible_changes
+            owners = [o for o in gc.get_objects() if isinstance(o, SceneReviewExtension)]
+            check('one actual packaged extension', len(owners) == 1)
+            owner = owners[0]
+            client = owner._viewer
+            self.client = client
             context = omni.usd.get_context()
             await context.new_stage_async()
             stage = context.get_stage()
@@ -71,169 +98,290 @@ class Probe(omni.ext.IExt):
             context.get_selection().set_selected_prim_paths(['/Sentinel'], False)
             timeline = omni.timeline.get_timeline_interface()
             timeline.stop()
-            timeline.set_current_time(7.0)
+            timeline.set_current_time(7)
             await updates(20)
             original = (stage, stage.GetRootLayer().ExportToString(), stage.GetRootLayer().dirty,
                         context.get_selection().get_selected_prim_paths(), timeline.get_current_time())
-
-            for side, offset in (('A', 0), ('B', 2)):
-                source = ROOT / ('source-' + side)
-                source.mkdir()
-                fixture = Usd.Stage.CreateInMemory()
-                parent = UsdGeom.Xform.Define(fixture, '/World')
-                parent.AddTranslateOp().Set((offset, 0, 0))
-                UsdGeom.Cube.Define(fixture, '/World/Box').CreateSizeAttr(1)
-                UsdLux.DomeLight.Define(fixture, '/World/Light').CreateIntensityAttr(1000)
-                UsdGeom.Cube.Define(fixture, '/World/' + ('Removed' if side == 'A' else 'Added')).AddTranslateOp().Set((0, 3, 0))
-                (source / 'scene.usda').write_text(fixture.GetRootLayer().ExportToString(), encoding='utf-8')
-                manifest = create_snapshot(source / 'scene.usda', ROOT / ('snapshot-' + side))
-                check('native snapshot ' + side + ' is ready', json.loads(manifest.read_text())['status'] == 'ready')
-                owner._paths[side].set_value(str(manifest))
-            files = [p for side in ('A', 'B') for p in (ROOT / ('snapshot-' + side)).rglob('*') if p.is_file()]
-            before_hashes = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
-            await updates()
-            button = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='Compare'")
-            check('Compare button found in native widget tree', button is not None)
-            await button.click()
-            await updates()
-            result['comparison'] = owner._report
-            await screenshot('compared.png')
-            if owner._report and owner._report['status'] == 'unknown':
-                check('custom resolver refused conservatively', any('custom resolver unsupported' in r for r in owner._report['reasons']))
-                await ui_test.find("USD Scene Review//Frame/**/Button[*].text=='View A'").click()
-                await updates(20)
-                check('unknown bundle not attached to viewport', owner._snapshot is None and owner._context.get_stage() is None)
-                check('snapshot hashes unchanged after refusal', before_hashes == {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
-                after = (context.get_stage(), stage.GetRootLayer().ExportToString(), stage.GetRootLayer().dirty, context.get_selection().get_selected_prim_paths(), timeline.get_current_time())
-                result['isolation_fields'] = {key: before == current for key, before, current in zip(('stage', 'root_text', 'dirty', 'selection', 'time'), original, after)}
-                result['timeline_values'] = [original[-1], after[-1]]
-                check('default context unchanged after refusal', original == after)
-                context_name = owner._context_name
-                manager.set_extension_enabled_immediate(ext_id, False)
-                await updates()
-                check('native disable cleaned empty owned context', omni.usd.get_context(context_name) is None)
-                manager.set_extension_enabled_immediate(ext_id, True)
-                await updates()
-                check('native panel re-enabled', manager.is_extension_enabled(ext_id) and ui.Workspace.get_window('USD Scene Review').visible)
-                manager.set_extension_enabled_immediate(ext_id, False)
-                result.update(status='blocked', error='native resolver is not qualified by the strict local bundle engine')
-                return
-            check('native Compare callback produced changed report', owner._report and owner._report['status'] == 'changed')
-
-            for side in ('A', 'B', 'A', 'B'):
-                button = ui_test.find(f"USD Scene Review//Frame/**/Button[*].text=='View {side}'")
-                await button.click()
-                await updates()
-                for _ in range(300):
-                    if owner._task and owner._task.done():
-                        break
-                    await updates(1)
-                check('native View ' + side + ' stage attached', owner._snapshot is not None and owner._side == side and owner._context.get_stage() == owner._snapshot.stage)
-                result['layer_permissions'] = [{'edit': l.permissionToEdit, 'save': l.permissionToSave, 'dirty': l.dirty, 'original': [e, s, d]} for l, e, s, d in owner._layer_permissions]
-                result['viewport_status'] = owner._status.as_string
-                check('source permissions protected in ' + side, all(not l.permissionToEdit and not l.permissionToSave and not l.dirty for l, *_ in owner._layer_permissions))
-                owner._select(next(c for c in owner._report['changes'] if c['path'] == '/World/Box'))
-                check('native framing in ' + side, 'framed' in owner._status.as_string)
-                print('SCENE_REVIEW_WAIT: rendered updates after framing ' + side, flush=True)
-                await updates(30)
-                check('source protections persist after frames in ' + side, all(not l.permissionToEdit and not l.permissionToSave and not l.dirty for l, *_ in owner._layer_permissions))
-                print('SCENE_REVIEW_READY: rendered updates after framing ' + side, flush=True)
-            await screenshot('review.png')
-            from omni.kit.viewport.utility import capture_viewport_to_file
-            capture = capture_viewport_to_file(owner._viewport.viewport_api, str(OUT / 'viewport.png'))
-            await capture.wait_for_result()
-            for _ in range(60):
-                if (OUT / 'viewport.png').is_file():
-                    break
-                await updates(1)
-            check('viewport image captured', (OUT / 'viewport.png').is_file())
-
-            # A prim absent in B must never be framed in the wrong revision.
-            owner._selected = '/World/Removed'
-            owner._frame_selection()
-            check('absent prim framing refused', 'absent' in owner._status.as_string)
-            await ui_test.find("USD Scene Review//Frame/**/Button[*].text=='Close review'").click()
-            await updates()
-            check('native Close review detached and destroyed viewport', owner._context.get_stage() is None and owner._viewport is None and owner._snapshot is None and not owner._layer_permissions)
-            await ui_test.find("USD Scene Review//Frame/**/Button[*].text=='View A'").click()
-            await updates(30)
-            for _ in range(300):
-                if owner._task and owner._task.done():
-                    break
-                await updates(1)
-            check('native reopen attaches A after close', owner._snapshot is not None and owner._side == 'A' and owner._context.get_stage() == owner._snapshot.stage)
-            await ui_test.find("USD Scene Review//Frame/**/Button[*].text=='Close review'").click()
-            await updates()
-            check('native second close releases resources', owner._snapshot is None and owner._viewport is None and owner._context.get_stage() is None and not owner._release_blocked)
-
-            async def request_view(side):
-                await ui_test.find(f"USD Scene Review//Frame/**/Button[*].text=='View {side}'").click()
-                await updates(5)
-                for _ in range(300):
-                    if owner._task and owner._task.done():
-                        return
-                    await updates(1)
-                raise AssertionError('view task did not finish within 300 frames')
-
-            source_layer = ROOT / 'snapshot-A/layers/scene.usda'
-            source_bytes = source_layer.read_bytes()
-            source_layer.write_bytes(source_bytes + b'\n')
-            await request_view('A')
-            check('modified bundle refused on switch', owner._snapshot is None and owner._context.get_stage() is None and 'changed' in owner._status.as_string)
-            source_layer.write_bytes(source_bytes)
-            held = source_layer.with_suffix('.held')
-            source_layer.rename(held)
-            await request_view('A')
-            check('missing bundle refused on switch', owner._snapshot is None and owner._context.get_stage() is None)
-            held.rename(source_layer)
-
-            static_paths = {side: model.as_string for side, model in owner._paths.items()}
+            # A private full-app harness may provide manifests from a bounded saved
+            # assembly; the checked-in runner creates only its own synthetic data.
+            supplied = ROOT / 'acceptance-inputs.json'
+            if supplied.is_file():
+                inputs = json.loads(supplied.read_text())
+                paths = inputs['manifests']
+                target = inputs['target']
+                result['fixture'] = 'private saved static assembly'
+            else:
+                paths = {}
+                for side, offset in (('A', 0), ('B', 2)):
+                    source = ROOT / ('source-' + side)
+                    source.mkdir()
+                    fixture = Usd.Stage.CreateInMemory()
+                    parent = UsdGeom.Xform.Define(fixture, '/World')
+                    fixture.SetDefaultPrim(parent.GetPrim())
+                    parent.AddTranslateOp().Set((offset, 0, 0))
+                    UsdGeom.Cube.Define(fixture, '/World/Box')
+                    UsdGeom.Scope.Define(fixture, '/NonGeometry').GetPrim().CreateAttribute(
+                        'reviewValue', Sdf.ValueTypeNames.Int).Set(offset)
+                    UsdGeom.Cube.Define(fixture, '/World/' + ('Removed' if side == 'A' else 'Added'))
+                    source_file = source / 'scene.usda'
+                    source_file.write_text(fixture.GetRootLayer().ExportToString())
+                    paths[side] = str(create_snapshot(source_file, ROOT / ('snapshot-' + side)))
+                target = '/World/Box'
+                result['fixture'] = 'synthetic unlit cubes'
             for side in ('A', 'B'):
-                source = ROOT / ('animated-source-' + side)
-                source.mkdir()
-                fixture = Usd.Stage.CreateInMemory()
-                op = UsdGeom.Xform.Define(fixture, '/Animated').AddTranslateOp()
-                op.Set((0, 0, 0), 0)
-                op.Set((1, 0, 0), 1)
-                (source / 'scene.usda').write_text(fixture.GetRootLayer().ExportToString(), encoding='utf-8')
-                manifest = create_snapshot(source / 'scene.usda', ROOT / ('animated-snapshot-' + side), time=0)
-                owner._paths[side].set_value(str(manifest))
-            await ui_test.find("USD Scene Review//Frame/**/Button[*].text=='Compare'").click()
-            await updates()
-            check('animated semantic comparison valid at explicit sample', owner._report['status'] == 'equal')
-            await request_view('A')
-            check('animated viewport refused without timeline change', owner._snapshot is None and 'Animated viewport is unsupported' in owner._status.as_string and timeline.get_current_time() == original[-1])
-
-            for side, path in static_paths.items():
-                owner._paths[side].set_value(path)
-            await ui_test.find("USD Scene Review//Frame/**/Button[*].text=='Compare'").click()
-            await updates()
-            await request_view('A')
-            check('static view recovers after negative checks', owner._snapshot is not None and owner._side == 'A')
-            protected_layers = list(owner._layer_permissions)
-            capture = None
-            check('snapshot hashes unchanged', before_hashes == {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
-            after = (context.get_stage(), stage.GetRootLayer().ExportToString(), stage.GetRootLayer().dirty, context.get_selection().get_selected_prim_paths(), timeline.get_current_time())
-            result['isolation_fields'] = {key: before == current for key, before, current in zip(('stage', 'root_text', 'dirty', 'selection', 'time'), original, after)}
-            result['timeline_values'] = [original[-1], after[-1]]
-            result['selection_values'] = [original[-2], after[-2]]
-            if original[1] != after[1]:
-                result['default_root_texts'] = [original[1], after[1]]
-            check('default context selection timeline and dirty state unchanged', original == after)
-            context_name = owner._context_name
+                owner._paths[side].set_value(paths[side])
+            files = [p for manifest in paths.values() for p in Path(manifest).parent.rglob('*') if p.is_file()]
+            before = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+            await click('Compare')
+            check('Compare changed report', owner._report and owner._report['status'] == 'changed')
+            owner._export_path.set_value(str(OUT / 'saved-evidence'))
+            await click('Save results')
+            check('actual Save results exports matching JSON and HTML',
+                  json.loads((OUT / 'saved-evidence/review.json').read_text(encoding='utf-8')) == owner._report
+                  and (OUT / 'saved-evidence/review.html').stat().st_size > 100)
+            result['changed_prims'] = len(owner._report['changes'])
+            result['direct_rows'] = len(visible_changes(owner._report))
+            check('inherited motion collapsed', len(visible_changes(owner._report)) < len(owner._report['changes']))
+            owner._inherited.set_value(True)
+            owner._query.set_value(target)
+            check('path search reveals target', any(c['path'] == target for c in visible_changes(owner._report, target, True)))
+            # Select the actual row through the native widget, then switch A/B/A.
+            import omni.kit.ui_test as ui_test
+            row_text = 'modified  ' + target
+            row = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='" + row_text + "'")
+            if row is None:
+                row = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='" + row_text + ' (+' +
+                                   str(next(len(g['affected']) for g in owner._report['parent_groups'] if g['parent'] == target)) + " descendants)'")
+            check('search result actual row found', row is not None)
+            await row.click()
+            await updates(5)
+            check('actual row selected stable path', owner._selected == target)
+            fixed_camera = None
+            for side in ('A', 'B', 'A'):
+                await click('View ' + side)
+                check(side + ' worker running and framed', client.state == 'running' and 'framed' in owner._status.as_string)
+                check('host owns no review context', not hasattr(owner, '_context'))
+                visual = await client.frame(target)
+                check(side + ' whole scene and original appearance', visual['display']['camera_scope']=='whole saved scene'
+                      and visual['display']['appearance']=='original')
+                check(side + ' selected geometry and bounds style', visual['display']['selected_geometry'] > 0
+                      and visual['display']['outline'] == ('dashed' if side == 'A' else 'solid'))
+                if fixed_camera is None:
+                    fixed_camera = visual['display']['camera']
+                check(side + ' fixed A/B camera', visual['display']['camera'] == fixed_camera)
+            frozen_report = copy.deepcopy(owner._report)
+            owner._review_frame.collapsed = False
+            owner._review_path.set_value(str(OUT / 'review-history.jsonl'))
+            owner._reason.set_value('Synthetic GUI test: intentional fixture relocation')
+            await updates(5)
+            await click('Mark intentional')
+            check('native intentional decision recorded', 'Human-marked intentional' in owner._disposition.as_string)
+            owner._reason.set_value('Synthetic GUI test: confirm independently')
+            await click('Needs review')
+            await click('Reload review')
+            from usd_scene_review.dispositions import history
+            review_events = history(OUT / 'review-history.jsonl')
+            check('native review reload preserves history and evidence', len(review_events)==2
+                  and review_events[0]['disposition']=='intentional'
+                  and review_events[1]['disposition']=='needs-review' and owner._report==frozen_report)
+            synced = await client.frame(target, review=owner._review_event)
+            check('child human metadata matches reload', synced['display']['review']['disposition']=='needs-review')
+            owner._review_frame.collapsed = True
+            reply = await client._request('capture')
+            check('real worker viewport capture', reply['status'] == 'captured' and (client.directory / 'viewport.png').stat().st_size > 1000)
+            shutil.copyfile(client.directory / 'viewport.png', OUT / 'viewport.png')
+            check('child renderer settled', reply['display']['capture']['stable'])
+            check('real right evidence panel capture', (client.directory / 'review.png').stat().st_size > 1000)
+            await click('View B')
+            no_ghost = await client.frame(target, ghost=False)
+            reply = await client._request('capture')
+            shutil.copyfile(client.directory / 'viewport.png', OUT / 'ghost-off.png')
+            shown = await client.frame(target, ghost=True)
+            check('old A geometry ghost shown in current B', shown['display']['ghost']['status']=='shown')
+            check('translucent green faces have bounded subtle wire cues', shown['display']['ghost']['opacity']==.22
+                  and shown['display']['ghost']['face_color']==[.12,.95,.22]
+                  and shown['display']['ghost']['opacity_threshold']==0
+                  and 0 < shown['display']['ghost']['wire_segments'] <= 20000)
+            check('legacy RTX fractional cutout is enabled',
+                  shown['display']['lighting']['renderer_settings']['/rtx/raytracing/fractionalCutoutOpacity'] is True)
+            check('ghost leaves fixed camera unchanged', shown['display']['camera']==no_ghost['display']['camera'])
+            reply = await client._request('capture')
+            check('ghost capture settled', reply['display']['capture']['stable'])
+            shutil.copyfile(client.directory / 'viewport.png', OUT / 'ghost-on.png')
+            shutil.copyfile(client.directory / 'review.png', OUT / 'ghost-evidence-ui.png')
+            difference = mean_rgb_difference(OUT / 'ghost-off.png', OUT / 'ghost-on.png')
+            check('ghost changes actual renderer pixels', difference>.01)
+            cleared = await client.frame(target, ghost=False)
+            check('ghost toggle clears geometry', cleared['display']['ghost']['status']=='off')
+            reply = await client.frame('/MissingReviewPrim')
+            check('absent prim refused without dropping worker', reply['status'] == 'refused' and client.state == 'running')
+            check('refusal preserves whole scene camera', reply['display']['camera_scope']=='whole saved scene'
+                  and reply['display']['camera']==fixed_camera)
+            check('refusal clears prior highlight', reply['display']['selected'] is None
+                  and reply['display']['selected_geometry'] == 0)
+            if not supplied.is_file():
+                reply = await client.frame('/NonGeometry')
+                check('non-geometric framing refused without worker exit', reply['status'] == 'refused'
+                      and client.state == 'running' and reply['display']['selected'] is None)
+            reply = await client.frame(target)
+            check('framing recovers after refusal', reply['status'] == 'framed')
+            focus = await client.frame(target, focus=True)
+            check('explicit selected focus', focus['display']['camera_scope']=='selection focus')
+            missing = await client.frame('/MissingReviewPrim', focus=False)
+            check('focus off with missing selection restores overview', missing['status']=='refused'
+                  and missing['display']['camera']==fixed_camera)
+            await click('Close review')
+            check('graceful close plus worker exit zero', client.state == 'closed' and client.last_exit == 0 and client.process is None)
+            result['worker_exits'].append(client.last_exit)
+            if not supplied.is_file():
+                # New auxiliary analysis: separate synthetic inputs, no user scenes.
+                from pxr import Gf
+                from usd_scene_review import compare
+                from usd_scene_review.snapshot import canonical
+                from usd_scene_review.overlap_analysis import pair_rows
+                from usd_scene_review.exports import save_report
+                analysis_paths = {}
+                for side, offset, angle in [('A', 4, 350), ('B', .5, 10)]:
+                    source = ROOT / ('analysis-source-'+side)
+                    source.mkdir()
+                    fixture = Usd.Stage.CreateInMemory()
+                    UsdGeom.SetStageMetersPerUnit(fixture, 1)
+                    UsdGeom.SetStageUpAxis(fixture, 'Z')
+                    UsdGeom.Xform.Define(fixture, '/World')
+                    for name, x in [('Moving', offset), ('Static', 0)]:
+                        cube = UsdGeom.Cube.Define(fixture, '/World/'+name)
+                        cube.CreateSizeAttr(2)
+                        cube.AddTranslateOp().Set(Gf.Vec3d(x, 0, 0))
+                        if name == 'Moving':
+                            cube.AddRotateZOp().Set(angle)
+                            cube.AddScaleOp().Set(Gf.Vec3f(1, 1.5, 1))
+                    source_file = source/'scene.usda'
+                    source_file.write_text(fixture.GetRootLayer().ExportToString())
+                    analysis_paths[side] = str(create_snapshot(source_file, ROOT/('analysis-snapshot-'+side)))
+                analysis_files = [p for m in analysis_paths.values() for p in Path(m).parent.rglob('*') if p.is_file()]
+                analysis_before = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in analysis_files}
+                for side in ('A', 'B'): owner._paths[side].set_value(analysis_paths[side])
+                await click('Compare')
+                from usd_scene_review.analysis_config import normalize
+                custom = normalize()
+                custom['overlap']['tolerance_m'] = 2e-5
+                custom['transform']['orthogonality_tolerance'] = 2e-7
+                owner._report = compare(analysis_paths['A'], analysis_paths['B'], analysis_config=custom,
+                                        policy={'max_rotation_degrees': 1})
+                owner._render_pairs()
+                pair, = owner._report['overlap_analysis']['pairs']
+                change, = [c for c in owner._report['changes'] if c['path']=='/World/Moving']
+                check('scaled effective orientation is 20 degrees with rigid policy unchanged',
+                      abs(change['transform_analysis']['spaces']['world']['orientation_delta']['degrees']-20)<1e-6
+                      and change['world_delta']['status']=='unknown')
+                check('static same-parent newly introduced AABB candidate without fake change',
+                      pair['classification']=='newly-introduced-aabb-overlap'
+                      and not any(c['path']=='/World/Static' for c in owner._report['changes']))
+                owner._pair_frame.collapsed = False
+                await updates(5)
+                pair_label = pair['classification']+'  '+' / '.join(pair['paths'])
+                pair_button = ui_test.find("USD Scene Review//Frame/**/Button[*].text=='"+pair_label+"'")
+                check('actual AABB pair widget found', pair_button is not None)
+                await pair_button.click()
+                pair_button = None
+                await updates(5)
+                check('pair row selects separate candidate and common evidence', owner._selected_pair==pair
+                      and owner._selected_change is None and owner._selected is None)
+                owner._pair_frame.collapsed = True
+                await click('View B')
+                response = await client.frame(None, pair_id=pair['id'], ghost=True)
+                digest = hashlib.sha256(canonical(owner._report).encode()).hexdigest()
+                check('worker recomputed full analysis matches host report hash', response['report_sha256']==digest)
+                check('nondefault config and rigid policy pinned across host and worker',
+                      client.analysis_context['analysis_config']==custom
+                      and client.analysis_context['policy']=={'max_rotation_degrees':1}
+                      and owner._report['policy'][0]['status']=='unknown')
+                check('pair view frames two actual point bounds with A/B union',
+                      response['display']['selected_geometry']==2
+                      and response['display']['camera_scope']=='A/B union of both pair objects'
+                      and response['display']['selected_paths']==pair['paths'])
+                check('pair ghost contains only moved object', response['display']['ghost']['status']=='shown'
+                      and response['display']['ghost']['count']==1
+                      and response['display']['ghost']['opacity']==.22)
+                pair_camera = response['display']['camera']
+                startup = json.loads((client.directory/'config.json').read_text())
+                invalid_view = await client.view(analysis_paths, 'A', None,
+                    sdk=startup['sdk'], worker_module=startup['worker_module'],
+                    analysis_config=custom, policy={'max_rotation_degrees':1}, expected_report_hash=digest,
+                    pair_id='invalid-on-newly-attached-revision')
+                check('fresh A view with invalid pair retains whole scene framing',
+                      invalid_view['status']=='refused' and invalid_view['display']['camera_scope']=='whole saved scene')
+                pair_a = await client.frame(None, pair_id=pair['id'])
+                check('pair A/B union camera is identical across actual revision attachment',
+                      pair_a['display']['camera']==pair_camera)
+                invalid = await client.frame(None, pair_id='invalid-not-in-recomputed-report')
+                check('worker refuses stale pair ID and remains usable', invalid['status']=='refused' and client.state=='running')
+                recovered = await client.frame(None, pair_id=pair['id'])
+                check('pair recovers after invalid ID', recovered['status']=='framed')
+                saved = save_report(owner._report, OUT/'analysis-export',
+                                    forbidden_roots=[Path(p).parent for p in analysis_paths.values()])
+                exported = json.loads((OUT/'analysis-export/review.json').read_text(encoding='utf-8'))
+                html = (OUT/'analysis-export/review.html').read_text(encoding='utf-8')
+                check('analysis export equals host and worker identity with shared pair rows',
+                      exported==owner._report and all(row[1] in html for row in pair_rows(exported,pair)))
+                frozen_analysis = copy.deepcopy(owner._report)
+                owner._reason.set_value('Synthetic pair intentional review; collision remains unknown')
+                owner._record_review('intentional')
+                check('pair human disposition preserves unknown collision and observed evidence',
+                      owner._report==frozen_analysis and owner._report['clash']['status']=='unknown')
+                await click('Close review')
+                check('analysis viewer normal exit zero and inputs preserved', client.last_exit==0
+                      and analysis_before=={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in analysis_files})
+                result['worker_exits'].append(client.last_exit)
+                for side in ('A', 'B'): owner._paths[side].set_value(paths[side])
+                await click('Compare')
+            if supplied.is_file() and inputs.get('shutdown_while_starting'):
+                await ui_test.find("USD Scene Review//Frame/**/Button[*].text=='View B'").click()
+                await updates(1)
+                check('worker starting before disable', client.process is not None and client.state == 'starting')
+            else:
+                await click('View B')
+                check('viewer reopened', client.state == 'running')
+            ext_id = manager.get_enabled_extension_id('mmporong.scene.review')
             manager.set_extension_enabled_immediate(ext_id, False)
-            await updates()
-            check('native disable cleaned owned context', omni.usd.get_context(context_name) is None)
-            check('native disable restored source permissions', all((l.permissionToEdit, l.permissionToSave, l.dirty) == (e, s, d) for l, e, s, d in protected_layers))
-            manager.set_extension_enabled_immediate(ext_id, True)
-            await updates()
-            check('native re-enable succeeded', manager.is_extension_enabled(ext_id))
-            manager.set_extension_enabled_immediate(ext_id, False)
+            check('attached disable graceful worker exit', client.state == 'closed' and client.last_exit == 0 and client.process is None)
+            result['worker_exits'].append(client.last_exit)
+            owner = None
+            owners = None
+            row = None
+            gc.collect()
+            await updates(10)
+            manager.set_extension_enabled_immediate('mmporong.scene.review', True)
+            await updates(10)
+            from mmporong.scene.review.extension import SceneReviewExtension as Reloaded
+            owners = [o for o in gc.get_objects() if isinstance(o, Reloaded)]
+            check('re-enabled extension shares durable process owner', len(owners) == 1 and owners[0]._viewer is client)
+            owner = owners[0]
+            for side in ('A', 'B'):
+                owner._paths[side].set_value(paths[side])
+            await click('Compare')
+            await click('View A')
+            check('re-enabled View A running', client.state == 'running')
+            await click('Close review')
+            check('re-enabled worker exit zero', client.last_exit == 0 and client.process is None)
+            result['worker_exits'].append(client.last_exit)
+            after = (context.get_stage(), stage.GetRootLayer().ExportToString(), stage.GetRootLayer().dirty,
+                     context.get_selection().get_selected_prim_paths(), timeline.get_current_time())
+            check('host default stage text dirty selection time preserved', original == after)
+            check('all snapshot bytes preserved', before == {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
+            await click('View A')
+            check('normal host quit starts with active viewer', client.process is not None and client.state == 'running')
             result['status'] = 'passed'
-        except Exception as exc:
-            result.update(status='failed', error=type(exc).__name__ + ': ' + str(exc))
-            traceback.print_exc()
+        except Exception:
+            result.update(status='failed', error=traceback.format_exc())
+            print(result['error'], flush=True)
         finally:
-            (OUT / 'result.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
-            print('SCENE_REVIEW_RESULT:', result['status'], flush=True)
+            if result['status'] != 'passed' and client and client.process is not None:
+                await client.close()
+            # Only this test's sentinel stage; avoid full-app save/close cancellation.
+            if omni.usd.get_context().get_stage():
+                omni.usd.get_context().close_stage()
+                await updates(20)
+            self.result = result
+            (OUT / 'result.json').write_text(json.dumps(result, indent=2))
             app.post_quit(0 if result['status'] == 'passed' else 1)

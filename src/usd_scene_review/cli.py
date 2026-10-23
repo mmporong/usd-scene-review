@@ -8,8 +8,19 @@ from .snapshot import canonical
 
 
 def render_html(report):
+    from .measurements import detail_rows
+    from .overlap_analysis import pair_rows
+    tables = []
+    for change in report.get('changes', []):
+        rows = ''.join('<tr>'+''.join('<td>'+html.escape(str(cell))+'</td>' for cell in row)+'</tr>'
+                       for row in detail_rows(report, change))
+        tables.append('<h2>'+html.escape(change['path'])+'</h2><table>'+rows+'</table>')
+    for pair in report.get('overlap_analysis', {}).get('pairs', []):
+        rows = ''.join('<tr>'+''.join('<td>'+html.escape(str(cell))+'</td>' for cell in row)+'</tr>'
+                       for row in pair_rows(report, pair))
+        tables.append('<h2>AABB candidate</h2><table>'+rows+'</table>')
     payload = html.escape(canonical(report))
-    return '<!doctype html><html lang="en"><meta charset="utf-8"><title>USD Scene Review</title><style>body{font:16px system-ui;max-width:1000px;margin:2rem auto;padding:1rem;color:#18212a;background:#fff}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><h1>USD Scene Review</h1><p>Status: ' + html.escape(report['status']) + '</p><p>Single configured sample. Collision evidence is unknown. No source files were edited.</p><pre>' + payload + '</pre></html>\n'
+    return '<!doctype html><html lang="en"><meta charset="utf-8"><title>USD Scene Review</title><style>body{font:16px system-ui;max-width:1000px;margin:2rem auto;padding:1rem;color:#18212a;background:#fff}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><h1>USD Scene Review</h1><p>Status: ' + html.escape(report['status']) + '</p><p>Single configured sample. Collision evidence is unknown. No source files were edited.</p>' + ''.join(tables) + '<pre>' + payload + '</pre></html>\n'
 
 
 def main(argv=None):

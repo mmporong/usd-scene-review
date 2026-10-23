@@ -2,14 +2,71 @@
 
 Read-only semantic review of two local OpenUSD scene revisions, with a separate Python engine and NVIDIA Omniverse Kit interface.
 
-![Before A, current B, and translucent green geometry at the previous position](examples/usd-scene-review-demo.gif)
+![Actual Kit before A, current B and translucent green old-A geometry with evidence panel](examples/usd-scene-review-demo.gif)
 
 Visual demo of the saved scenes before and after movement, with translucent green
 geometry marking the previous position under fixed lighting and camera.
-The demonstrated implementation is on the
-[feature branch](https://github.com/mmporong/usd-scene-review/tree/fix/factory-review-lifecycle).
 
-**Early development. Synthetic static A/B review is tested in Windows Kit 106.5 from Isaac Sim 4.5.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
+**Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native failure whose current cause is not isolated.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
+
+The experimental **in-app A/B split review** candidate renders both revisions, synchronized
+cameras and green old-position faces in minimal Kit. Narrow Full Isaac topology
+controls now render after first-frame/serialized-binding correction, but full-app
+shutdown still crashes and the product split button remains guarded pending full
+acceptance. See [installation and exact limits](docs/in-app-review.md).
+The GIF above demonstrates the earlier worker route.
+
+## Demonstration
+
+Actual isolated minimal Kit rendering from the installed Windows Isaac Sim 4.5 SDK.
+**A is the saved scene before the change; B is the saved scene after the change.
+A difference is not automatically a defect.** The camera stays fixed across A/B.
+
+The right-side panel shows comparator-derived selected path, changed properties,
+before/after world position, local/world delta, ancestor motion, independent policy,
+unknown clash status and separate human review metadata. The rack moves
+`(0, 0.2, 0)` to `(0, 0, 0)` m, delta `(0, -0.2, 0)` m. Intentional decisions do not waive rules or unknowns.
+
+In B, **Show old A** adds translucent green geometry at its previous complete world
+transform. Current B retains original geometry/materials and orange selected bounds.
+Single-sided green surfaces use 22% fractional opacity, with emission/specular
+disabled. Subtle half-width Cube/control-cage edges support the visible faces. This uses the installed Kit
+OmniPBR template and legacy RTX fractional-cutout support, avoiding glass-like
+transmission through many overlapping solids. The prior dense blue style is superseded.
+This bounded visual helper supports static visible Cube/Mesh geometry only; it does
+not duplicate physics or edit source layers. See [supported limits](docs/support.md#old-a-geometry-overlay).
+
+Preview illumination uses a fixed white dome and manual exposure by default, labelled
+NORMALIZED. Source visibility/material differences remain: the reversed demo's B restores
+the west wall and changes Steel roughness from 0.42 to 0.32. Their effect is real source
+evidence, not a reason to silently restore A's wall/materials. Capture waits for stable
+child-rendered frames; [validation](docs/validation.md) records the diagnostic details.
+
+The demo deliberately reverses the actual snapshot roles in private copies: previous
+A is on the right, current B on the left. Geometry, manifests, comparison identity and
+negative delta agree; no video mirroring or relabelling is used. The GIF shows before A,
+current B without the ghost, then current B with the translucent green ghost at old A.
+The GIF contains actual native scene and evidence-panel pixels. Private input paths,
+source files and logs are excluded. No AI, clash verdict or operational approval is
+claimed. Full Isaac host normal shutdown remains blocked; the latest native failure
+has not been established as the historical baseline fault.
+
+See [face-only comparisons and close-up evidence](docs/translucent-face-validation.md)
+for the actual RTX material check behind this revised appearance.
+
+## Distribution candidate
+
+Rc.3 adds separate scale-normalized effective orientation and point-derived
+static Cube/Mesh AABB candidates. Rigid policy rules are unchanged; collision remains
+unknown. Candidate scope, exclusions and work budgets are recorded in the report.
+See the [supported analysis contract](docs/support.md#static-aabb-candidates).
+
+Build a versioned project-only candidate with `python tools/package_candidate.py <new.zip>`.
+Use the [English quick start](docs/quickstart-en.md) or [한국어 빠른 시작](docs/quickstart-ko.md)
+for checksum verification, existing-SDK diagnostics, independent synthetic sample,
+comparison/export and isolated minimal Kit launch. See [distribution support](docs/distribution-support.md).
+No runtime is installed. A project license still awaits the maintainer’s choice; this is
+an evaluation candidate, not a formal licensed release.
 
 ## Target and checked environments
 
@@ -54,16 +111,17 @@ $env:PYTHONPATH = (Join-Path $archive[0].FullName 'pip_prebundle') + [IO.Path]::
 & $python -B tools/with_openusd.py --isaac-root $sdk --timeout 180 -- -m unittest discover -s tests -v
 ```
 
-The optional `test` extra declares the TOML test dependency for Python 3.10; the engine has no added dependency. The helper sets process-local Windows USD DLL directories. It does not change system environment settings. A restricted execution sandbox may prevent asyncio's local socketpair initialization; run tests in a normal local terminal rather than changing security settings. Symlink-specific tests explicitly skip when Windows reports missing privilege.
+The optional `test` extra declares Pillow for capture-image tests and TOML for Python 3.10; both are already available in the qualified SDK. The engine has no added dependency. The helper sets process-local Windows USD DLL directories. It does not change system environment settings. A restricted execution sandbox may prevent asyncio's local socketpair initialization; run tests in a normal local terminal rather than changing security settings. Symlink-specific tests explicitly skip when Windows reports missing privilege.
 
 To repeat the native Windows acceptance in a new private directory:
 
 ```powershell
-python tools/run_kit_validation.py --isaac-root $sdk --output artifacts/new-kit-run --timeout 180
+python tools/run_kit_validation.py --isaac-root $sdk --output artifacts/new-kit-run --timeout 360
 ```
 
-This builds and extracts a project-only ZIP, launches a separate minimal Kit app,
-and uses synthetic stages. It does not attach to running user apps. Logs and screenshots
+This builds and extracts a project-only ZIP, launches the qualified separate minimal Kit app,
+and uses synthetic stages. The optional `--full-app` flag is a diagnostic route whose
+normal shutdown is currently unqualified; it is not the distribution quick start. It does not attach to running user apps. Logs and screenshots
 stay in the selected output directory; do not publish raw machine logs.
 
 Optional policy flags are `--max-translation` (stage units) and `--max-rotation-degrees`. They apply to changed world rigid poses only, not collision, animation trajectories or application safety. Exit codes: `0` observed equal/changed, `2` unknown comparison/policy or invalid input, `3` observed policy violation. A clash status of unknown is always present; code 0 is never a collision clearance certificate. Destinations must be new paths.
@@ -72,7 +130,7 @@ See the generated [JSON example](examples/dependency-change.json) and [offline H
 
 ## Kit adapter
 
-Add this checkout's `exts` directory to Kit extension search paths and enable `mmporong.scene.review`. See the [adapter guide and pending GUI checks](exts/mmporong.scene.review/docs/README.md). The UI provides comparison rows and an isolated static A/B viewport; it rejects animated viewport review instead of changing the user's timeline. Semantic reports can evaluate an explicitly configured time.
+Add this checkout's `exts` directory to Kit extension search paths and enable `mmporong.scene.review`. See the [adapter guide and pending GUI checks](exts/mmporong.scene.review/docs/README.md). The UI provides searchable rows, inherited-motion filtering and a separate static A/B viewer process; it rejects animated viewport review instead of changing the user's timeline. Semantic reports can evaluate an explicitly configured time.
 
 A self-contained extension ZIP can also be generated from this project's code:
 
@@ -82,7 +140,7 @@ python tools/package_extension.py artifacts/mmporong.scene.review.zip
 
 Extract it into a fresh extension directory and add its parent to Kit's extension search paths. Native extraction/loading and synthetic static A/B review were checked in an isolated Windows Kit process. No NVIDIA binary or third-party asset is included.
 
-See [support](docs/support.md), [plan](docs/plan.md), [prior tools](docs/research.md), [validation](docs/validation.md) and [한국어 안내](docs/ko.md).
+See [PR/contribution candidates](docs/contribution-candidates.md), [support](docs/support.md), [plan](docs/plan.md), [prior tools](docs/research.md), [validation](docs/validation.md) and [한국어 안내](docs/ko.md).
 
 ## License status
 

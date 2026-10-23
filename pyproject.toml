@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
-test = ["toml>=0.10.2; python_version<'3.11'"]
+test = ["Pillow", "toml>=0.10.2; python_version<'3.11'"]
 
 [project.scripts]
 usd-scene-review = "usd_scene_review.cli:main"

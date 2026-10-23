@@ -4,7 +4,7 @@ V1 is intentionally strict: local `.usd`, `.usda`, `.usdc` layers with relative 
 
 Remote URLs, absolute references, path escapes/symlinks/junctions, unverifiable resolver behavior, value clips, asset-valued properties, instancing/prototypes, point instancers and unsupported composition features must be rejected or yield unknown. No automatic rename matching. No proof of a complete scene when a payload/dependency is missing or a parent is inactive. Active/visibility observations carry their limitations. No animation-range claim from a single sample. Same assembly identity is a caller contract.
 
-Authored opinions are compared separately from composed effective values. A property stack difference is evidence of opinion changes, not proof of a human author or intent. Parent propagation groups describe observed transform changes; resetXformStack boundaries stop grouping. Rotation metrics apply only to rigid matrices; scale/shear/reflection/singular matrices are reported without a rotation verdict. Equivalent Euler or quaternion representations must not cause an effective pose false positive.
+Authored opinions are compared separately from composed effective values. A property stack difference is evidence of opinion changes, not proof of a human author or intent. Parent propagation groups require world motion and dependency in both revisions; resetXformStack boundary transitions are recorded separately. Rigid policy rotation remains restricted to rigid matrices. Separate normalized effective orientation supports orthogonal positive nonuniform scale without claiming authored rotation. Equivalent Euler or quaternion representations must not cause an effective pose false positive.
 
 AABB is only a broad-phase candidate. No confirmed collision verdict in V1. Missing Clash extension or unsupported geometry is unknown. Optional policy checks begin with rigid translation/relative rotation only, with units stated explicitly.
 
@@ -16,7 +16,7 @@ Floating values use an absolute tolerance of 1e-8; integer/boolean values and au
 
 Source files are checked again after all copies. This detects ordinary mutations but is not an atomic filesystem transaction or protection against a malicious concurrent writer changing and restoring bytes. Freeze upstream files while snapshotting; otherwise supply an independently immutable filesystem revision. Snapshots are integrity-checked, not cryptographically signed provenance. Editing files and rewriting the manifest creates a new, untrusted revision identity.
 
-A bundle has to preserve relative directory structure inside the entry directory. External sibling dependencies require preparing a common local root upstream; this tool will not rewrite the original source. Inherits/specializes/relocates, remote/package paths and asset-valued properties are rejected conservatively. Missing Clash support remains an explicit unknown; no AABB or narrow-phase adapter is implemented yet.
+A bundle has to preserve relative directory structure inside the entry directory. External sibling dependencies require preparing a common local root upstream; this tool will not rewrite the original source. Inherits/specializes/relocates, remote/package paths and asset-valued properties are rejected conservatively. Missing Clash support remains an explicit unknown. Static AABB candidate analysis is auxiliary; no narrow-phase collision adapter is implemented.
 
 ## Verified local resolution
 
@@ -31,3 +31,185 @@ This qualifies observed local filesystem behavior in the tested Kit 106.5 enviro
 Declared parent prim choices are applied before descendants. Choices whose prim/set/option is not yet composed are deferred and retried when another declared choice makes progress; this also supports same-prim dependencies. After all progress, every requested set and option must remain available and its composed selection must equal the request. Invalidated, mutually exclusive or unresolved combinations are unknown. The engine does not search unspecified intermediate choices or solve arbitrary cyclic/redefined variant dependencies. Variant opinions live only in the anonymous session; source layers are not changed. Snapshot `ready` describes copied dependency integrity; the requested configuration is validated when loading/comparing it.
 
 CLI report files are created with exclusive mode, including when a file or symlink appears after initial path checks. JSON and HTML are separate files, not a multi-file atomic transaction; an error creating HTML can leave the newly created JSON report in place without overwriting the conflicting file.
+
+## Experimental viewer boundary
+
+The local same-process A/B candidate is documented in [in-app review](in-app-review.md).
+It has actual settled green-face rendering/interaction evidence in minimal Kit,
+but full feature qualification and native shutdown remain blocked. Narrow full-app
+topology controls render with corrected first-frame/serialized binding; the product
+split route stays guarded until full acceptance. The worker
+contract below describes the retained legacy route.
+
+The host owns comparison UI only. Static A/B rendering uses the installed Windows SDK
+in an owned child process with its default USD context. Review lighting/navigation
+author only into an anonymous session. Worker receipts plus observed exit 0 are required
+for a clean close; forced timeout containment is a failure. Full Isaac host normal
+shutdown still has an observed native SDK fault and is not qualified. See the current
+[validation status](validation.md) and [adapter guide](../exts/mmporong.scene.review/docs/README.md).
+
+
+## Review display observations
+
+The light review panel shows additive `observed.before/after` effective local/world
+matrices and state in comparison JSON. Existing changed fields, propagation and
+rigid-only policy semantics are unchanged. Translation deltas require matching finite
+positive stage units and up axes. Local translations use each prim's parent coordinates;
+they are not world travel distances. Meter conversion uses declared meters-per-unit.
+Unavailable/overflowing measurements remain unavailable. Values are rounded to nine
+significant digits in the UI; the report retains its original numeric evidence.
+
+Rigid quaternion/angle rows retain their existing rigid-only interpretation. Separate
+effective quaternion (w,x,y,z), shortest angle and unsigned axis magnitudes normalize
+orthogonal positive basis rows, including nonuniform scale. This is effective orientation,
+not authored rotation or signed scale. Shear/nonorthogonality, reflection, singular,
+ill-conditioned, nonfinite and nonaffine bases have explicit unknown reasons. Translation
+has separate validity and can remain available when orientation is unknown. Cross-revision
+translation/orientation deltas require matching valid units and up axes.
+Inactive or unobserved transforms are unavailable, not identity transforms.
+
+## Static AABB candidates
+
+The independent auxiliary analysis transforms actual Cube vertices and Mesh points
+referenced by nonhole faces into world coordinates. It never uses authored extent or
+display/subtree aggregate bounds. Mesh results bound face control points; they do not
+evaluate a displaced render surface or confirm triangle intersection. Hidden, animated,
+instanced, skinned/deformed, displaced (including subsets and allPurpose/full/preview bindings), unsupported or
+unreadable geometry is excluded with reasons. Purposes default/render/proxy are included.
+Containers, self pairs, duplicate order and ancestor/descendant geometry pairs are
+excluded; geometry sharing a parent remains eligible.
+
+Only a known disjoint A pair followed by a known overlapping B pair is labelled
+`newly-introduced-aabb-overlap`. Existing overlap, resolved candidate, boundary-to-overlap,
+added geometry and unknown baseline are distinct. Per-axis positive intersection depth
+must exceed tolerance for overlap; near-touching and degenerate AABBs are boundary.
+Tolerance is the larger of 1e-6 m and eight ULPs of the bounds coordinates. Invalid or
+mismatched coordinate metadata prevents cross-revision classification.
+
+Versioned report configuration records all settings and deterministic budgets: 20,000
+prims, 2,048 geometry targets, 200,000 points and 1,000,000 face vertices per geometry,
+1,000,000 total transformed points, 1,000,000 examined pairs, 20,000 stored records.
+Budget exhaustion yields auxiliary `partial` coverage, independently of semantic report
+status. Coverage lists examined geometry, exclusions, pairs and classification counts.
+`clash.status` remains unknown; candidates and human intentional marks grant no clearance.
+
+Expand Static AABB candidates and choose a row to outline both objects. A/B use the same
+union camera over both objects' actual bounds in both revisions; missing/unknown bounds
+refuse pair focus explicitly. A stationary object gains no fake change or old-A ghost.
+The worker checks the pair ID against its recomputed, configuration-pinned report.
+JSON, HTML, host and worker evidence share formatted candidate rows. No execution time
+or elapsed duration enters the report identity.
+
+The isolated viewer preserves original geometry, material/subset bindings, display
+colors, active and visibility state. Owned anonymous helper curves receive blue A
+or orange B materials; optional old-A helper geometry receives its own translucent green material. The previous gray-context/material-replacement approach is
+superseded. The default camera fits union bounds of both complete saved scenes. An
+explicit Focus selected checkbox uses selected bounds instead. Missing/unbounded
+selected geometry clears its outline and refuses that selection; whole-scene framing
+is still installed when focus is off. Bounds are calculated on raw verified snapshots
+before any helper opinions. They are AABBs, not mesh edges, collision or clearance.
+Visible loaded render/default/proxy bounds do not recover excluded/unsupported assets
+or reproduce all original author render settings. Global Kit chrome is unchanged.
+
+## Local human review metadata
+
+A/B are before/after saved scenes, not an error verdict. Observed differences, configured
+rigid policy verdicts, incomplete/unknown evidence, and human dispositions are separate.
+The UI compare uses no policy thresholds by default and says not evaluated; marking a
+change intentional does not establish a policy pass or turn unknown into known.
+
+After comparison, select a changed row and expand Human review metadata. Choose a new
+or existing `.jsonl` path in a separate existing folder outside both immutable snapshot
+bundles, enter a reason, then explicitly choose Mark intentional or Needs review. Reload
+review restores the most recent exact-match entry. Changing a decision appends history;
+it does not erase older entries or the comparison evidence. Neither disposition hides
+change rows. No automatic approval, reviewer identity authentication or operational
+safety sign-off is implemented.
+
+Each event stores ordered exact A/B manifest SHA-256 values, prim path, full change
+SHA-256, local unverified actor, UTC time, disposition, reason, sequence and previous-event
+hash. The UI rechecks manifest bytes and recomputes comparison before load/save. A new
+snapshot/change identity does not receive an earlier decision. The old event remains
+in history for inspection. Review history is outside source snapshots, never written
+into USD. Reasons can contain private information; logs stay local and are not included
+in the extension package or demonstration.
+
+This bounded single-writer MVP uses exclusive locking, append/flush/fsync and an 8 MiB
+preappend limit. Invalid, partial or mismatched history fails closed without overwriting
+it. A leftover lock after a crash requires inspecting/resolving that private log before
+retrying; the app never breaks another writer's lock. Hash chaining detects inconsistent
+history but is not tamper-proof storage, authorization or protection against an actor
+who can rewrite the log. No multi-user concurrency/recovery or enterprise audit claim.
+
+
+## Old A geometry overlay
+
+After selecting a changed prim, enable **Show old A** and open B. A stays a before-only
+view. B contains current source geometry plus the selected old-A subtree as visual
+helpers in an anonymous review session. Toggling off, changing selection, refusing a
+selection, switching revisions or closing clears the old helper geometry. Helpers do
+not enter comparator, policy or raw-snapshot bounds. No source references, material
+networks, physics/collision APIs or simulation objects are copied.
+
+Each supported Cube/Mesh retains its local shape and exactly one complete old world
+matrix, including ancestor rotation/nonuniform scale/reset-stack effects. Mesh topology,
+subdivision, orientation, normals and crease/corner attributes are
+allowlisted. Guide-purpose geometry is excluded. Instances/prototypes/point instancers,
+unloaded, animated, skeleton/deformer-bound and displaced geometry are unsupported.
+An unsupported selected subtree produces an explicit reason and no partial ghost.
+Limits are 512 shapes, 200,000 points, 1,000,000 indices and 333,333 faces per mesh,
+finite bounded transformed coordinates, and one cached selection. No complete-scene,
+deformation, arbitrary primitive, exact photometric or collision fidelity is claimed.
+Translucent ghost surfaces can affect this review renderer's shading/occlusion; they
+are not a shadow-free overlay or a reproduction of A's original materials.
+
+## Right evidence panel and preview illumination
+
+The child viewport has a right-side scrollable evidence panel populated from the
+actual comparison. Observed transform changes, policy status, unknown clash evidence
+and human status remain separate. Human review is local unverified metadata, never a
+rule waiver. Reload review refreshes or clears the child panel as well as the host.
+
+Fixed preview illumination is enabled by default and applies on the next View A/B.
+It mutes source light intensities only in the anonymous session, adds one fixed root
+white dome (intensity 1000, exposure 0), disables auto exposure and locks ISO 100,
+exposure time 0.02, f/5 and ACES tone mapping in the owned child process. Turning it off
+retains source lights (or adds a fallback dome if absent), still using manual exposure.
+This is a labelled normalized preview, not the authored production render setup.
+Source geometry, visibility and material edits remain visible and disclosed.
+
+Diagnostic capture advances the child renderer in 32-update batches, compares actual
+320x180 RGB images and requires two consecutive mean differences <=0.5 byte for its
+`stable` flag. It stops after eight batches and records the result; a capture with
+`stable=false` is not convergence evidence. This is a bounded practical settling test,
+not a proof of physical render convergence. Tests require the flag before claiming
+stable images. Camera pose, lens and clipping remain shared across A/B.
+
+
+## Translucent green hologram style
+
+Old A uses 22% single-sided green faces through the installed SDK's OmniPBR cutout
+template, with opacity threshold zero, specular zero and emission disabled. The owned
+legacy RTX child enables `/rtx/raytracing/fractionalCutoutOpacity`; PreviewSurface
+transmission is not used for the ghost faces. No NVIDIA template files are copied or
+distributed. This route requires the already-qualified installed SDK and is not a
+generic USD render guarantee. Current source material networks are never replaced.
+The fractional-cutout setting applies to all opacity materials in the owned viewer;
+it stays identical across A/B and ghost-off/control captures. This is review rendering,
+not preservation of the author's complete renderer configuration. A missing installed
+OmniPBR template produces an explicit unsupported ghost without creating helpers.
+
+Thin opaque green BasisCurves show Cube edges or Mesh control-cage edges, not an exact
+subdivision silhouette. Width is 0.0006 times the selected old geometry diagonal in
+stage units (minimum 1e-6). The total is capped at 20,000 segments before helper creation;
+larger cages are explicitly unsupported. Curves and surfaces have no emissive bloom.
+Depth occlusion remains real, and coincident cues can overlap; this is a visual review
+style rather than a physically meaningful translucent material or collision verdict.
+
+The configuration follows NVIDIA's documented
+[OmniPBR opacity parameters](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/templates/parameters/OmniPBR_Opacity.html)
+and [legacy RTX fractional-cutout setting](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/rtx-renderer_rt_legacy.html).
+
+The near-invisible 0.2% version is superseded after user feedback. Actual face-only
+0/6%/12%/22%/opaque controls, matching final media and preserved distribution baseline
+are recorded in [translucent-face validation](translucent-face-validation.md).

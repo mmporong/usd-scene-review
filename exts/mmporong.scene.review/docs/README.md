@@ -1,86 +1,100 @@
-# Kit adapter (early implementation)
+# Kit adapter
 
-The Windows target is Isaac Sim 4.5 / Kit 106.5 / Python 3.10 / OpenUSD 22.11.
-A self-contained ZIP has passed synthetic static A/B checks in an isolated native Kit
-GUI: actual button callbacks, attachment, rendering, selection/framing, repeated
-switching, close/reopen, modified/missing inputs, animation refusal and attached-stage
-cleanup on disable/re-enable. The minimal test app uses `app.asyncRendering=false`,
-matching the installed Isaac base setting. The full Isaac app, asynchronous rendering
-and large user assemblies are not certified. The earlier Linux baseline was not rerun
-after these Windows changes.
+The local **Open A/B in Isaac** candidate renders two synchronized views in the same
+app. Read its [installation, use and failed/pending validation](../../../docs/in-app-review.md)
+before trying it. Green surfaces passed settled minimal-Kit capture, but full Isaac's
+split route is guarded after native failure and extended teardown remains unqualified.
+The `Legacy worker A/B` buttons retain the separate-process behavior described below.
 
-## Install from this checkout
+Enable `mmporong.scene.review` after adding this checkout's `exts` directory to the
+extension search paths. Alternatively generate a project-only ZIP with
+`python tools/package_extension.py <new-output.zip>`, extract it into a fresh
+extension directory, and add its parent to the search paths. No SDK binary or
+third-party asset is included.
 
-Add the repository's `exts` folder to Kit's extension search paths, then enable
-`mmporong.scene.review`. Keep the checkout's `src` folder beside `exts`:
-the extension module path points to `../../src` relative to the extension root.
-The extension does not install packages or download assets. Alternatively, run
-`python tools/package_extension.py <output.zip>` from the repository root, extract
-the resulting ZIP and add its extracted extension folder's parent to Kit's extension
-search paths. The deterministic package contains the authored engine under `python/`
-and rewrites the module path accordingly; it does not contain NVIDIA binaries.
+Compare two frozen local snapshot manifests. The panel shows direct changes first,
+with counts for parent propagation. Search prim paths and enable **Inherited motion**
+to reveal inherited-only world movement; mixed authored/effective changes stay visible.
+Select a result for evidence and unknown reasons. **View A/B** opens a separate Kit
+viewer window and frames the selected path when present. Missing/inactive paths are
+refused with a suggestion to try the other revision. Rigid scale/shear unknowns do
+not imply a policy pass or collision clearance.
 
-## Review
+## Runtime and ownership
 
-1. Enter the complete paths of two snapshot `manifest.json` files in A and B.
-2. Choose **Compare**. Each result row selects a changed prim and exposes its details.
-3. Choose **View A** or **View B** to attach that revision to a separate review viewport.
-4. Choose a row to frame its prim in the displayed revision. If absent, inactive or
-   unloaded, try the other revision. A deleted prim is never framed in the wrong scene.
-5. **Close review** destroys the review viewport and detaches its stage.
+The comparison panel uses the host's Python/USD libraries but creates no review USD
+context, timeline or viewport in that host. Static rendering starts a separate process
+from the existing Windows Isaac Sim SDK (`kit/kit.exe`, `extscache`, `exts`). The viewer
+is qualified only against the Windows Isaac Sim 4.5 / Kit 106.5 environment listed in
+[validation](../../../docs/validation.md). No installation or runtime download occurs.
+Other platforms can use the offline engine; their viewer path remains unqualified.
+Two rendering processes need additional GPU memory and startup time.
 
-Invalid snapshots are refused. Manifests are revalidated on each A/B switch and a
-changed report requires another comparison. This is synchronous local comparison;
-large production assemblies and responsive background comparison are not validated.
+The worker uses only its own default context and normal SDK shutdown. Its sole primary
+thread starts suspended, is assigned to an owned Windows Job, then resumes. Descendants
+inherit that Job. Private request/result files use a per-run identity and ordered
+sequence. Compared manifest hashes are pinned; both bundles and source protections
+are rechecked. Review navigation and fallback lighting use only an anonymous session;
+file layers cannot be edited/saved while attached. Animated viewport review is refused;
+the offline report can still compare its explicitly declared time sample.
 
-## Read-only boundary and limitations
+**Close review** requires a preservation receipt and observed worker exit code 0.
+Extension disable/app shutdown also perform bounded synchronous IPC cleanup, independent
+of the host event loop. Native attach is not cancelled in the child. Unconfirmed cleanup
+is a failure; timeout containment terminates only the owned Job and blocks another launch
+until termination is confirmed and the user acknowledges the failed worker with Close.
+Failed private diagnostic folders are retained locally; successful folders are removed.
+Closing the viewer's OS window directly is treated as unconfirmed, not a clean close.
 
-- The adapter creates a unique named USD context and timeline. It never opens, closes, selects
-  prims in, or saves the user's default USD context.
-- Snapshot source layers are temporarily non-editable and non-saveable. The edit
-  target is an anonymous session, so viewport cameras cannot author into bundle files.
-  Kit 106 resets permissions during attachment, so the viewport remains hidden until
-  permissions and the anonymous edit target are reestablished and checked after attach.
-  In-memory permissions are restored on detach, and source dirty state is checked.
-  The extension never calls a USD save/export operation.
-- Drag-and-drop USD loading is disabled in the review viewport. No editing commands,
-  transform controls, ghost geometry or automatic fixes are supplied.
-- **Viewport review supports static stages only.** Any time-sampled attribute causes
-  a refusal. The owned context uses its own timeline so attach/close cannot synchronize
-  frame range or FPS back into the user's stage. Viewport widgets may still consume
-  global timeline time, so animated viewport review is not enabled. Time-specific
-  semantic results remain available in the report.
-- Native camera/framing, rendering, selection, repeated A/B and ordinary
-  close/disable/re-enable passed for synthetic static scenes. Disable during an
-  in-flight native attachment and rapid stress cycling still require native testing.
-- Close is deferred while a viewport attachment is running. Extension disable hides
-  its windows immediately, then an owned asynchronous cleanup waits for the attachment
-  task to finish before detaching/destroying its context. It never cancels the native
-  attachment's Python await. If Kit stops the event loop before that completion, or an
-  external cancellation makes native completion unknown, cleanup remains unconfirmed;
-  the context is retained until process exit rather than destroyed during attachment.
-- Stage close must return success and the context must no longer hold a stage before
-  the adapter erases its cache entry, restores source permissions or drops the snapshot.
-  A false return, exception or still-attached stage blocks Compare, A/B, framing and
-  Close actions with an error message. Disabling the extension makes one conservative
-  cleanup attempt; failed detach retains the owned context and source protections.
-  Failed shutdown owners remain strongly referenced until process exit. This boundary
-  has GPU-free failure-path tests and native successful-close coverage; injected
-  native close failures remain unverified.
-- No Clash extension is enabled, downloaded or assumed present by this adapter.
+A named rendered context in this installed SDK crashed during manual destruction,
+including controls without this extension. Retaining it until host shutdown also failed.
+Process isolation contains that native boundary; it does not fix NVIDIA's DLL.
 
-## GUI acceptance checklist
+## Repeat acceptance
 
-Run with a working GPU driver and an authorized graphical session. Record the exact
-Kit/Python/USD/extension versions separately from CPU results.
+From this checkout, with an existing SDK:
 
-- Compare the repository's static A/B snapshots and frame moved, added and deleted prims.
-- Confirm the user's original context, selection, timeline and layer dirty flags are unchanged.
-- Switch A/B repeatedly, close review and disable/re-enable the extension without stale stages.
-- Confirm modified/missing bundle files are refused on switch.
-- Confirm animated stages are refused rather than displayed at a misleading time.
-- Verify source hashes and dirty state before and after review; inspect errors on cleanup.
+```powershell
+python tools/run_kit_validation.py --isaac-root $sdk --output artifacts/new-kit-run --full-app --timeout 360
+```
 
-The listed synthetic checks passed in the Windows test environment. They do not
-certify production scenes, arbitrary resolver plugins or in-flight failure cleanup.
-See the repository validation report for exact scope and remaining tests.
+The new output directory contains private logs, result JSON and a viewport image. The
+checked-in runner creates synthetic stages, tests actual native buttons, parent filtering,
+selection, A/B/A, framing, capture, close/reopen, disable/re-enable, source/default-context
+preservation, and host quit with a viewer active. The launcher requires both the result
+and normal process exit. See validation.md for completed versus failed/pending results;
+mock protocol tests are not rendering evidence. Do not publish private runtime logs/assets.
+
+
+## Reading the visual difference
+
+A is the saved scene before the change; B is the saved scene after it. A change can be
+intentional. Default framing retains the whole factory and its original geometry and
+material context. Blue dashed A / orange solid B outlines identify selected world
+AABB bounds only. Focus selected is an explicit optional close-up; switching it off
+restores whole-scene context even for absent/unbounded selections. One revision is
+rendered at a time, with matching A/B camera/lens/clipping within the chosen mode.
+
+The light panel's before/after/delta table comes from the compared snapshots, including
+unchanged local pose for parent-propagated children. Local coordinates are parent-frame
+coordinates; meters use declared stage units. Rotation is rigid-only quaternion plus
+shortest angle. Axis magnitudes are unsigned and do not recover authored signed scale.
+
+Expand Human review metadata to choose a separate `.jsonl` log and explicitly save an
+intentional/needs-review disposition with a reason. Reload review restores exact-match
+history. Decisions bind A/B hashes and full change identity and never alter/hide evidence,
+policy failures or unknowns. Default UI policy is not evaluated; this local unverified
+metadata is not authorization or operational safety approval. See support.md for limits.
+
+The isolated child also shows a concise right evidence panel with the selected path,
+before/after/delta, motion cause, policy/unknown and separate human status. Reload review
+refreshes the child status. Enable **Show old A** to place the selected static Cube/Mesh
+subtree at its old complete world transform as translucent green visual-only helpers in B.
+Unsupported geometry produces a reason instead of a partial overlay. Helpers are cleared
+on selection/toggle/revision/close and have no copied physics or source composition.
+
+**Fixed preview illumination** is enabled by default and applies on the next View A/B.
+It uses a labelled normalized white dome and manual exposure in the owned child only.
+Source visibility/material differences stay visible and disclosed. Diagnostic captures
+advance the child renderer and expose a bounded `stable` flag; PNG existence alone is
+not render-convergence evidence. See support.md for limits and validation.md for results.
