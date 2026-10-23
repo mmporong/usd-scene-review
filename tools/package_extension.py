@@ -20,6 +20,7 @@ def package(destination):
     files['docs/in-app-review.md'] = (repo/'docs/in-app-review.md').read_bytes()
     files['docs/in-app-sdk-diagnosis.md'] = (repo/'docs/in-app-sdk-diagnosis.md').read_bytes()
     files['docs/teardown-investigation.md'] = (repo/'docs/teardown-investigation.md').read_bytes()
+    files['docs/viewport-reuse-assessment.md'] = (repo/'docs/viewport-reuse-assessment.md').read_bytes()
     files['examples/usd-scene-review-in-app.png'] = (repo/'examples/usd-scene-review-in-app.png').read_bytes()
     files['docs/README.md'] = files['docs/README.md'].replace(
         b'../../../docs/in-app-review.md', b'in-app-review.md')

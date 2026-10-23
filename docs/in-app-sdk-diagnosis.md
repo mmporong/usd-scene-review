@@ -1,5 +1,10 @@
 # SDK structure and runtime diagnosis
 
+The subsequent [official ownership/reuse assessment](viewport-reuse-assessment.md)
+records which SDK wrappers share the same texture path and the limited sequential
+capture alternative. The local candidate is not in main and its native gate has
+not run because other GPU work resumed. It is not a two-live-viewport replacement.
+
 The later [teardown investigation](teardown-investigation.md) reduces the texture
 warning to the second public native texture update-stop call with no added UI,
 ghost, material or manipulator. A child-environment-isolated baseline retains the
@@ -267,11 +272,12 @@ requires separately resuming GPU validation. Example for that future step only:
 python tools/run_in_app_validation.py --isaac-root $sdk --output <new-private-dir> --probe tools/in_app_engine_probe.py --full-app --topology sequence --fail-fast-native --timeout 180
 ```
 
-Because all three controls rendered, retain the current independent snapshot/context
-design and validate the prepared lifecycle correction first. A cached one-context
-adapter or merged-root stage is not currently necessary. Full feature acceptance
-must still cover row selection, values, ghost warm-up, navigation, repeated teardown
-and app shutdown. Full-app shutdown remains a concrete unresolved boundary.
+All three controls rendered, but later lifecycle failures remain unresolved. Keep
+the product's independent-revision contract and Full-host guard. The subsequent
+ownership assessment evaluates a limited sequential capture candidate, which needs
+native lifecycle validation and an explicit interaction choice. Merged roots are
+not treated as independent scenes. Full feature acceptance still includes row
+selection, values, ghost warm-up, navigation, repeated teardown and app shutdown.
 
 The existing safe full-app guard remains enabled. No public commit/push or SDK/global
 renderer setting change was made in this diagnosis phase.
