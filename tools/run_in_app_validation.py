@@ -106,6 +106,8 @@ name="probe"
     probe=Path(__file__).with_name('in_app_shutdown_probe.py') if args.shutdown_control else (
         Path(__file__).with_name('in_app_baseline_probe.py') if args.baseline else args.probe)
     shutil.copyfile(probe,runner/'probe.py')
+    if args.shutdown_control:
+        shutil.copyfile(Path(__file__).with_name('shutdown_observation.py'),runner/'shutdown_observation.py')
     if args.shutdown_candidate:
         shutil.copyfile(Path(__file__).with_name('viewport_reuse_candidate.py'),runner/'viewport_reuse_candidate.py')
     app=root/'in-app.kit'

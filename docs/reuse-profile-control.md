@@ -87,3 +87,34 @@ first native/functional failure. The observed usable scope is only the reduced
 sequential fixture/capture route before shutdown. Product change-list navigation, ghost,
 simultaneous live panes, user workspace recovery and original Full support remain
 unqualified. Raw local logs/captures are not published by this diagnostic change.
+
+## Instrumented contrast
+
+The shutdown probe now enumerates `omni.ui.Workspace.get_windows()` and queries
+labels under each exact title. Installed UI query matches window titles exactly;
+the old `*//...` query never searched all windows. Prompt actions have been removed.
+The observer reads default context/stage identity, native pending/can-close state,
+root/session dirty flags, file utility/task state and visible save-prompt labels.
+Internal file utility/task fields are version-specific read-only diagnostics, not
+a supported replacement for public close. Pending edits or a save prompt prevent
+close invocation so an SDK save branch cannot be triggered by this diagnostic.
+
+One instrumented reduced-profile run passed all 40 candidate checks and two cycles.
+Its three observations (before candidate, after cleanup, before close) had the
+same default context and stage ID, clean fixture root, dirty session, native pending
+edits true, can-close true, a present file utility and no file task or observed save
+prompt. The guard therefore did **not invoke file.close**. It returned failure and
+the owner contained the Job. Fixture preservation, PID recovery, empty/closed Job
+and natural matching lease release were verified. Console: zero errors, 131
+warnings. This result does not establish native crash freedom or normal shutdown.
+
+The earlier immediate pending sample in this run was false, whereas the first
+full observation was true before candidate execution. Imports and UI enumeration
+occurred between those samples. Neither a candidate-induced pending edit nor the
+exact effect of observation is proven. The final observer adds a native receipt
+before SDK observer imports and native pending samples before/after window queries
+to isolate that gap. Those extra sampling points have CPU regression coverage but
+have **not** received another native run. No unchanged treatment was repeated.
+The next distinct question is whether imports, UI queries or other startup work
+change native pending state before the candidate. No pending reset, automatic
+dialog action or save-policy override is an acceptable diagnostic correction.
