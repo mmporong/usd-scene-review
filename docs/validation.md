@@ -1,5 +1,18 @@
 # Validation status
 
+## Named-context public open is not a validated workaround, 2026-10-23
+
+The [owned-file open control](attach-only-control.md#named-context-public-open-control)
+completed 60 updates and opened its distinct stage by update1. Default context
+DIRTY_STATE_CHANGED/pending=true was observed during that first update, with
+unchanged default stage ID, layer hashes and edit target. The named context stayed
+pending=false; both fixture files were preserved. Public close was blocked and
+the owned Job contained (exit1, errors0/warnings109), with PID/Job/lease cleanup
+verified. Normal shutdown is not established. The dependent 40-check/two-cycle
+Widget candidate was not run because this prerequisite failed. No user source file
+or SDK changes, pending reset or dialog selection occurred. Full product guard remains.
+Final Windows CPU: 184 cases, 182 passed, two privilege skips; no failures/errors.
+
 ## Matched no-render attach control, 2026-10-23
 
 [Attach-only versus no-attach controls](attach-only-control.md) each completed

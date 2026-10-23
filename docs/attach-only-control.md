@@ -71,6 +71,51 @@ Full-app callbacks during attach. Neither is run by these controls. An open-path
 success would still need independent revision and lifecycle qualification before
 replacing the product adapter. Do not suppress real edits or save prompts to pass.
 
+## Named-context public open control
+
+The open variant was subsequently evaluated once with the same 60-update budget,
+pinned reduced profile and normal shared admission:
+
+```powershell
+./tools/run_shutdown_profile.ps1 -IsaacRoot <existing-sdk> -Output <new-output> -DiagnosticProfile no-navigation -AttachControl open
+```
+
+Ownership differs deliberately: attach borrows an already constructed stage via
+StageCache; open asks the named context to open a URL. Installed `_impl/api.py`
+dispatches the latter to that context's open_stage_with_callback. The diagnostic
+copies the exact pinned fixture bytes to a new owned path using exclusive file
+creation. It does not open the default stage's URL again, pre-open an external USD
+stage or explicitly insert an open-variant stage into StageCache. Both default and
+owned fixture hashes must remain unchanged, and the context must hold a distinct
+stage rooted at the owned copy. These ownership/preservation checks passed.
+
+Open completed by update 1. The default context was clean/pending=false before the
+request; during the first update it emitted DIRTY_STATE_CHANGED with pending=true,
+before the update-completion counter advanced. Its root remained clean, session
+dirty, edit target root, stage ID and root/session hashes unchanged. The opened
+context had a distinct stage ID and pending=false throughout the 60 samples; no
+owned dirty-change receipt was observed. The default state remained pending=true
+after owned-stage close and context/timeline destruction. This is consistent with
+the earlier attach-associated transition despite the different ownership path.
+
+The public-close guard prevented invocation; owned Job containment returned 1,
+not natural shutdown. Console: zero errors, 109 warnings before containment. No
+known native crash signature was detected, which cannot establish crash freedom
+after containment. Both fixture files were preserved, owned PIDs recovered, Job
+empty/closed and matching lease naturally released. No prompt was selected or
+pending flag reset. The single-widget 40-check/two-cycle open-path candidate was
+**not run**, because the prerequisite pending/shutdown preservation failed.
+
+The new event receipts do not identify the writer/native callback. Neither public
+open nor attach is currently a validated product workaround in this Full-derived
+reduced host. Further useful diagnosis must isolate named-context stage operations
+in a minimal host or trace the Full-derived default dirty-event callbacks. It must
+retain the user's working stage and avoid SDK patches or save-policy overrides.
+
+Open-control Windows CPU regression: 184 cases, 182 passed, two privilege skips,
+no failures/errors (42.747s). Existing tests also verify byte-identical owned copy
+creation without overwrite and reject open qualification if its copy changes.
+
 Final Windows CPU: 183 cases, 181 passed, two privilege skips, no failures/errors
 (42.978s). The PowerShell entry parsed successfully. CPU tests enforce the shared
 60-update budget, absence of rendering/unsafe mutations, reduced-profile-only

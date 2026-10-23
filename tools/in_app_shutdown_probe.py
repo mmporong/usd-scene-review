@@ -138,6 +138,10 @@ class Probe(omni.ext.IExt):
             def stage_event(event):
                 number=int(event.type)
                 self.result.setdefault('raw_stage_events',[]).append(number)
+                if number==int(omni.usd.StageEventType.DIRTY_STATE_CHANGED):
+                    self.result.setdefault('default_dirty_events',[]).append({
+                        'updates_completed':self.result.get('attach_control',{}).get('updates_completed'),
+                        'state':context_receipt(ctx,ctx,initial_stage,fixture)})
                 for name in ('CLOSING','CLOSED'):
                     if number==int(getattr(omni.usd.StageEventType,name)):
                         self.result['stage_events'].append(name)

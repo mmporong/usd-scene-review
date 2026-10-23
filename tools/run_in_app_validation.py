@@ -50,7 +50,7 @@ def main():
                         help='Owned unchanged-fixture shutdown route; requires --baseline and containment')
     parser.add_argument('--shutdown-profile',choices=PROFILES,help='Pinned owned baseline only; requires official shared wrapper')
     parser.add_argument('--shutdown-candidate',choices=('viewport-reuse',),help='Explicit sequential candidate treatment, no-navigation profile only')
-    parser.add_argument('--attach-control',choices=('wait','attach'),help='Matched 60-update no-viewport control, reduced profile only')
+    parser.add_argument('--attach-control',choices=('wait','attach','open'),help='Matched 60-update no-viewport control, reduced profile only')
     parser.add_argument('--full-feature-validation',action='store_true',help='Explicit owned-host probe-only access behind the unchanged full-app product guard')
     parser.add_argument('--verify-full-guard',action='store_true',help='SDK topology probe also checks product Full Isaac refusal before native review ownership')
     parser.add_argument('--fail-fast-native',action='store_true',help='Contain the owned Job at the first known native graphics failure')
