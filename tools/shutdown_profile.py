@@ -49,6 +49,21 @@ def log_summary(log):
             'fabric_history_outstanding':bool(re.search(r'had [1-9][0-9]* outstanding SimStageWithHistory',log))}
 
 
+def reuse_check_names():
+    names=set()
+    for cycle in range(2):
+        names.add('owned viewport created '+str(cycle))
+        for step in range(3):
+            suffix=str(cycle)+'/'+str(step)
+            for prefix in ('attach ','one extra viewport only ','independent stage namespace ','source roots and cameras preserved '):
+                names.add(prefix+suffix)
+        for prefix in ('common camera pose/projection ','actual A/B/A rendered content ',
+                       'owned viewport actually removed ','owned stage closed ','owned context destroyed ',
+                       'owned timeline destroyed ','working stage selection and time preserved '):
+            names.add(prefix+str(cycle))
+    return names
+
+
 def assess(report, process, log, profile=None):
     """Do not turn exit0 or the historical warning counts into an allowed budget."""
     summary=log_summary(log)
@@ -79,6 +94,13 @@ def assess(report, process, log, profile=None):
             'review_disabled':any(c.get('name')=='review extension never enabled' and c.get('passed') is True for c in checks),
             'lease':process.get('shared_admission',{}).get('admitted') is True,
         }
+        if profile.get('candidate'):
+            candidate=report.get('candidate',{})
+            candidate_checks=candidate.get('checks',[])
+            required['candidate']=(profile['variant']=='no-navigation' and candidate.get('status')=='passed'
+                and len(candidate_checks)==40 and {c.get('name') for c in candidate_checks if c.get('passed') is True}==reuse_check_names()
+                and candidate.get('owned_resources_remaining') is False and candidate.get('working_stage_preserved') is True
+                and report.get('candidate_settings_preserved') is True)
         reasons=[name for name,ok in required.items() if not ok]
         conditions=conditions and not reasons
     clean=native_ok and conditions and not any(summary.get(k) for k in

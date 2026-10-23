@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$IsaacRoot,
     [Parameter(Mandatory=$true)][string]$Output,
     [ValidateSet('no-navigation','matched-full')][string]$DiagnosticProfile='no-navigation',
+    [ValidateSet('none','viewport-reuse')][string]$Candidate='none',
     [switch]$OwnedChild
 )
 $ErrorActionPreference='Stop'
@@ -11,11 +12,12 @@ $sharedRoot=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'CodexSignal
 $wrapper=Join-Path $sharedRoot 'Use-GpuLease.ps1'
 $outputPath=[System.IO.Path]::GetFullPath($Output)
 if(Test-Path -LiteralPath $outputPath){throw 'Output must be new; never overwrite evidence'}
+if($Candidate -ne 'none' -and $DiagnosticProfile -ne 'no-navigation'){throw 'Candidate only allowed on pinned reduced profile'}
 if(-not (Test-Path -LiteralPath $wrapper)){throw 'Existing canonical shared wrapper required; no install or bypass'}
 $owner='USDSceneReview-shutdown-'+$DiagnosticProfile+'-v1'
 if(-not $OwnedChild){
     $childShell=(Get-Process -Id $PID).Path
-    & $wrapper -Owner $owner -FilePath $childShell -ArgumentList @('-NoProfile','-NonInteractive','-File',$PSCommandPath,'-IsaacRoot',$IsaacRoot,'-Output',$outputPath,'-DiagnosticProfile',$DiagnosticProfile,'-OwnedChild') -WaitTimeoutSeconds 1 -PollIntervalMilliseconds 100 -GpuProbeTimeoutSeconds 1
+    & $wrapper -Owner $owner -FilePath $childShell -ArgumentList @('-NoProfile','-NonInteractive','-File',$PSCommandPath,'-IsaacRoot',$IsaacRoot,'-Output',$outputPath,'-DiagnosticProfile',$DiagnosticProfile,'-Candidate',$Candidate,'-OwnedChild') -WaitTimeoutSeconds 1 -PollIntervalMilliseconds 100 -GpuProbeTimeoutSeconds 1
     $wrapperExit=$LASTEXITCODE
     if(Test-Path -LiteralPath $outputPath){
         $lease=Get-Content -LiteralPath (Join-Path $sharedRoot 'gpu-lease.json') -Raw | ConvertFrom-Json
@@ -40,5 +42,7 @@ if($bundles.Count -ne 1){throw 'Expected one installed Python3.10 pip bundle; no
 $env:PYTHONPATH=Join-Path $bundles[0].FullName 'pip_prebundle'
 $env:PYTHONUTF8='1'
 $python=Join-Path $sdk 'kit/python/python.exe'
-& $python -B (Join-Path $PSScriptRoot 'with_openusd.py') --isaac-root $sdk --python $python --timeout 300 -- (Join-Path $PSScriptRoot 'run_in_app_validation.py') --isaac-root $sdk --output $outputPath --full-app --baseline --shutdown-control file-close --shutdown-profile $DiagnosticProfile --fail-fast-native --timeout 240
+$candidateArgs=@()
+if($Candidate -ne 'none'){$candidateArgs=@('--shutdown-candidate',$Candidate)}
+& $python -B (Join-Path $PSScriptRoot 'with_openusd.py') --isaac-root $sdk --python $python --timeout 300 -- (Join-Path $PSScriptRoot 'run_in_app_validation.py') --isaac-root $sdk --output $outputPath --full-app --baseline --shutdown-control file-close --shutdown-profile $DiagnosticProfile --fail-fast-native --timeout 240 @candidateArgs
 exit $LASTEXITCODE

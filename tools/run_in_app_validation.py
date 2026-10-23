@@ -49,6 +49,7 @@ def main():
     parser.add_argument('--shutdown-control',choices=('normal','file-close','uncancellable'),
                         help='Owned unchanged-fixture shutdown route; requires --baseline and containment')
     parser.add_argument('--shutdown-profile',choices=PROFILES,help='Pinned owned baseline only; requires official shared wrapper')
+    parser.add_argument('--shutdown-candidate',choices=('viewport-reuse',),help='Explicit sequential candidate treatment, no-navigation profile only')
     parser.add_argument('--full-feature-validation',action='store_true',help='Explicit owned-host probe-only access behind the unchanged full-app product guard')
     parser.add_argument('--verify-full-guard',action='store_true',help='SDK topology probe also checks product Full Isaac refusal before native review ownership')
     parser.add_argument('--fail-fast-native',action='store_true',help='Contain the owned Job at the first known native graphics failure')
@@ -67,9 +68,12 @@ def main():
         parser.error('--verify-full-guard requires --full-app without --baseline')
     if args.shutdown_profile and not (args.full_app and args.baseline and args.shutdown_control=='file-close' and args.fail_fast_native):
         parser.error('--shutdown-profile requires --full-app --baseline --shutdown-control file-close --fail-fast-native')
+    if args.shutdown_candidate and args.shutdown_profile!='no-navigation':
+        parser.error('--shutdown-candidate requires the pinned no-navigation profile')
     profile=fixture_data=None
     if args.shutdown_profile:
         profile,fixture_data=load_profile(args.shutdown_profile)
+        profile['candidate']=args.shutdown_candidate
         validate_sdk(sdk,profile)
     # Every native diagnostic now requires real canonical lease ownership, not
     # an idle snapshot or a completed/old JSON owner string.
@@ -102,6 +106,8 @@ name="probe"
     probe=Path(__file__).with_name('in_app_shutdown_probe.py') if args.shutdown_control else (
         Path(__file__).with_name('in_app_baseline_probe.py') if args.baseline else args.probe)
     shutil.copyfile(probe,runner/'probe.py')
+    if args.shutdown_candidate:
+        shutil.copyfile(Path(__file__).with_name('viewport_reuse_candidate.py'),runner/'viewport_reuse_candidate.py')
     app=root/'in-app.kit'
     app.write_text('''[package]
 title="USD Review In-App Validation"
@@ -178,6 +184,16 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                             job.terminate();process.wait(timeout=15)
                             result=dict(process_exit=process.returncode,passed=False,native_errors=failures,
                                         termination='owned Job contained after native failure; not a clean shutdown')
+                            receipt(result);return 1
+                    if profile:
+                        try:
+                            probe_report=json.loads((root/'result.json').read_text())
+                        except (FileNotFoundError,PermissionError,json.JSONDecodeError):
+                            probe_report={}
+                        if probe_report.get('status')=='failed':
+                            job.terminate();process.wait(timeout=15)
+                            result=dict(process_exit=process.returncode,passed=False,native_errors=[],
+                                termination='owned Job contained after failed probe; not a clean shutdown')
                             receipt(result);return 1
                     remaining=deadline-time.monotonic()
                     if remaining<=0:raise subprocess.TimeoutExpired(command,args.timeout)

@@ -83,6 +83,11 @@ and full review acceptance remain separate issues.
 
 ## Results do not hide incomplete cleanup
 
+An optional [sequential Widget treatment](reuse-profile-control.md) adds the local
+candidate's 40 checks before this same file-close route. It is restricted to the
+reduced profile and is not a product guard override. The new combined SDK treatment
+remains unrun while another owner holds the lease.
+
 `process-result.json` separates native exit, all probe checks, fixture preservation,
 stage event order, navigation/inventory agreement, actual admission, owned root
 reaping, Job emptiness/closure, log categories and strict clean-shutdown status.

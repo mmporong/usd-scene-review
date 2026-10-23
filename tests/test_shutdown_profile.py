@@ -113,6 +113,45 @@ class ShutdownProfileTests(unittest.TestCase):
             self.assertFalse(policy.assess(changed,process,log,profile)['passed'],key)
         self.assertFalse(policy.assess(report,process,log+'\n[1s] [ext: unrelated-1.0] startup',profile)['passed'])
 
+    def test_sequential_candidate_requires_all_forty_checks_and_real_cleanup(self):
+        profile,report,process,log=self.observed()
+        profile['candidate']='viewport-reuse'
+        self.assertFalse(policy.assess(report,process,log,profile)['passed'])
+        self.assertEqual(len(policy.reuse_check_names()),40)
+        report['candidate']={'status':'passed','owned_resources_remaining':False,'working_stage_preserved':True,
+            'checks':[{'name':name,'passed':True} for name in policy.reuse_check_names()]}
+        report['candidate_settings_preserved']=True
+        self.assertTrue(policy.assess(report,process,log,profile)['passed'])
+        for key,value in (('owned_resources_remaining',True),('working_stage_preserved',False)):
+            changed=copy.deepcopy(report);changed['candidate'][key]=value
+            self.assertFalse(policy.assess(changed,process,log,profile)['passed'])
+        changed=copy.deepcopy(report);changed['candidate']['checks'].pop()
+        self.assertFalse(policy.assess(changed,process,log,profile)['passed'])
+
+    def test_candidate_has_no_host_quit_or_official_window_menu_layers(self):
+        import ast
+        tree=ast.parse((ROOT/'tools/viewport_reuse_candidate.py').read_text())
+        attrs={n.func.attr for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)}
+        self.assertFalse(attrs & {'post_quit','post_uncancellable_quit','set_current_time','set_selected_prim_paths'})
+        names={n.func.id for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name)}
+        self.assertIn('ViewportWidget',names);self.assertNotIn('create_viewport_window',names)
+
+    def test_candidate_refuses_full_profile_before_admission_or_output(self):
+        import sys,contextlib,io
+        from types import SimpleNamespace
+        tool=ROOT/'tools/run_in_app_validation.py'
+        spec=importlib.util.spec_from_file_location('candidate_safety_launcher',tool)
+        module=importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules,{'package_extension':SimpleNamespace(package=None)}):spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            output=Path(tmp)/'not-created'
+            argv=[str(tool),'--isaac-root',tmp,'--output',str(output),'--full-app','--baseline',
+                '--shutdown-control','file-close','--shutdown-profile','matched-full',
+                '--shutdown-candidate','viewport-reuse','--fail-fast-native']
+            with patch.object(sys,'argv',argv),patch.object(module,'shared_admission') as admission,contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as error:module.main()
+            self.assertEqual(error.exception.code,2);admission.assert_not_called();self.assertFalse(output.exists())
+
     def test_native_failure_nonzero_and_unstructured_cleanup_are_not_success(self):
         profile,report,process,log=self.observed()
         for changes in ({'process_exit':1},{'native_errors':['native crash']},{'timed_out':True},
