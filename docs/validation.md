@@ -1,5 +1,43 @@
 # Validation status
 
+## Continuation, 2026-10-23 (CPU only)
+
+Other Factory/Isaac GPU work was confirmed running; no new GPU host was launched
+and no other process was changed. Full Isaac acceptance, current project-free
+shutdown control, fresh captures and normal-exit qualification remain **NOT RUN**.
+The previous three topology render/preservation results remain six functional
+passes; their process/native result is still failed.
+
+The previous log also contains released-Hydra-texture-interface warnings during
+viewport cleanup, before app shutdown. The latest native crash has not been shown
+to match the historical navigation-DLL baseline module/offset. See the corrected
+[evidence and prepared baseline control](in-app-sdk-diagnosis.md).
+
+Local changes shield pending render drains from cancellation, quiesce selection
+on disable during pending attachment, and add granular teardown probe phases.
+A project-free baseline mode is prepared, and a released texture interface now
+fails native validation even if the process would otherwise exit zero. The full
+app guard stays enabled. Final CPU regression: **152 tests, 150 passed, 2 skipped,
+zero failures/errors** (69.955 s). An earlier invocation had one package-test import
+error because the existing SDK toml archive was absent from that process path; the
+final run supplied that bundled path without installing anything.
+No SDK/driver/global settings, source scenes, public commits or pushes changed.
+The fresh local unqualified extension ZIP is reproducible (438,822 bytes, SHA-256
+`edbeb6222bfc88d746776687e6b62c81731f3a25ca6d9bf64473a206e8d85235`).
+Extracted Python compilation, comparison of the public synthetic pair, integrity
+checks and focus plans for 22 report paths passed. No native smoke is implied.
+
+## Local in-app candidate (2026-10-22)
+
+See [in-app review validation](in-app-review.md#actual-validation-2026-10-22) for the
+new same-process split mode. Settled green surfaces and 36 functional minimal-Kit
+checks passed with exit 0, but material/descriptor teardown errors remain. Full SDK
+topology controls now render after first-frame/serialized-binding correction; full
+host shutdown crashes and its product split route remains guarded pending acceptance.
+Final serial CPU regression: 148 tests, 146 passed and 2 skipped. Full integration,
+native teardown, exact layout restoration and desktop mouse QA remain unqualified. The prior worker
+results below do not qualify this new route.
+
 ## Stabilization of the approved visual baseline (2026-10-20)
 
 The user-approved green/lime helper, right-to-left demo, right evidence panel and

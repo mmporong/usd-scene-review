@@ -34,6 +34,13 @@ CLI report files are created with exclusive mode, including when a file or symli
 
 ## Experimental viewer boundary
 
+The local same-process A/B candidate is documented in [in-app review](in-app-review.md).
+It has actual settled green-face rendering/interaction evidence in minimal Kit,
+but full feature qualification and native shutdown remain blocked. Narrow full-app
+topology controls render with corrected first-frame/serialized binding; the product
+split route stays guarded until full acceptance. The worker
+contract below describes the retained legacy route.
+
 The host owns comparison UI only. Static A/B rendering uses the installed Windows SDK
 in an owned child process with its default USD context. Review lighting/navigation
 author only into an anonymous session. Worker receipts plus observed exit 0 are required

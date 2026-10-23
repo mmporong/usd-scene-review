@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdPhysics
+from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdLux, UsdPhysics
 from usd_scene_review import create_snapshot, load_snapshot, compare
 from usd_scene_review.ghost import extract, GhostOverlay, FACE_OPACITY, wire_points
 from usd_scene_review.evidence import evidence_rows
@@ -10,6 +10,24 @@ from usd_scene_review.preview import prepare_lighting
 
 
 class GhostEvidenceTests(unittest.TestCase):
+    def test_in_app_material_survives_geometry_selection_clear(self):
+        stage=Usd.Stage.CreateInMemory();UsdGeom.Cube.Define(stage,'/C')
+        snapshot=SimpleNamespace(stage=stage,manifest={'config':{'time':'default'}})
+        data=extract(snapshot,'/C');before=stage.GetRootLayer().ExportToString()
+        stage.SetEditTarget(stage.GetSessionLayer())
+        overlay=GhostOverlay(stage,Sdf.Path('/Review'),persistent_material=True)
+        overlay.show(data);material=stage.GetPrimAtPath('/Review/OldPoseMaterial')
+        overlay.clear();self.assertTrue(material)
+        self.assertFalse(stage.GetPrimAtPath('/Review/OldPoseGhost'))
+        changed=[]
+        def on_change(notice,sender):
+            changed.extend(str(p) for p in list(notice.GetResyncedPaths())+list(notice.GetChangedInfoOnlyPaths()))
+        registration=Tf.Notice.Register(Usd.Notice.ObjectsChanged,on_change,stage)
+        overlay.show(data);self.assertEqual(material,stage.GetPrimAtPath('/Review/OldPoseMaterial'))
+        registration.Revoke()
+        self.assertFalse(any(p.startswith('/Review/OldPoseMaterial') for p in changed))
+        self.assertEqual(stage.GetRootLayer().ExportToString(),before)
+
     def test_complete_world_transform_reset_and_no_physics(self):
         stage = Usd.Stage.CreateInMemory()
         parent = UsdGeom.Xform.Define(stage, '/Parent')

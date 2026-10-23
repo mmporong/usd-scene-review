@@ -106,20 +106,24 @@ def extract(snapshot, selected, *, max_prims=512, max_points=200000):
 
 
 class GhostOverlay:
-    def __init__(self,stage,root):
+    def __init__(self,stage,root,*,persistent_material=False):
         self.stage=stage;self.root=root.AppendChild('OldPoseGhost')
+        self.material_root=root.AppendChild('OldPoseMaterial') if persistent_material else self.root.AppendChild('Material')
         if stage.GetEditTarget().GetLayer()!=stage.GetSessionLayer() or not stage.GetSessionLayer().anonymous:
             raise ValueError('Ghost overlay requires the owned anonymous session')
     def clear(self):
         if self.stage.GetPrimAtPath(self.root):self.stage.RemovePrim(self.root)
-    def show(self,data,opacity=FACE_OPACITY):
-        self.clear()
-        if not math.isfinite(opacity) or not 0<opacity<=1:raise ValueError('Invalid ghost opacity')
-        if data['status']!='ready':return {'status':'unsupported','reason':data['reason'],'count':0}
-        wires=wire_points(data)
-        if wires is None:return {'status':'unsupported','reason':'Old A wire cues exceed 20,000 segments','count':0}
-        UsdGeom.Scope.Define(self.stage,self.root)
-        material=UsdShade.Material.Define(self.stage,self.root.AppendChild('Material'))
+    def _surface_material(self,opacity):
+        existing=UsdShade.Material.Get(self.stage,self.material_root)
+        if existing:
+            # Reauthoring an identical MDL source/inputs still emits USD notices
+            # and can restart asynchronous renderer compilation on every click.
+            attr=self.stage.GetPrimAtPath(self.material_root.AppendChild('Surface')).GetAttribute('inputs:opacity_constant')
+            if not math.isclose(attr.Get(),opacity,abs_tol=1e-8):attr.Set(opacity)
+            return existing
+        # In a live in-app renderer, selection must not destroy/recompile the MDL
+        # material at every click. Keep its owned session prim until stage close.
+        material=UsdShade.Material.Define(self.stage,self.material_root)
         shader=UsdShade.Shader.Define(self.stage,material.GetPath().AppendChild('Surface'))
         # Use the installed SDK's non-refractive cutout template. The qualified
         # RTX PreviewSurface route darkened overlapping ghosts in real captures.
@@ -135,6 +139,15 @@ class GhostOverlay:
         shader.CreateInput('enable_emission',Sdf.ValueTypeNames.Bool).Set(False)
         shader.CreateOutput('out',Sdf.ValueTypeNames.Token)
         material.CreateSurfaceOutput('mdl').ConnectToSource(shader.ConnectableAPI(),'out')
+        return material
+    def show(self,data,opacity=FACE_OPACITY):
+        self.clear()
+        if not math.isfinite(opacity) or not 0<opacity<=1:raise ValueError('Invalid ghost opacity')
+        if data['status']!='ready':return {'status':'unsupported','reason':data['reason'],'count':0}
+        wires=wire_points(data)
+        if wires is None:return {'status':'unsupported','reason':'Old A wire cues exceed 20,000 segments','count':0}
+        UsdGeom.Scope.Define(self.stage,self.root)
+        material=self._surface_material(opacity)
         for i,item in enumerate(data['geometry']):
             path=self.root.AppendChild('Geometry_'+str(i))
             geom=UsdGeom.Cube.Define(self.stage,path) if item['type']=='Cube' else UsdGeom.Mesh.Define(self.stage,path)

@@ -8,6 +8,11 @@ readme = "docs/README.md"
 [dependencies]
 "omni.ui" = {}
 "omni.usd.libs" = {}
+"omni.usd" = {}
+"omni.timeline" = {}
+"omni.kit.widget.viewport" = {}
+"omni.kit.viewport.utility" = {}
+"omni.kit.manipulator.camera" = {}
 
 [[python.module]]
 path = "../../src"

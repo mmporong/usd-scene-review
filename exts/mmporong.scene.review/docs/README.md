@@ -1,5 +1,11 @@
 # Kit adapter
 
+The local **Open A/B in Isaac** candidate renders two synchronized views in the same
+app. Read its [installation, use and failed/pending validation](../../../docs/in-app-review.md)
+before trying it. Green surfaces passed settled minimal-Kit capture, but full Isaac's
+split route is guarded after native failure and extended teardown remains unqualified.
+The `Legacy worker A/B` buttons retain the separate-process behavior described below.
+
 Enable `mmporong.scene.review` after adding this checkout's `exts` directory to the
 extension search paths. Alternatively generate a project-only ZIP with
 `python tools/package_extension.py <new-output.zip>`, extract it into a fresh

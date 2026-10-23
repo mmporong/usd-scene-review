@@ -16,6 +16,12 @@ def package(destination):
             files[path.relative_to(extension).as_posix()] = path.read_bytes()
     config = files['config/extension.toml'].decode('utf-8').replace('path = "../../src"', 'path = "python"')
     files['config/extension.toml'] = config.encode('utf-8')
+    # Keep candidate installation/qualification guidance usable after extraction.
+    files['docs/in-app-review.md'] = (repo/'docs/in-app-review.md').read_bytes()
+    files['docs/in-app-sdk-diagnosis.md'] = (repo/'docs/in-app-sdk-diagnosis.md').read_bytes()
+    files['examples/usd-scene-review-in-app.png'] = (repo/'examples/usd-scene-review-in-app.png').read_bytes()
+    files['docs/README.md'] = files['docs/README.md'].replace(
+        b'../../../docs/in-app-review.md', b'in-app-review.md')
     for path in (repo / 'src' / 'usd_scene_review').glob('*.py'):
         files['python/usd_scene_review/' + path.name] = path.read_bytes()
     with zipfile.ZipFile(destination, 'x', compression=zipfile.ZIP_DEFLATED) as archive:

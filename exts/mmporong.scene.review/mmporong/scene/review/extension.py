@@ -1,4 +1,4 @@
-"""Comparison UI. Native review resources belong only to a separate Kit process."""
+"""Comparison UI with same-process A/B review and a retained legacy worker route."""
 import asyncio
 from functools import partial
 import hashlib
@@ -39,6 +39,9 @@ def installed_sdk():
 class SceneReviewExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         self._viewer = get_viewer_client()
+        from .in_app import retained_review, full_host_blocked
+        self._in_app = retained_review()
+        self._in_app_blocked=full_host_blocked()
         self._task = None
         self._shutting_down = False
         self._report = None
@@ -56,7 +59,9 @@ class SceneReviewExtension(omni.ext.IExt):
         self._normalized = ui.SimpleBoolModel(True)
         self._review_event = {}
         self._export_path = ui.SimpleStringModel()
-        self._status = ui.SimpleStringModel('Choose two local snapshot manifests. Viewer starts only on View A/B.')
+        self._status = ui.SimpleStringModel('Compare two frozen snapshots, then Open A/B in Isaac (experimental).')
+        if self._in_app_blocked:
+            self._status.set_value('In-app A/B is unavailable in this full Isaac build after a native engine failure. Compare/export and Legacy worker A/B remain available.')
         self._details = ui.SimpleStringModel('No comparison loaded.')
         self._revision = ui.SimpleStringModel('No saved scene attached')
         self._selected_label = ui.SimpleStringModel('Select a changed prim to inspect before / after / delta')
@@ -82,8 +87,10 @@ class SceneReviewExtension(omni.ext.IExt):
                         ui.StringField(model=self._paths[side])
                 with ui.HStack(height=30, spacing=6):
                     ui.Button('Compare', clicked_fn=self._compare)
-                    ui.Button('View A', clicked_fn=partial(self._schedule_view, 'A'))
-                    ui.Button('View B', clicked_fn=partial(self._schedule_view, 'B'))
+                    ui.Button('Open A/B in Isaac',enabled=not self._in_app_blocked,
+                              clicked_fn=lambda:self._schedule(self._open_in_app()))
+                    ui.Button('Legacy worker A', clicked_fn=partial(self._schedule_view, 'A'))
+                    ui.Button('Legacy worker B', clicked_fn=partial(self._schedule_view, 'B'))
                     ui.Button('Close review', clicked_fn=self._close_review)
                     ui.Button('Save results', clicked_fn=lambda: self._schedule(self._save_results()))
                 with ui.HStack(height=26):
@@ -184,6 +191,8 @@ class SceneReviewExtension(omni.ext.IExt):
         self._schedule(self._compare_async())
 
     async def _compare_async(self):
+        if self._in_app and not await self._in_app.close():
+            raise RuntimeError('In-app cleanup unconfirmed; comparison remains pinned')
         if not await self._viewer.close():
             self._message('Viewer cleanup unconfirmed. Close review before comparing again.')
             return
@@ -229,7 +238,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._load_review()
         self._details.set_value(details(change))
         self._render_numeric(change)
-        if self._viewer.state == 'running':
+        if self._viewer.state == 'running' or (self._in_app and self._in_app.state=='open'):
             self._schedule(self._frame())
 
     def _render_pairs(self):
@@ -256,7 +265,7 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.HStack(height=26):
                     ui.Label(name, width=220)
                     ui.Label(value, word_wrap=True)
-        if self._viewer.state == 'running':
+        if self._viewer.state == 'running' or (self._in_app and self._in_app.state=='open'):
             self._schedule(self._frame())
 
     def _review_identity(self):
@@ -332,6 +341,11 @@ class SceneReviewExtension(omni.ext.IExt):
                                  style={'color': color, 'font_size': 17 if index else 18})
 
     async def _frame(self):
+        if self._in_app and self._in_app.state=='open':
+            self._in_app.select(self._selected,ghost=self._ghost.as_bool,
+                                pair_id=self._selected_pair['id'] if self._selected_pair else None)
+            self._revision.set_value('IN ISAAC: BEFORE A | AFTER B | synchronized owned cameras')
+            return
         reply = await self._viewer.frame(self._selected, focus=self._focus.as_bool,
                                          ghost=self._ghost.as_bool, review=self._review_event,
                                          pair_id=self._selected_pair['id'] if self._selected_pair else None)
@@ -348,7 +362,23 @@ class SceneReviewExtension(omni.ext.IExt):
     def _schedule_view(self, side):
         self._schedule(self._view(side))
 
+    async def _open_in_app(self):
+        if self._in_app_blocked:
+            raise RuntimeError('Full Isaac in-app A/B failed native validation; use Compare/export or the legacy worker')
+        if not self._report or self._report.get('status')=='unknown':
+            raise ValueError('Compare verified static snapshots before opening in-app A/B')
+        if not await self._viewer.close():raise RuntimeError('Legacy worker cleanup unconfirmed')
+        if self._in_app and self._in_app.state=='open':
+            await self._frame();return
+        if self._in_app and self._in_app.state!='closed':
+            raise RuntimeError('Existing in-app review is '+self._in_app.state+'; cleanup must be confirmed before reopening')
+        from .in_app import InAppReview
+        self._in_app=InAppReview(self._message,self._select,self._ghost)
+        await self._in_app.open(self._comparison_paths,self._report)
+        if self._in_app.state=='open':await self._frame()
+
     async def _view(self, side):
+        if self._in_app and not await self._in_app.close():raise RuntimeError('In-app cleanup unconfirmed')
         if not self._report:
             self._message('Compare manifests before opening A/B review.')
             return
@@ -373,6 +403,9 @@ class SceneReviewExtension(omni.ext.IExt):
         self._schedule(self._close())
 
     async def _close(self):
+        if self._in_app and self._in_app.state!='closed':
+            if not await self._in_app.close():raise RuntimeError('In-app cleanup unconfirmed')
+            self._message('In-app comparison closed; workspace restored.');return
         if self._viewer.state == 'closed' and self._viewer.process is None:
             self._message('Review viewer is already closed.')
         elif self._viewer.state == 'failed' and self._viewer.process is None:
@@ -388,6 +421,13 @@ class SceneReviewExtension(omni.ext.IExt):
         if get_active_extension() is self:
             _active = None
         self._shutting_down = True
+        in_app_pending=False
+        if self._in_app:
+            self._in_app.message=lambda message,log=carb.log_warn:log('USD Scene Review: '+message)
+            in_app_pending=not self._in_app.close_sync()
+            if in_app_pending:
+                carb.log_error('In-app cleanup pending; native attachment/render drain retains ownership')
+                if self._task:self._task.add_done_callback(lambda _,owned=self._in_app:owned.close_sync())
         self._query.remove_value_changed_fn(self._query_callback)
         self._inherited.remove_value_changed_fn(self._inherited_callback)
         self._focus.remove_value_changed_fn(self._focus_callback)
@@ -408,5 +448,5 @@ class SceneReviewExtension(omni.ext.IExt):
             carb.log_error('USD Scene Review shutdown failed: ' + self._viewer.error)
         # Native work is entirely in the child and now closed or contained. Do
         # not let stale host waiters mutate the durable manager after reload.
-        if self._task and not self._task.done():
+        if self._task and not self._task.done() and not in_app_pending:
             self._task.cancel()

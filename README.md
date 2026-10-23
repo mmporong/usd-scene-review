@@ -7,7 +7,14 @@ Read-only semantic review of two local OpenUSD scene revisions, with a separate 
 Before A, current B, and translucent green geometry at the previous position.
 The visual demo uses fixed lighting and camera.
 
-**Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native SDK fault.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
+**Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native failure whose current cause is not isolated.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
+
+The local **in-app A/B split review** candidate renders both revisions, synchronized
+cameras and green old-position faces in minimal Kit. Narrow Full Isaac topology
+controls now render after first-frame/serialized-binding correction, but full-app
+shutdown still crashes and the product split button remains guarded pending full
+acceptance. See [installation and exact limits](docs/in-app-review.md).
+The GIF above demonstrates the earlier worker route.
 
 ## Demonstration
 
