@@ -1,21 +1,22 @@
 # Local in-app A/B candidate: full Isaac blocked
 
-Follow-up branch status (2026-10-23): an actual Full Isaac attempt passed 27
+Follow-up status (2026-10-23): an actual Full Isaac attempt passed 27
 functional checks and captured green faces, then failed at the first review close
 with a released Hydra-texture-interface warning. A project-free control and the
 prior topology run have the same `tf.dll+0xec7b` shutdown access violation. The
 product is still unqualified. The former filename-only guard also failed to identify
-the actual Full host; its local correction adds the enabled Full-experience check.
-That correction is CPU-tested, not yet native-verified, and has not been merged to
-main. See the [current diagnosis](in-app-sdk-diagnosis.md).
+the actual Full host. The correction recognizes the suffix-free filename and enabled
+Full experience. Eight actual Full Isaac guard checks pass: button disabled, both
+APIs refuse before native ownership, and stage/selection/time preserved without
+bypass. Host shutdown still crashes. See the [current diagnosis](in-app-sdk-diagnosis.md).
 
 This implements two same-process viewports, synchronized owned cameras, a change
 list and shared comparator evidence. **It is not qualified in full Isaac Sim 4.5.**
 Earlier feature attempts failed with invalid Hydra indices. Subsequently authorized
 SDK controls render all three context/viewport topologies after first-frame and
 serialized-binding correction, but full-app shutdown still crashes. The prepared
-product correction is CPU-tested only, so Open A/B remains disabled before native
-ownership. See [the diagnosis and new results](in-app-sdk-diagnosis.md).
+guard now has actual-host refusal evidence; Open A/B remains disabled before native
+ownership because full feature lifecycle acceptance is incomplete. See [the diagnosis and new results](in-app-sdk-diagnosis.md).
 Compare/export and the legacy worker remain available.
 
 ![Actual synthetic minimal-Kit A/B capture with green previous position and shared evidence](../examples/usd-scene-review-in-app.png)

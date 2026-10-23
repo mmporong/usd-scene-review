@@ -1,8 +1,8 @@
 # Validation status
 
-## Full Isaac follow-up branch, 2026-10-23
+## Full Isaac follow-up and verified guard, 2026-10-23
 
-The current follow-up is local and is not automatically merged back into main.
+The guard correction is validated independently of the still-failing feature lifecycle.
 A project-free Full Isaac baseline crashed on normal unload. Its dump and the
 previous topology run both report `0xc0000005` at `tf.dll+0xec7b`, providing matched
 baseline evidence distinct from the historical navigation-plugin error.
@@ -15,12 +15,15 @@ snapshot integrity and source/frozen-copy equality pass after termination; worki
 stage/settings restoration, repeat open/close, stage switch, active disable and
 full feature host exit were not reached. This is not a clean integration pass.
 
-The actual run exposed a filename-only Full-app guard detection defect. The local
-correction also checks the enabled `isaacsim.exp.full` experience and covers suffix
-and derived-app cases. Main still contains the earlier condition until separately
-authorized publication; source-presence checks had not proved actual refusal.
-CPU regressions pass, but native confirmation and serial texture-teardown diagnosis
-are pending after another Factory GPU host started. No SDK/driver repair was made.
+The actual run exposed a filename-only Full-app guard detection defect: the SDK
+returns `isaacsim.exp.full` without `.kit`. The correction also checks the enabled
+Full experience and covers derived-app cases. Eight actual guard-only checks pass
+on code commit `7c2aa00`: disabled button, extension and direct API refusal before
+review/native ownership, preserved working stage/session/selection/time, and bypass
+setting false. No A/B review was opened. The host still crashed at `tf.dll+0xec7b`
+on normal SDK unload and its owned Job was contained; this is not a clean exit.
+Serial texture-teardown diagnosis and full feature lifecycle remain incomplete.
+No SDK/driver repair was made.
 
 Final CPU: **155 cases, 153 passed, two privilege skips, zero failures/errors**,
 73.140 seconds. See [precise evidence and remaining checks](in-app-sdk-diagnosis.md).

@@ -6,7 +6,8 @@ After the other Kit host exited, precheck found only a CPU dashboard plus deskto
 GPU clients, about 2.4 GiB occupied VRAM and no Kit/Isaac compute host. Two owned,
 fresh-profile tests were run sequentially on the merged code. No SDK/driver or other
 process was changed. A new Factory host subsequently occupied the GPU, so further
-native diagnosis and validation of the guard correction below are pending.
+native teardown diagnosis was deferred. The later guard-only check below completed
+after GPU work became idle again.
 
 **Project-free baseline:** the review extension was not exposed or enabled and no
 extra context/viewport was created. Its two setup checks passed. Normal SDK unload
@@ -37,20 +38,25 @@ guard; the 27-check attempt therefore did not enter its requested test-only over
 Earlier statements that the guard was present were source checks, not native proof
 that Full Isaac was correctly recognized. The follow-up branch now accepts filename
 with/without `.kit` and also checks the public extension manager for enabled
-`isaacsim.exp.full`. This covers renamed/derived Full experiences. CPU regressions
-pass, but the corrected actual-host refusal check is pending because Factory GPU
-work restarted. The merged main still has the earlier filename-only condition until
-a separately authorized publication/merge; this follow-up does not update main.
+`isaacsim.exp.full`. This covers renamed/derived Full experiences. The actual
+guard-only run confirms the SDK filename is `isaacsim.exp.full` (without `.kit`) and
+its Full experience is enabled. All eight checks pass on `7c2aa00`: disabled actual
+button, extension and direct API refusal before ownership, unchanged working
+stage/session/selection/time and bypass setting false. No experiment was opened
+or guard overridden. Normal SDK unload still crashed at `tf.dll+0xec7b`; only the
+owned Job was contained. Guard correctness does not establish clean app shutdown.
 
 The disposable feature probe has an explicit `--full-feature-validation` switch,
 scoped guard restoration in `finally` and CPU tests for refusal without opt-in and
 restoration after success/failure. It is not shipped in the extension. The SDK
 topology probe now supports `--verify-full-guard`, records actual app identity and
 brackets each viewport destruction plus an update barrier before the next. These
-new guard/serial-teardown native checks have **not run**; no native fix is claimed.
+SDK-topology guard/serial-teardown checks have **not run**. The separate guard-only
+probe is `tools/in_app_guard_probe.py`; it passed eight actual-host checks without
+opening any comparison. No native teardown fix is claimed.
 
 Private run directories are `full-baseline-20261023-01` and
-`full-feature-20261023-01`; compact dump evidence is
+`full-feature-20261023-01`, plus `full-guard-7c2aa00-01`; compact dump evidence is
 `shutdown-comparison-20261023.json`. Raw dumps/logs and host paths are not bundled.
 Final CPU regression: 155 cases, 153 passed, two privilege skips, no failures/errors
 (73.140 s). This includes the new experience-identity and probe-override regressions.

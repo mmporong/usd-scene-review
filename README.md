@@ -11,9 +11,11 @@ geometry marking the previous position under fixed lighting and camera.
 
 Follow-up validation: 27 actual Full Isaac feature checks passed before a native
 texture teardown warning stopped the run. Full-app use remains unsupported.
-The earlier filename-only safety check failed to recognize that Full host; this
-local follow-up corrects it using the enabled Full experience. Native confirmation
-of the corrected guard is pending. See [current evidence](docs/in-app-sdk-diagnosis.md).
+The earlier filename-only safety check failed to recognize that Full host. The
+corrected guard recognizes the suffix-free filename and enabled Full experience;
+eight actual Full Isaac checks confirm the button is disabled and both APIs refuse
+before review ownership. App shutdown still crashes. See
+[current evidence](docs/in-app-sdk-diagnosis.md).
 
 The experimental **in-app A/B split review** candidate renders both revisions, synchronized
 cameras and green old-position faces in minimal Kit. Narrow Full Isaac topology
