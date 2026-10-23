@@ -188,17 +188,37 @@ def _object(scan, path):
 
 
 def relation(objects, tolerance):
-    if any(v['status'] == 'unknown' for v in objects):
-        return {'status': 'unknown', 'reason': '; '.join(sorted(set(v['reason'] for v in objects if v['status'] == 'unknown')))}
-    if any(v['status'] == 'missing' for v in objects):
-        return {'status': 'missing', 'reason': 'geometry-absent'}
+    return _relation(objects,tolerance)
+
+
+def _relation(objects,tolerance,max_ulp=None):
+    if max_ulp is None:
+        if any(v['status'] == 'unknown' for v in objects):
+            return {'status': 'unknown', 'reason': '; '.join(sorted(set(v['reason'] for v in objects if v['status'] == 'unknown')))}
+        if any(v['status'] == 'missing' for v in objects):
+            return {'status': 'missing', 'reason': 'geometry-absent'}
+        max_ulp=max(math.ulp(v) for obj in objects for row in obj['bounds_m'] for v in row)
     a, b = [v['bounds_m'] for v in objects]
-    tol = max(tolerance, 8*max(math.ulp(v) for bounds in (a, b) for row in bounds for v in row))
+    tol = max(tolerance, 8*max_ulp)
     depths = [min(a[1][i], b[1][i])-max(a[0][i], b[0][i]) for i in range(3)]
     if not math.isfinite(tol) or not all(math.isfinite(v) for v in depths):
         return {'status': 'unknown', 'reason': 'numeric-range-exceeded'}
     state = 'disjoint' if any(d < -tol for d in depths) else 'overlap' if all(d > tol for d in depths) else 'boundary'
     return {'status': state, 'depths_m': depths, 'tolerance_m': tol}
+
+
+def _known_ulp(obj):
+    if obj['status']!='known':return None
+    values=[value for row in obj['bounds_m'] for value in row]
+    # _scan admits only finite known bounds. Fall back to the original path for
+    # malformed/nonfinite records rather than extending that assumption.
+    if not all(math.isfinite(value) for value in values):return None
+    return max(math.ulp(value) for value in values)
+
+
+def _prepare_path(path,scans):
+    objects=[_object(scan,path) for scan in scans]
+    return Sdf.Path(path),objects,[_known_ulp(obj) for obj in objects]
 
 
 def _classification(a, b):
@@ -222,21 +242,35 @@ def analyze_overlaps(a, b, metadata, config=None):
     checked = 0
     partial = any(s['coverage']['status'] == 'partial' for s in scans)
     coordinate = coordinates(metadata)
+    # Pure per-scan values, reused only within this invocation. No snapshot,
+    # hashing, resolver, geometry or pair-budget check is omitted or cached.
+    prepared={}
     stop = False
     for i, first in enumerate(paths):
         if stop:
             break
-        for second in paths[i+1:]:
+        first_data=None
+        for j in range(i+1,len(paths)):
+            second=paths[j]
             if checked >= cfg['max_pairs']:
                 partial = stop = True
                 excluded['budget-pairs'] += 1
                 break
             checked += 1
-            if Sdf.Path(second).HasPrefix(Sdf.Path(first)) or Sdf.Path(first).HasPrefix(Sdf.Path(second)):
+            if first_data is None:
+                first_data=prepared.get(i)
+                if first_data is None:first_data=prepared.setdefault(i,_prepare_path(first,scans))
+            second_data=prepared.get(j)
+            if second_data is None:second_data=prepared.setdefault(j,_prepare_path(second,scans))
+            if second_data[0].HasPrefix(first_data[0]) or first_data[0].HasPrefix(second_data[0]):
                 excluded['ancestor-descendant-geometry-pair'] += 1
                 continue
-            objects = [[_object(scan, p) for p in (first, second)] for scan in scans]
-            relations = [relation(v, cfg['tolerance_m']) for v in objects]
+            relations=[]
+            for side in range(2):
+                values=[first_data[1][side],second_data[1][side]]
+                first_ulp,second_ulp=first_data[2][side],second_data[2][side]
+                hint=max(first_ulp,second_ulp) if first_ulp is not None and second_ulp is not None else None
+                relations.append(_relation(values,cfg['tolerance_m'],hint))
             states = [r['status'] for r in relations]
             kind = _classification(*states) if coordinate['status'] == 'known' else 'coordinate-metadata-unknown'
             counts[kind] += 1
@@ -246,6 +280,9 @@ def analyze_overlaps(a, b, metadata, config=None):
                 partial = True
                 excluded['budget-records'] += 1
                 continue
+            # Preserve the original recorded object structure/alias behavior;
+            # missing/blocked dictionaries are materialized only for kept pairs.
+            objects = [[_object(scan, p) for p in (first, second)] for scan in scans]
             identity = json.dumps({'paths': [first, second], 'config': config}, sort_keys=True, separators=(',', ':'))
             pairs.append({'id': hashlib.sha256(identity.encode()).hexdigest(), 'paths': [first, second],
                           'classification': kind, 'before': relations[0], 'after': relations[1],

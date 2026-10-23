@@ -1,0 +1,1644 @@
+{
+  "version": 1,
+  "baseline_commit": "3ddf0ff46a10a5c133c319a992c7807a056cf40b",
+  "environment": {
+    "os": "Windows 11 Pro",
+    "cpu": "AMD Ryzen 7 5800X",
+    "ram_gib_approx": 80,
+    "python": "3.10.15",
+    "usd": "22.11",
+    "isaac_sdk": "4.5.0-rc.36"
+  },
+  "method": "CPU standalone; same saved synthetic bundles; one unprofiled Compare and 12 selections per size/version; separate cProfile overhead excluded from unprofiled timings",
+  "code_sha256": {
+    "before_overlap": "5c8cc734c4cca7eb3cd3010e8f76c1cc473a99d1d87bfb24c62fef6cfbe4275e",
+    "after_overlap": "c9bdc5c2568a6d70f9c9407a9776538d226c3a5886fe0f9d38fb8cceaf0a363e"
+  },
+  "limits": {
+    "native_ui_remeasured": false,
+    "real_mouse_tested": false,
+    "long_soak_tested": false,
+    "new_gpu_run": false,
+    "background_cpu_and_cache_controlled": false,
+    "full_live_ab_guard_retained": true,
+    "selection_verification_unchanged": true
+  },
+  "cases": [
+    {
+      "count": 32,
+      "identical_json_and_html": true,
+      "json_sha256": "6c86e17947f16bac10348310861c68ca5d29bb235f3a7be3586e2ed9c8ae5adf",
+      "html_sha256": "6d91d880622d0c577fefe3dea1690bdfdfae8ef56f38a50624396ac412c43be6",
+      "source_sha256": {
+        "A": "d2b02bd4c74257b93bfc7873bbb11cf4542f7bf2f9e67c4bd2b04824c7e4147d",
+        "B": "f57706fc3b3efd9d2737edf1caf107980f6e053b40609e95af320661b6ba7df8"
+      },
+      "before": {
+        "compare_unprofiled_ms": 427.10640002042055,
+        "selection_unprofiled_ms": [
+          95.59779998380691,
+          92.88690006360412,
+          92.95360010582954,
+          90.43669991660863,
+          92.69079996738583,
+          94.04640004504472,
+          92.07859996240586,
+          100.96049995627254,
+          97.32810000423342,
+          90.68430005572736,
+          90.15449997968972,
+          94.95769999921322
+        ],
+        "selection_median_ms": 92.92025008471683,
+        "selection_max_ms": 100.96049995627254,
+        "compare_profile": {
+          "wall_s": 0.46817969996482134,
+          "top_cumulative": [
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 28,
+              "function": "<lambda>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.0006609000000000001,
+              "cumulative_s": 0.4681575
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 179,
+              "function": "compare",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.0003838,
+              "cumulative_s": 0.46749660000000004
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 154,
+              "function": "verify",
+              "primitive_calls": 8,
+              "calls": 8,
+              "self_s": 0.00023420000000000003,
+              "cumulative_s": 0.332593
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 14,
+              "calls": 14,
+              "self_s": 0.0005527,
+              "cumulative_s": 0.32234450000000003
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 24,
+              "function": "require_same_file",
+              "primitive_calls": 144,
+              "calls": 144,
+              "self_s": 0.0049602000000000005,
+              "cumulative_s": 0.2902708
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 16,
+              "calls": 16,
+              "self_s": 0.0246246,
+              "cumulative_s": 0.24597590000000003
+            },
+            {
+              "file": "pathlib.py",
+              "line": 1092,
+              "function": "stat",
+              "primitive_calls": 6174,
+              "calls": 6174,
+              "self_s": 0.0025456000000000003,
+              "cumulative_s": 0.2270559
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 41,
+              "function": "check_layer",
+              "primitive_calls": 28,
+              "calls": 28,
+              "self_s": 0.0002074,
+              "cumulative_s": 0.2266089
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 6174,
+              "calls": 6174,
+              "self_s": 0.21257520000000002,
+              "cumulative_s": 0.22451030000000002
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 35,
+              "function": "check_absolute",
+              "primitive_calls": 44,
+              "calls": 44,
+              "self_s": 0.0028568,
+              "cumulative_s": 0.18029730000000002
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 237,
+              "function": "load_snapshot",
+              "primitive_calls": 2,
+              "calls": 2,
+              "self_s": 0.0017038,
+              "cumulative_s": 0.1692418
+            },
+            {
+              "file": "pathlib.py",
+              "line": 1217,
+              "function": "lstat",
+              "primitive_calls": 3864,
+              "calls": 3864,
+              "self_s": 0.0024508,
+              "cumulative_s": 0.13475420000000002
+            }
+          ],
+          "top_self": [
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 6174,
+              "calls": 6174,
+              "self_s": 0.21257520000000002,
+              "cumulative_s": 0.22451030000000002
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt._getfinalpathname>",
+              "primitive_calls": 748,
+              "calls": 748,
+              "self_s": 0.049087500000000006,
+              "cumulative_s": 0.049087500000000006
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 16,
+              "calls": 16,
+              "self_s": 0.0246246,
+              "cumulative_s": 0.24597590000000003
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 27,
+              "function": "<listcomp>",
+              "primitive_calls": 324,
+              "calls": 980,
+              "self_s": 0.0108692,
+              "cumulative_s": 0.0134049
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 86,
+              "function": "_observe",
+              "primitive_calls": 2,
+              "calls": 2,
+              "self_s": 0.010314700000000001,
+              "cumulative_s": 0.044961900000000006
+            },
+            {
+              "file": "pathlib.py",
+              "line": 56,
+              "function": "parse_parts",
+              "primitive_calls": 1354,
+              "calls": 1354,
+              "self_s": 0.008775900000000001,
+              "cumulative_s": 0.0168756
+            },
+            {
+              "file": "pathlib.py",
+              "line": 621,
+              "function": "__str__",
+              "primitive_calls": 7052,
+              "calls": 7052,
+              "self_s": 0.007054100000000001,
+              "cumulative_s": 0.0104078
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 216,
+              "function": "analyze_overlaps",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.006765500000000001,
+              "cumulative_s": 0.0454383
+            }
+          ]
+        },
+        "selection_profile": {
+          "wall_s": 1.274697900051251,
+          "top_cumulative": [
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 35,
+              "function": "<lambda>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 1.5e-06,
+              "cumulative_s": 1.2746883
+            },
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 35,
+              "function": "<listcomp>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 2.72e-05,
+              "cumulative_s": 1.2746868
+            },
+            {
+              "file": "src/usd_scene_review/overlay.py",
+              "line": 47,
+              "function": "bounds_plan",
+              "primitive_calls": 12,
+              "calls": 12,
+              "self_s": 0.0007220000000000001,
+              "cumulative_s": 1.2746596000000001
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 156,
+              "calls": 2316,
+              "self_s": 0.0015554000000000002,
+              "cumulative_s": 1.2572878
+            },
+            {
+              "file": "src/usd_scene_review/overlay.py",
+              "line": 50,
+              "function": "<genexpr>",
+              "primitive_calls": 36,
+              "calls": 36,
+              "self_s": 8.900000000000001e-05,
+              "cumulative_s": 1.2544875
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 154,
+              "function": "verify",
+              "primitive_calls": 24,
+              "calls": 24,
+              "self_s": 0.000818,
+              "cumulative_s": 1.2543985
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.0020317,
+              "cumulative_s": 1.2229474
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 24,
+              "function": "require_same_file",
+              "primitive_calls": 480,
+              "calls": 480,
+              "self_s": 0.017367800000000003,
+              "cumulative_s": 1.0174993
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 41,
+              "function": "check_layer",
+              "primitive_calls": 96,
+              "calls": 96,
+              "self_s": 0.0007396000000000001,
+              "cumulative_s": 0.8161025000000001
+            },
+            {
+              "file": "pathlib.py",
+              "line": 1092,
+              "function": "stat",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.008957000000000001,
+              "cumulative_s": 0.7940962
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.7431143,
+              "cumulative_s": 0.7851392
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.0742907,
+              "cumulative_s": 0.768123
+            }
+          ],
+          "top_self": [
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.7431143,
+              "cumulative_s": 0.7851392
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt._getfinalpathname>",
+              "primitive_calls": 2496,
+              "calls": 2496,
+              "self_s": 0.1703866,
+              "cumulative_s": 0.1703866
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.0742907,
+              "cumulative_s": 0.768123
+            },
+            {
+              "file": "pathlib.py",
+              "line": 621,
+              "function": "__str__",
+              "primitive_calls": 22536,
+              "calls": 22536,
+              "self_s": 0.023161300000000003,
+              "cumulative_s": 0.034379400000000004
+            },
+            {
+              "file": "pathlib.py",
+              "line": 56,
+              "function": "parse_parts",
+              "primitive_calls": 2760,
+              "calls": 2760,
+              "self_s": 0.017572900000000002,
+              "cumulative_s": 0.033962
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 24,
+              "function": "require_same_file",
+              "primitive_calls": 480,
+              "calls": 480,
+              "self_s": 0.017367800000000003,
+              "cumulative_s": 1.0174993
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 71,
+              "function": "inspect",
+              "primitive_calls": 6240,
+              "calls": 6240,
+              "self_s": 0.014667300000000001,
+              "cumulative_s": 0.020536500000000003
+            },
+            {
+              "file": "pathlib.py",
+              "line": 631,
+              "function": "__fspath__",
+              "primitive_calls": 21864,
+              "calls": 21864,
+              "self_s": 0.010184,
+              "cumulative_s": 0.044239
+            }
+          ]
+        },
+        "compare_call_counts": {
+          "_object": 1984,
+          "<built-in method math.ulp>": 11904,
+          "relation": 992,
+          "_relation": 0
+        }
+      },
+      "after": {
+        "compare_unprofiled_ms": 433.4851000458002,
+        "selection_unprofiled_ms": [
+          96.06300003360957,
+          96.10279998742044,
+          99.86910002771765,
+          104.40089995972812,
+          96.18790005333722,
+          95.26209998875856,
+          96.5283999685198,
+          92.55429997574538,
+          91.53909992892295,
+          92.58350008167326,
+          97.17639989685267,
+          92.0016000745818
+        ],
+        "selection_median_ms": 96.082900010515,
+        "selection_max_ms": 104.40089995972812,
+        "compare_profile": {
+          "wall_s": 0.47127439989708364,
+          "top_cumulative": [
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 28,
+              "function": "<lambda>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.0008655000000000001,
+              "cumulative_s": 0.4712605
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 179,
+              "function": "compare",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.0004003,
+              "cumulative_s": 0.470395
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 154,
+              "function": "verify",
+              "primitive_calls": 8,
+              "calls": 8,
+              "self_s": 0.00021280000000000002,
+              "cumulative_s": 0.3458773
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 14,
+              "calls": 14,
+              "self_s": 0.0005539000000000001,
+              "cumulative_s": 0.33560470000000003
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 24,
+              "function": "require_same_file",
+              "primitive_calls": 144,
+              "calls": 144,
+              "self_s": 0.0051595,
+              "cumulative_s": 0.3018795
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 16,
+              "calls": 16,
+              "self_s": 0.0245747,
+              "cumulative_s": 0.25033350000000004
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 41,
+              "function": "check_layer",
+              "primitive_calls": 28,
+              "calls": 28,
+              "self_s": 0.0002079,
+              "cumulative_s": 0.23702830000000003
+            },
+            {
+              "file": "pathlib.py",
+              "line": 1092,
+              "function": "stat",
+              "primitive_calls": 6174,
+              "calls": 6174,
+              "self_s": 0.0023396000000000003,
+              "cumulative_s": 0.2367717
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 6174,
+              "calls": 6174,
+              "self_s": 0.2219113,
+              "cumulative_s": 0.2344321
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 35,
+              "function": "check_absolute",
+              "primitive_calls": 44,
+              "calls": 44,
+              "self_s": 0.002817,
+              "cumulative_s": 0.18738200000000002
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 237,
+              "function": "load_snapshot",
+              "primitive_calls": 2,
+              "calls": 2,
+              "self_s": 0.0016396000000000002,
+              "cumulative_s": 0.1635831
+            },
+            {
+              "file": "pathlib.py",
+              "line": 1217,
+              "function": "lstat",
+              "primitive_calls": 3864,
+              "calls": 3864,
+              "self_s": 0.0023207,
+              "cumulative_s": 0.1409956
+            }
+          ],
+          "top_self": [
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 6174,
+              "calls": 6174,
+              "self_s": 0.2219113,
+              "cumulative_s": 0.2344321
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt._getfinalpathname>",
+              "primitive_calls": 748,
+              "calls": 748,
+              "self_s": 0.050610800000000004,
+              "cumulative_s": 0.050610800000000004
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 16,
+              "calls": 16,
+              "self_s": 0.0245747,
+              "cumulative_s": 0.25033350000000004
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 27,
+              "function": "<listcomp>",
+              "primitive_calls": 324,
+              "calls": 980,
+              "self_s": 0.0112089,
+              "cumulative_s": 0.013845600000000001
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 86,
+              "function": "_observe",
+              "primitive_calls": 2,
+              "calls": 2,
+              "self_s": 0.0105185,
+              "cumulative_s": 0.047030100000000005
+            },
+            {
+              "file": "pathlib.py",
+              "line": 56,
+              "function": "parse_parts",
+              "primitive_calls": 1354,
+              "calls": 1354,
+              "self_s": 0.0090716,
+              "cumulative_s": 0.0180102
+            },
+            {
+              "file": "pathlib.py",
+              "line": 621,
+              "function": "__str__",
+              "primitive_calls": 7052,
+              "calls": 7052,
+              "self_s": 0.0073584,
+              "cumulative_s": 0.0107294
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 153,
+              "function": "<genexpr>",
+              "primitive_calls": 1600,
+              "calls": 1600,
+              "self_s": 0.0052098000000000005,
+              "cumulative_s": 0.0052840000000000005
+            }
+          ]
+        },
+        "selection_profile": {
+          "wall_s": 1.2869782000780106,
+          "top_cumulative": [
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 35,
+              "function": "<lambda>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 1.6000000000000001e-06,
+              "cumulative_s": 1.2869687
+            },
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 35,
+              "function": "<listcomp>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 2.8700000000000003e-05,
+              "cumulative_s": 1.2869671
+            },
+            {
+              "file": "src/usd_scene_review/overlay.py",
+              "line": 47,
+              "function": "bounds_plan",
+              "primitive_calls": 12,
+              "calls": 12,
+              "self_s": 0.0007569,
+              "cumulative_s": 1.2869384000000001
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 156,
+              "calls": 2316,
+              "self_s": 0.0015846,
+              "cumulative_s": 1.2702317
+            },
+            {
+              "file": "src/usd_scene_review/overlay.py",
+              "line": 50,
+              "function": "<genexpr>",
+              "primitive_calls": 36,
+              "calls": 36,
+              "self_s": 9.59e-05,
+              "cumulative_s": 1.2677003
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 154,
+              "function": "verify",
+              "primitive_calls": 24,
+              "calls": 24,
+              "self_s": 0.0008788,
+              "cumulative_s": 1.2676044000000002
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.0023927,
+              "cumulative_s": 1.2355056
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 24,
+              "function": "require_same_file",
+              "primitive_calls": 480,
+              "calls": 480,
+              "self_s": 0.017865000000000002,
+              "cumulative_s": 1.0257194
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 41,
+              "function": "check_layer",
+              "primitive_calls": 96,
+              "calls": 96,
+              "self_s": 0.0007708000000000001,
+              "cumulative_s": 0.8220696000000001
+            },
+            {
+              "file": "pathlib.py",
+              "line": 1092,
+              "function": "stat",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.007959500000000001,
+              "cumulative_s": 0.8008575
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.7503668,
+              "cumulative_s": 0.7928980000000001
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.075923,
+              "cumulative_s": 0.7784271
+            }
+          ],
+          "top_self": [
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.7503668,
+              "cumulative_s": 0.7928980000000001
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt._getfinalpathname>",
+              "primitive_calls": 2496,
+              "calls": 2496,
+              "self_s": 0.1726328,
+              "cumulative_s": 0.1726328
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.075923,
+              "cumulative_s": 0.7784271
+            },
+            {
+              "file": "pathlib.py",
+              "line": 621,
+              "function": "__str__",
+              "primitive_calls": 22536,
+              "calls": 22536,
+              "self_s": 0.0233029,
+              "cumulative_s": 0.0342555
+            },
+            {
+              "file": "pathlib.py",
+              "line": 56,
+              "function": "parse_parts",
+              "primitive_calls": 2760,
+              "calls": 2760,
+              "self_s": 0.018149500000000002,
+              "cumulative_s": 0.0347624
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 24,
+              "function": "require_same_file",
+              "primitive_calls": 480,
+              "calls": 480,
+              "self_s": 0.017865000000000002,
+              "cumulative_s": 1.0257194
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 71,
+              "function": "inspect",
+              "primitive_calls": 6240,
+              "calls": 6240,
+              "self_s": 0.015057300000000001,
+              "cumulative_s": 0.0212466
+            },
+            {
+              "file": "pathlib.py",
+              "line": 631,
+              "function": "__fspath__",
+              "primitive_calls": 21864,
+              "calls": 21864,
+              "self_s": 0.0108083,
+              "cumulative_s": 0.044740100000000005
+            }
+          ]
+        },
+        "compare_call_counts": {
+          "_object": 64,
+          "<built-in method math.ulp>": 384,
+          "relation": 0,
+          "_relation": 992
+        }
+      }
+    },
+    {
+      "count": 2048,
+      "identical_json_and_html": true,
+      "json_sha256": "43267bc24ba80d56c30cd4fe1e11bfaa3a4a249d2b25b8a19adce276c3ae518d",
+      "html_sha256": "530f4507a74635608ce76dc92c2141ab4dab6381742a63e67cc80a18bee9dcb7",
+      "source_sha256": {
+        "A": "bf9767fa3367c3ff9c387602679895802e662306349b21aff75d54a1342b883b",
+        "B": "ac3b44dc8af6c5092e217826ce1e6c60f035e11f16459375321ac2d84fb77c88"
+      },
+      "before": {
+        "compare_unprofiled_ms": 34648.65029999055,
+        "selection_unprofiled_ms": [
+          474.8151000821963,
+          467.2666999977082,
+          466.503799892962,
+          454.75070003885776,
+          449.6609999332577,
+          460.0526000140235,
+          471.5733000775799,
+          448.34280002396554,
+          457.924299989827,
+          463.8765000272542,
+          442.90789996739477,
+          453.92760005779564
+        ],
+        "selection_median_ms": 458.98845000192523,
+        "selection_max_ms": 474.8151000821963,
+        "compare_profile": {
+          "wall_s": 53.40854900004342,
+          "top_cumulative": [
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 28,
+              "function": "<lambda>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.027415600000000002,
+              "cumulative_s": 53.4085229
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 179,
+              "function": "compare",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.0169844,
+              "cumulative_s": 53.381107300000004
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 216,
+              "function": "analyze_overlaps",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 14.9013114,
+              "cumulative_s": 47.938324200000004
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 239,
+              "function": "<listcomp>",
+              "primitive_calls": 1000000,
+              "calls": 1000000,
+              "self_s": 0.6600701,
+              "cumulative_s": 27.0278305
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 190,
+              "function": "relation",
+              "primitive_calls": 2000000,
+              "calls": 2000000,
+              "self_s": 5.9419667,
+              "cumulative_s": 26.3677604
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.max>",
+              "primitive_calls": 10012336,
+              "calls": 10012336,
+              "self_s": 3.5479450000000003,
+              "cumulative_s": 10.3555892
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 196,
+              "function": "<genexpr>",
+              "primitive_calls": 26000000,
+              "calls": 26000000,
+              "self_s": 5.3135289000000006,
+              "cumulative_s": 6.7687077
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 7059734,
+              "calls": 7059734,
+              "self_s": 2.2984237000000003,
+              "cumulative_s": 4.7152304
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 197,
+              "function": "<listcomp>",
+              "primitive_calls": 2000000,
+              "calls": 2000000,
+              "self_s": 2.2672446,
+              "cumulative_s": 3.9038113
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 86,
+              "function": "_observe",
+              "primitive_calls": 2,
+              "calls": 2,
+              "self_s": 0.691071,
+              "cumulative_s": 3.1289261
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.all>",
+              "primitive_calls": 2028939,
+              "calls": 2053558,
+              "self_s": 0.8942380000000001,
+              "cumulative_s": 3.0340297
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 238,
+              "function": "<listcomp>",
+              "primitive_calls": 1000000,
+              "calls": 1000000,
+              "self_s": 0.7055098000000001,
+              "cumulative_s": 2.5163499000000003
+            }
+          ],
+          "top_self": [
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 216,
+              "function": "analyze_overlaps",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 14.9013114,
+              "cumulative_s": 47.938324200000004
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 190,
+              "function": "relation",
+              "primitive_calls": 2000000,
+              "calls": 2000000,
+              "self_s": 5.9419667,
+              "cumulative_s": 26.3677604
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 196,
+              "function": "<genexpr>",
+              "primitive_calls": 26000000,
+              "calls": 26000000,
+              "self_s": 5.3135289000000006,
+              "cumulative_s": 6.7687077
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.max>",
+              "primitive_calls": 10012336,
+              "calls": 10012336,
+              "self_s": 3.5479450000000003,
+              "cumulative_s": 10.3555892
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 7059734,
+              "calls": 7059734,
+              "self_s": 2.2984237000000003,
+              "cumulative_s": 4.7152304
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 197,
+              "function": "<listcomp>",
+              "primitive_calls": 2000000,
+              "calls": 2000000,
+              "self_s": 2.2672446,
+              "cumulative_s": 3.9038113
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method math.ulp>",
+              "primitive_calls": 24000000,
+              "calls": 24000000,
+              "self_s": 1.4551788,
+              "cumulative_s": 1.4551788
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 198,
+              "function": "<genexpr>",
+              "primitive_calls": 8000000,
+              "calls": 8000000,
+              "self_s": 1.2308101,
+              "cumulative_s": 1.564977
+            }
+          ]
+        },
+        "selection_profile": {
+          "wall_s": 5.897404700051993,
+          "top_cumulative": [
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 35,
+              "function": "<lambda>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 1.6000000000000001e-06,
+              "cumulative_s": 5.8973941000000005
+            },
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 35,
+              "function": "<listcomp>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 2.86e-05,
+              "cumulative_s": 5.8973925000000005
+            },
+            {
+              "file": "src/usd_scene_review/overlay.py",
+              "line": 47,
+              "function": "bounds_plan",
+              "primitive_calls": 12,
+              "calls": 12,
+              "self_s": 0.0007681000000000001,
+              "cumulative_s": 5.8973639
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 156,
+              "calls": 99084,
+              "self_s": 0.046638500000000006,
+              "cumulative_s": 5.8809766
+            },
+            {
+              "file": "src/usd_scene_review/overlay.py",
+              "line": 50,
+              "function": "<genexpr>",
+              "primitive_calls": 36,
+              "calls": 36,
+              "self_s": 9.77e-05,
+              "cumulative_s": 5.878499000000001
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 154,
+              "function": "verify",
+              "primitive_calls": 24,
+              "calls": 24,
+              "self_s": 0.0009603000000000001,
+              "cumulative_s": 5.8784013
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.1082246,
+              "cumulative_s": 5.8405603
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 3.3580318,
+              "cumulative_s": 5.2518697
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 71,
+              "function": "inspect",
+              "primitive_calls": 393312,
+              "calls": 393312,
+              "self_s": 0.8620667000000001,
+              "cumulative_s": 1.1931488000000001
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 24,
+              "function": "require_same_file",
+              "primitive_calls": 480,
+              "calls": 480,
+              "self_s": 0.017680400000000002,
+              "cumulative_s": 1.0496130000000001
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 41,
+              "function": "check_layer",
+              "primitive_calls": 96,
+              "calls": 96,
+              "self_s": 0.0008945,
+              "cumulative_s": 0.846403
+            },
+            {
+              "file": "pathlib.py",
+              "line": 1092,
+              "function": "stat",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.009082,
+              "cumulative_s": 0.8185427000000001
+            }
+          ],
+          "top_self": [
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 3.3580318,
+              "cumulative_s": 5.2518697
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 71,
+              "function": "inspect",
+              "primitive_calls": 393312,
+              "calls": 393312,
+              "self_s": 0.8620667000000001,
+              "cumulative_s": 1.1931488000000001
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.7662544,
+              "cumulative_s": 0.8094607
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 76,
+              "function": "<genexpr>",
+              "primitive_calls": 393600,
+              "calls": 393600,
+              "self_s": 0.2108094,
+              "cumulative_s": 0.2108094
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt._getfinalpathname>",
+              "primitive_calls": 2496,
+              "calls": 2496,
+              "self_s": 0.1804049,
+              "cumulative_s": 0.1804049
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.1082246,
+              "cumulative_s": 5.8405603
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.isinstance>",
+              "primitive_calls": 813504,
+              "calls": 813504,
+              "self_s": 0.0776854,
+              "cumulative_s": 0.0776854
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 156,
+              "calls": 99084,
+              "self_s": 0.046638500000000006,
+              "cumulative_s": 5.8809766
+            }
+          ]
+        },
+        "compare_call_counts": {
+          "_object": 4000000,
+          "<built-in method math.ulp>": 24000000,
+          "relation": 2000000,
+          "_relation": 0
+        }
+      },
+      "after": {
+        "compare_unprofiled_ms": 16812.28229997214,
+        "selection_unprofiled_ms": [
+          478.2314000185579,
+          467.7849999861792,
+          459.7417999757454,
+          473.37629995308816,
+          470.16630007419735,
+          461.3209000090137,
+          465.55010008160025,
+          468.5115999309346,
+          471.0946000413969,
+          465.03159997519106,
+          457.8584999544546,
+          444.0343000460416
+        ],
+        "selection_median_ms": 466.6675500338897,
+        "selection_max_ms": 478.2314000185579,
+        "compare_profile": {
+          "wall_s": 26.530946500017308,
+          "top_cumulative": [
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 28,
+              "function": "<lambda>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.028547700000000002,
+              "cumulative_s": 26.5309181
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 179,
+              "function": "compare",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.0199204,
+              "cumulative_s": 26.5023704
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 236,
+              "function": "analyze_overlaps",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 4.388423100000001,
+              "cumulative_s": 20.914666800000003
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 194,
+              "function": "_relation",
+              "primitive_calls": 2000000,
+              "calls": 2000000,
+              "self_s": 3.9960097,
+              "cumulative_s": 12.432886600000002
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 203,
+              "function": "<listcomp>",
+              "primitive_calls": 2000000,
+              "calls": 2000000,
+              "self_s": 2.6862731,
+              "cumulative_s": 4.3080547000000005
+            },
+            {
+              "file": "src/usd_scene_review/compare.py",
+              "line": 86,
+              "function": "_observe",
+              "primitive_calls": 2,
+              "calls": 2,
+              "self_s": 0.7001502000000001,
+              "cumulative_s": 3.2420023000000002
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.all>",
+              "primitive_calls": 2033035,
+              "calls": 2057654,
+              "self_s": 0.8247524,
+              "cumulative_s": 2.8872455
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 16,
+              "calls": 16,
+              "self_s": 1.1792754,
+              "cumulative_s": 1.8327748000000001
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 154,
+              "function": "verify",
+              "primitive_calls": 8,
+              "calls": 8,
+              "self_s": 0.0003131,
+              "cumulative_s": 1.7688670000000002
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 14,
+              "calls": 14,
+              "self_s": 0.040716,
+              "cumulative_s": 1.7552869000000002
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 3059734,
+              "calls": 3059734,
+              "self_s": 0.7294360000000001,
+              "cumulative_s": 1.6999119
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 239,
+              "function": "<listcomp>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 0.0010760000000000001,
+              "cumulative_s": 1.6729874
+            }
+          ],
+          "top_self": [
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 236,
+              "function": "analyze_overlaps",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 4.388423100000001,
+              "cumulative_s": 20.914666800000003
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 194,
+              "function": "_relation",
+              "primitive_calls": 2000000,
+              "calls": 2000000,
+              "self_s": 3.9960097,
+              "cumulative_s": 12.432886600000002
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 203,
+              "function": "<listcomp>",
+              "primitive_calls": 2000000,
+              "calls": 2000000,
+              "self_s": 2.6862731,
+              "cumulative_s": 4.3080547000000005
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.max>",
+              "primitive_calls": 10016432,
+              "calls": 10016432,
+              "self_s": 1.4005993,
+              "cumulative_s": 1.4462578000000001
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 16,
+              "calls": 16,
+              "self_s": 1.1792754,
+              "cumulative_s": 1.8327748000000001
+            },
+            {
+              "file": "src/usd_scene_review/overlap_analysis.py",
+              "line": 204,
+              "function": "<genexpr>",
+              "primitive_calls": 8000000,
+              "calls": 8000000,
+              "self_s": 1.1540453000000002,
+              "cumulative_s": 1.4683698
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.min>",
+              "primitive_calls": 6012384,
+              "calls": 6012384,
+              "self_s": 0.8804412,
+              "cumulative_s": 0.9210386
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.all>",
+              "primitive_calls": 2033035,
+              "calls": 2057654,
+              "self_s": 0.8247524,
+              "cumulative_s": 2.8872455
+            }
+          ]
+        },
+        "selection_profile": {
+          "wall_s": 6.320095900096931,
+          "top_cumulative": [
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 35,
+              "function": "<lambda>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 1.1e-06,
+              "cumulative_s": 6.3200871
+            },
+            {
+              "file": "profile_bounds_cpu.py",
+              "line": 35,
+              "function": "<listcomp>",
+              "primitive_calls": 1,
+              "calls": 1,
+              "self_s": 2.75e-05,
+              "cumulative_s": 6.320086000000001
+            },
+            {
+              "file": "src/usd_scene_review/overlay.py",
+              "line": 47,
+              "function": "bounds_plan",
+              "primitive_calls": 12,
+              "calls": 12,
+              "self_s": 0.0008317000000000001,
+              "cumulative_s": 6.3200585
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 156,
+              "calls": 99084,
+              "self_s": 0.0493089,
+              "cumulative_s": 6.3018688
+            },
+            {
+              "file": "src/usd_scene_review/overlay.py",
+              "line": 50,
+              "function": "<genexpr>",
+              "primitive_calls": 36,
+              "calls": 36,
+              "self_s": 9.94e-05,
+              "cumulative_s": 6.2990852
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 154,
+              "function": "verify",
+              "primitive_calls": 24,
+              "calls": 24,
+              "self_s": 0.0011456,
+              "cumulative_s": 6.2989858000000005
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.10730310000000001,
+              "cumulative_s": 6.259218700000001
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 3.6069654000000004,
+              "cumulative_s": 5.6391914000000005
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 71,
+              "function": "inspect",
+              "primitive_calls": 393312,
+              "calls": 393312,
+              "self_s": 0.9154229,
+              "cumulative_s": 1.2770461000000002
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 24,
+              "function": "require_same_file",
+              "primitive_calls": 480,
+              "calls": 480,
+              "self_s": 0.019232000000000003,
+              "cumulative_s": 1.1303009000000002
+            },
+            {
+              "file": "src/usd_scene_review/local_contract.py",
+              "line": 41,
+              "function": "check_layer",
+              "primitive_calls": 96,
+              "calls": 96,
+              "self_s": 0.0008684000000000001,
+              "cumulative_s": 0.9166316000000001
+            },
+            {
+              "file": "pathlib.py",
+              "line": 1092,
+              "function": "stat",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.0089551,
+              "cumulative_s": 0.8869564000000001
+            }
+          ],
+          "top_self": [
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 40,
+              "function": "_discover",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 3.6069654000000004,
+              "cumulative_s": 5.6391914000000005
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 71,
+              "function": "inspect",
+              "primitive_calls": 393312,
+              "calls": 393312,
+              "self_s": 0.9154229,
+              "cumulative_s": 1.2770461000000002
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt.stat>",
+              "primitive_calls": 20520,
+              "calls": 20520,
+              "self_s": 0.8309606,
+              "cumulative_s": 0.8780013000000001
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 76,
+              "function": "<genexpr>",
+              "primitive_calls": 393600,
+              "calls": 393600,
+              "self_s": 0.23303690000000002,
+              "cumulative_s": 0.23303690000000002
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method nt._getfinalpathname>",
+              "primitive_calls": 2496,
+              "calls": 2496,
+              "self_s": 0.19062910000000002,
+              "cumulative_s": 0.19062910000000002
+            },
+            {
+              "file": "src/usd_scene_review/snapshot.py",
+              "line": 171,
+              "function": "resolution_errors",
+              "primitive_calls": 48,
+              "calls": 48,
+              "self_s": 0.10730310000000001,
+              "cumulative_s": 6.259218700000001
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.isinstance>",
+              "primitive_calls": 813504,
+              "calls": 813504,
+              "self_s": 0.0835627,
+              "cumulative_s": 0.0835627
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.any>",
+              "primitive_calls": 156,
+              "calls": 99084,
+              "self_s": 0.0493089,
+              "cumulative_s": 6.3018688
+            }
+          ]
+        },
+        "compare_call_counts": {
+          "_object": 4096,
+          "<built-in method math.ulp>": 24576,
+          "relation": 0,
+          "_relation": 2000000
+        }
+      }
+    }
+  ]
+}

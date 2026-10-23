@@ -42,6 +42,11 @@ class PackageTests(unittest.TestCase):
                 scale=json.loads(archive.read('diagnostics/bounds-scale-qa-v1.json'))
                 self.assertFalse(scale['limits']['real_mouse_tested'])
                 self.assertIn('docs/bounds-deployment-qa.md',archive.namelist())
+                self.assertIn('docs/cpu-bottleneck-analysis.md',archive.namelist())
+                cpu=json.loads(archive.read('diagnostics/cpu-bottleneck-v1.json'))
+                self.assertEqual([case['count'] for case in cpu['cases']],[32,2048])
+                self.assertTrue(all(case['identical_json_and_html'] for case in cpu['cases']))
+                self.assertFalse(cpu['limits']['native_ui_remeasured'])
                 self.assertFalse(any(n.endswith(('.so', '.dll', '.pyc')) for n in archive.namelist()))
             with self.assertRaises(ValueError):
                 module.package(a)
