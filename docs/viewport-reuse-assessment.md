@@ -114,6 +114,12 @@ may be closed or modified to make this control pass.
 
 ## Minimum user-visible change if this candidate becomes viable
 
+A later [guarded profile treatment](reuse-profile-control.md) transfers the public
+Widget candidate into diagnostic tooling before the pinned reduced baseline's
+file-close path. The standalone local host/quit implementation is not shipped;
+this callable test module is not a product adapter. The combined SDK treatment
+is not run yet because its official lease attempt met another active owner.
+
 A captured pair is refreshed sequentially on selection/common camera changes.
 It would preserve separate revision composition and original light changes, but
 users would see a refreshed image pair rather than two concurrently live draggable

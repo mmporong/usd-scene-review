@@ -107,6 +107,18 @@ class Probe(omni.ext.IExt):
                 self.write()
             self.subscriptions.append(ctx.get_stage_event_stream().create_subscription_to_pop(stage_event,name='owned shutdown stage receipt'))
             self.subscriptions.append(app.get_shutdown_event_stream().create_subscription_to_pop(quit_event,name='owned shutdown route receipt',order=-1))
+            if profile_name and profile.get('candidate'):
+                self.check('candidate only on reduced profile',profile['variant']=='no-navigation' and profile['candidate']=='viewport-reuse')
+                settings_keys=('/rtx/useViewLightingMode','/rtx/post/tonemap/op','/app/asyncRendering',
+                    '/renderer/multiGpu/autoEnable','/app/fastShutdown','/app/settings/persistent')
+                before_settings={key:settings.get(key) for key in settings_keys}
+                self.result['candidate']={'status':'running','kind':'sequential capture, not live split'}
+                self.write()
+                from viewport_reuse_candidate import evaluate
+                candidate=await evaluate(self,self.root)
+                self.result['candidate']=candidate
+                self.result['candidate_settings_preserved']=before_settings=={key:settings.get(key) for key in settings_keys}
+                self.check('candidate rendering settings preserved',self.result['candidate_settings_preserved'])
             self.result['status']='passed'
             self.write()
             if route=='uncancellable':

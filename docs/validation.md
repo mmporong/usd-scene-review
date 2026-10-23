@@ -1,5 +1,13 @@
 # Validation status
 
+## Prepared sequential candidate treatment, 2026-10-23
+
+The [40-check/two-cycle public Widget treatment](reuse-profile-control.md) can now
+run before the same pinned reduced baseline file.close. Full-profile invocation is
+refused. Windows CPU 175 cases: 173 passed, two skips; new combined SDK treatment
+NOT RUN because normal shared acquisition returned 73 under RL Triage v2. No child
+was created. This is diagnostic preparation, not product A/B or clean-exit acceptance.
+
 ## Prepared shutdown-route controls, 2026-10-23
 
 The project-free launcher now prepares three contained, unchanged-file controls:
