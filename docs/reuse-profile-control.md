@@ -90,8 +90,8 @@ unqualified. Raw local logs/captures are not published by this diagnostic change
 
 ## Instrumented contrast
 
-The shutdown probe now enumerates `omni.ui.Workspace.get_windows()` and queries
-labels under each exact title. Installed UI query matches window titles exactly;
+The shutdown probe enumerates `omni.ui.Workspace.get_windows()` titles and queries
+labels only for an existing visible file save prompt's exact title. Installed UI query matches window titles exactly;
 the old `*//...` query never searched all windows. Prompt actions have been removed.
 The observer reads default context/stage identity, native pending/can-close state,
 root/session dirty flags, file utility/task state and visible save-prompt labels.
@@ -118,3 +118,56 @@ have **not** received another native run. No unchanged treatment was repeated.
 The next distinct question is whether imports, UI queries or other startup work
 change native pending state before the candidate. No pending reset, automatic
 dialog action or save-policy override is an acceptable diagnostic correction.
+
+## Pending transition localization and observer correction
+
+Further native controls separated two effects. The pinned file contains only a
+Cube and no authored camera. Installed viewport utility creates its default cameras
+in a session edit scope, then restores the previous edit target. In both new paths,
+fixture open returned with a clean root, dirty session, four default cameras,
+root edit target and native pending false. That state remained unchanged through
+20 updates and observer imports. Session dirty alone therefore does not establish
+the pending state that blocked close.
+
+The broad exact-title label observer changed pending false to true in a candidate-free
+baseline, between pre-query and post-query samples, with unchanged root/session
+hashes, edit target and camera paths. Installed UI query accesses window frames and
+descendants; the exact callback responsible is not established. General editor UI
+must not be traversed for prompt detection. An attempted modal-flag filter failed
+because Workspace returns WindowHandle objects without a flags attribute; it was
+contained and corrected rather than counted as a lifecycle result.
+
+The final observer reads title/visible metadata only for general windows. It queries
+labels only when the installed file utility already owns a visible unsaved-stage
+Prompt, using that prompt's actual title. This SDK-specific prompt reference is
+read-only; it does not construct, show, hide or select the prompt. CPU regression
+uses handle-shaped objects without flags and proves that absent prompts never
+trigger editor-tree queries.
+
+| Distinct reduced-profile control | Observed outcome | Console errors / warnings |
+| --- | --- | --- |
+| Broad exact-title observer, no candidate | Pending false to true during UI query; close blocked, owned Job contained | 0 / 116 |
+| Modal filter attempt | WindowHandle flags AttributeError before close; owned Job contained | 0 / 109 |
+| Existing-prompt-only observer, no candidate | Pending stays false; public close callback, CLOSING/CLOSED, native exit 0, launcher exit 2 | 28 / 798 |
+| Same observer with candidate | 40 checks/two cycles pass; pending false before candidate and true after; close blocked, owned Job contained | 0 / 115 |
+| Same candidate with phase receipts | 40 checks/two cycles pass; first observed pending transition spans first attach_stage_async(A); close blocked, owned Job contained | 0 / 115 |
+
+The phase receipts remain false through context/timeline creation, revision fixture
+authoring and cache registration. They become true after the first attach completes,
+before the added viewport is created. Default context/stage identity, root/session
+hashes, root edit target and default camera list remain unchanged. This localizes the
+interval, not a unique native function or callback cause; asynchronous attach also
+allows other host work. No save prompt was observed or selected in these runs.
+All controls retained fixture hashes, reaped owned PIDs, emptied/closed their Jobs
+and naturally released their matching shared leases. Containment is not native exit.
+
+The corrected baseline has a genuine native exit 0 without forced cleanup, but SDK
+shutdown errors, graphics leaks and Fabric-history warnings still fail strict clean
+qualification. It does not qualify original Full or the candidate's shutdown.
+The candidate preservation contract must include native pending state, not only USD
+text. No safe correction for the attach interval is established. The next distinct
+choice is an attach-only, no-widget/no-capture control with the same phase receipts,
+or investigation of native/context event callbacks. Do not clear pending, dismiss
+save prompts, patch SDK or reinterpret the blocked candidate as successful shutdown.
+Final Windows CPU regression: 180 cases, 178 passed, two privilege skips, no
+failures/errors (44.028s). These CPU checks do not qualify native Full support.

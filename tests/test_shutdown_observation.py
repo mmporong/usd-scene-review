@@ -21,17 +21,23 @@ class ShutdownObservationTests(unittest.TestCase):
         def query(scope):
             return [SimpleNamespace(widget=SimpleNamespace(text=observation.SAVE_PROMPT))] if scope.startswith('Warning glyph//') else []
         find=Mock(side_effect=query)
-        receipts=observation.window_receipts(windows,find)
+        receipts=observation.window_receipts(windows,find,'Warning glyph')
         self.assertEqual([call.args[0] for call in find.call_args_list],
-                         ['Stage//Frame/**/Label[*]','Warning glyph//Frame/**/Label[*]'])
+                         ['Warning glyph//Frame/**/Label[*]'])
         self.assertEqual([row['save_prompt'] for row in receipts],[False,True,False,False])
+        find.reset_mock()
+        observation.window_receipts(windows,find)
+        find.assert_not_called()
 
     def test_native_pending_state_is_separate_from_unchanged_dirty_layers(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture=Path(tmp)/'fixture.usda'
             root=SimpleNamespace(realPath=str(fixture),dirty=False)
+            root.ExportToString=lambda:'root'
             stage=Mock();stage.GetRootLayer.return_value=root
-            stage.GetSessionLayer.return_value=SimpleNamespace(dirty=True)
+            stage.GetSessionLayer.return_value=SimpleNamespace(dirty=True,ExportToString=lambda:'session')
+            stage.GetEditTarget.return_value.GetLayer.return_value=root
+            stage.Traverse.return_value=[]
             ctx=Mock();ctx.get_stage.return_value=stage;ctx.get_name.return_value=''
             ctx.get_stage_id.return_value=42;ctx.can_close_stage.return_value=True
             ctx.has_pending_edit.return_value=False
@@ -44,6 +50,18 @@ class ShutdownObservationTests(unittest.TestCase):
             self.assertTrue(after['same_stage']);self.assertTrue(after['fixture_active'])
             self.assertFalse(after['root_dirty']);self.assertTrue(after['session_dirty'])
             self.assertFalse(after['file_utility_present'])
+            self.assertEqual(after['edit_target'],'root')
+            self.assertNotEqual(after['root_text_sha256'],after['session_text_sha256'])
+            self.assertEqual(after['camera_prims'],[])
+
+    def test_native_observer_records_transition_inside_read_sequence(self):
+        ctx=Mock();ctx.get_stage.return_value=None;ctx.get_stage_id.return_value=0
+        ctx.get_name.return_value='';ctx.has_pending_edit.side_effect=[False,False,True]
+        ctx.can_close_stage.return_value=False
+        receipt=observation.context_receipt(ctx,ctx,None,Path('unused'))
+        self.assertFalse(receipt['pending_at_entry'])
+        self.assertFalse(receipt['pending_edit'])
+        self.assertTrue(receipt['pending_after_native_observation'])
 
     def test_file_task_error_is_receipted_without_running_or_cancelling_task(self):
         ctx=Mock();ctx.get_stage.return_value=None;ctx.get_stage_id.return_value=0

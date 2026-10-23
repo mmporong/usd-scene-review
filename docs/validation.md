@@ -1,5 +1,25 @@
 # Validation status
 
+## Pending transition separated from observer effects, 2026-10-23
+
+[Combined investigation and distinct controls](reuse-profile-control.md#pending-transition-localization-and-observer-correction)
+show that general UI label queries can change native pending state without changing
+USD layer hashes. The observer now queries only an existing visible file prompt.
+With that correction, the reduced baseline preserves pending=false and reaches
+public close callback, CLOSING/CLOSED and native exit0 without forced cleanup.
+SDK errors28/warnings798 still fail strict clean qualification (launcher exit2).
+
+The corrected candidate passes 40 checks/two cycles but changes pending false to
+true. Phase receipts localize its first transition to the first attach_stage_async(A)
+interval, before its viewport is created. Root/session hashes, context/stage,
+edit target and cameras are unchanged. Close remains blocked and the owned Job
+is contained (exit1, errors0/warnings115); this is not normal shutdown. A failed
+WindowHandle flags experiment is recorded separately, not hidden as acceptance.
+Fixture/PID/Job/lease preservation was verified. No dialog was selected or pending
+flag cleared. Exact callback cause and safe attach correction remain unresolved;
+Full guard remains enabled. All changes are diagnostic tools/tests/docs.
+Final Windows CPU: 180 cases, 178 passed, two privilege skips, no failures/errors.
+
 ## Close observer correction and instrumented contrast, 2026-10-23
 
 The diagnostic now uses actual window titles, observes labels only and never

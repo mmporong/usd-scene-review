@@ -50,6 +50,16 @@ class Probe(omni.ext.IExt):
         ctx=omni.usd.get_context()
         fixture=self.root/'shutdown-fixture.usda'
         try:
+            from shutdown_observation import window_receipts,close_receipt,context_receipt
+            initial_stage=ctx.get_stage()
+            def native_observe(phase):
+                receipt=context_receipt(omni.usd.get_context(),ctx,initial_stage,fixture)
+                receipt['phase']=phase
+                self.result.setdefault('close_observations',[]).append(receipt)
+                self.write()
+                return receipt
+            self.native_observe=native_observe
+            native_observe('startup-before-ready')
             self.check('supported route',route in ('normal','file-close','uncancellable'))
             self.check('owned portable config',Path(settings.get('/app/userConfigPath')).resolve()==self.root/'user.config.json')
             self.check('review extension never enabled',not app.get_extension_manager().is_extension_enabled('mmporong.scene.review'))
@@ -59,6 +69,7 @@ class Probe(omni.ext.IExt):
                     await app.next_update_async()
                 await next_viewport_frame_async(get_active_viewport())
             await asyncio.wait_for(ready(),120)
+            native_observe('startup-after-ready')
             profile_name=settings.get('/exts/in.app.probe/profile')
             if profile_name:
                 profile=json.loads((self.root/'shutdown-profile.json').read_text())
@@ -85,28 +96,38 @@ class Probe(omni.ext.IExt):
                 self.check('startup inventory matches pinned profile',actual==sorted(set(expected_ids)))
             self.check('only fresh anonymous startup replaced',ctx.get_stage().GetRootLayer().anonymous)
             original_hash=hashlib.sha256(fixture.read_bytes()).hexdigest()
+            native_observe('before-fixture-open')
             opened=await ctx.open_stage_async(str(fixture))
+            initial_stage=ctx.get_stage()
+            native_observe('fixture-open-returned')
             self.check('owned fixture opened',bool(opened[0]))
-            for _ in range(20):
+            for update in range(20):
                 await app.next_update_async()
+                if update in (0,1,4,9,19):
+                    native_observe('fixture-update-'+str(update+1))
             self.check('only owned fixture active',Path(ctx.get_stage().GetRootLayer().realPath).resolve()==fixture)
             self.check('fixture root is not dirty',not ctx.get_stage().GetRootLayer().dirty)
             self.result['pending_edit_before_quit']=ctx.has_pending_edit()
             self.result['session_dirty_before_quit']=ctx.get_stage().GetSessionLayer().dirty
             self.result['fixture_sha256']=original_hash
             initial_stage=ctx.get_stage()
-            from shutdown_observation import window_receipts,close_receipt,context_receipt
             early=context_receipt(omni.usd.get_context(),ctx,initial_stage,fixture)
             early['phase']='before-observer-imports'
-            self.result['close_observations']=[early]
+            self.result.setdefault('close_observations',[]).append(early)
             self.write()
             import importlib
             import omni.ui as ui
+            native_observe('after-ui-import')
             import omni.kit.ui_test as ui_test
+            native_observe('after-ui-test-import')
             file_impl=importlib.import_module('omni.kit.window.file.file_window')
+            native_observe('after-file-implementation-import')
             def observe(phase):
                 before_query=context_receipt(omni.usd.get_context(),ctx,initial_stage,fixture)
-                windows=window_receipts(ui.Workspace.get_windows(),ui_test.find_all)
+                file_utility=file_impl._file_util_instance
+                prompt=file_utility._unsaved_stage_prompt if file_utility is not None else None
+                prompt_title=prompt._title if prompt is not None and prompt.is_visible() else None
+                windows=window_receipts(ui.Workspace.get_windows(),ui_test.find_all,prompt_title)
                 receipt=close_receipt(omni.usd.get_context(),ctx,initial_stage,fixture,file_impl,windows)
                 receipt['before_window_query_pending_edit']=before_query['pending_edit']
                 receipt['phase']=phase
