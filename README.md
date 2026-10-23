@@ -4,12 +4,12 @@ Read-only semantic review of two local OpenUSD scene revisions, with a separate 
 
 ![Actual Kit before A, current B and translucent green old-A geometry with evidence panel](examples/usd-scene-review-demo.gif)
 
-Before A, current B, and translucent green geometry at the previous position.
-The visual demo uses fixed lighting and camera.
+Visual demo of the saved scenes before and after movement, with translucent green
+geometry marking the previous position under fixed lighting and camera.
 
 **Early development. Windows static review features are tested, but full Isaac app normal shutdown remains blocked by a native failure whose current cause is not isolated.** This integrates existing OpenUSD and NVIDIA APIs; it does not claim a new collision algorithm or the first review/approval workflow.
 
-The local **in-app A/B split review** candidate renders both revisions, synchronized
+The experimental **in-app A/B split review** candidate renders both revisions, synchronized
 cameras and green old-position faces in minimal Kit. Narrow Full Isaac topology
 controls now render after first-frame/serialized-binding correction, but full-app
 shutdown still crashes and the product split button remains guarded pending full
@@ -48,7 +48,8 @@ negative delta agree; no video mirroring or relabelling is used. The GIF shows b
 current B without the ghost, then current B with the translucent green ghost at old A.
 The GIF contains actual native scene and evidence-panel pixels. Private input paths,
 source files and logs are excluded. No AI, clash verdict or operational approval is
-claimed. Full Isaac host normal shutdown remains blocked by the reproduced SDK fault.
+claimed. Full Isaac host normal shutdown remains blocked; the latest native failure
+has not been established as the historical baseline fault.
 
 See [face-only comparisons and close-up evidence](docs/translucent-face-validation.md)
 for the actual RTX material check behind this revised appearance.
