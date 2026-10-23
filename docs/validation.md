@@ -5,9 +5,16 @@
 The project-free launcher now prepares three contained, unchanged-file controls:
 ordinary quit, public file-close then ordinary quit, and same-fixture uncancellable
 quit. [API evidence, ownership restrictions and independent receipts](shutdown-controls.md)
-separate stage close from actual process exit. These new routes are **NOT RUN** at
-preparation time; CPU restrictions do not establish clean SDK exit. Existing native
-failures and the Full Isaac product guard remain unchanged.
+separate stage close from actual process exit. A later navigation-excluded control
+under the canonical shared lease reached native exit0 and13 checks with82 errors
+and824 warnings. It is preserved as a [pinned diagnostic profile](shutdown-profile.md),
+including the SDK/extension inventory and fixture hash. Its new integrated launcher
+ran 171 Windows CPU cases (169 passed, two skips). It then ran the matched Full
+control under verified shared exclusion: 14 checks and stage close passed before
+the same navigation core `+0x18014` crash. Job emptiness/closure, fixture preservation
+and natural lease release were verified. The reduced observation is still one run,
+not product acceptance; the raw error/warning counts are never an allowed budget.
+Original Full-host guard and product viewport qualification remain unchanged.
 
 ## Official ownership/reuse assessment, 2026-10-23
 

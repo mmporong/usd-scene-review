@@ -6,6 +6,7 @@ pending edits, changes global save policy, or connects to an existing host.
 import asyncio
 import hashlib
 import json
+import re
 from pathlib import Path
 import carb.settings
 import omni.ext
@@ -58,6 +59,30 @@ class Probe(omni.ext.IExt):
                     await app.next_update_async()
                 await next_viewport_frame_async(get_active_viewport())
             await asyncio.wait_for(ready(),120)
+            profile_name=settings.get('/exts/in.app.probe/profile')
+            if profile_name:
+                profile=json.loads((self.root/'shutdown-profile.json').read_text())
+                manager=app.get_extension_manager()
+                import ctypes
+                kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+                kernel.GetModuleHandleW.argtypes=[ctypes.c_wchar_p]
+                kernel.GetModuleHandleW.restype=ctypes.c_void_p
+                nav={'core_enabled':manager.is_extension_enabled('omni.anim.navigation.core'),
+                     'recast_enabled':manager.is_extension_enabled('omni.anim.navigation.recast'),
+                     'schema_enabled':manager.is_extension_enabled('omni.anim.navigation.schema'),
+                     'core_dll_loaded':bool(kernel.GetModuleHandleW('omni.anim.navigation.core.plugin.dll'))}
+                self.result['navigation_control']=nav
+                expected=profile['variant']=='matched-full'
+                self.check('navigation core matches profile',nav['core_enabled'] is expected)
+                self.check('navigation recast matches profile',nav['recast_enabled'] is expected)
+                self.check('navigation schema retained',nav['schema_enabled'])
+                self.check('native navigation module matches profile',nav['core_dll_loaded'] is expected)
+                console=(self.root/'console.log').read_text(encoding='utf-8',errors='replace')
+                self.check('no startup dependency failures',not any(s in console for s in ('Failed to resolve extension dependencies','Failed to startup extension','ModuleNotFoundError:','ImportError:')))
+                actual=sorted(set(re.findall(r'\[ext: ([A-Za-z0-9_.]+-[^\]]+)\] startup',console)))
+                expected_ids=profile['observation']['startup_extensions']+(profile['navigation_extension_ids'] if expected else [])
+                self.result['startup_extensions']=actual
+                self.check('startup inventory matches pinned profile',actual==sorted(set(expected_ids)))
             self.check('only fresh anonymous startup replaced',ctx.get_stage().GetRootLayer().anonymous)
             original_hash=hashlib.sha256(fixture.read_bytes()).hexdigest()
             opened=await ctx.open_stage_async(str(fixture))
@@ -70,11 +95,13 @@ class Probe(omni.ext.IExt):
             self.result['session_dirty_before_quit']=ctx.get_stage().GetSessionLayer().dirty
             self.result['fixture_sha256']=original_hash
             def stage_event(event):
+                number=int(event.type)
+                self.result.setdefault('raw_stage_events',[]).append(number)
                 for name in ('CLOSING','CLOSED'):
-                    if event.type==getattr(omni.usd.StageEventType,name):
+                    if number==int(getattr(omni.usd.StageEventType,name)):
                         self.result['stage_events'].append(name)
                         self.result['fixture_bytes_preserved']=hashlib.sha256(fixture.read_bytes()).hexdigest()==original_hash
-                        self.write()
+                self.write()
             def quit_event(event):
                 self.result['quit_events'].append(int(event.type))
                 self.write()

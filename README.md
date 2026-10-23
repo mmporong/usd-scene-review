@@ -24,6 +24,15 @@ shutdown still crashes and the product split button remains guarded pending full
 acceptance. See [installation and exact limits](docs/in-app-review.md).
 The GIF above demonstrates the earlier worker route.
 
+One SDK-only reduced shutdown control reached exit0 with navigation core/recast
+excluded under the shared GPU lease, but still logged 82 errors and 824 warnings.
+The [pinned diagnostic profile](docs/shutdown-profile.md) preserves that observation
+and enforces stricter cleanup/admission checks. It does not unblock Full Isaac or
+establish product A/B stability.
+The matched Full baseline under verified shared exclusion reproduced the navigation
+core shutdown crash after stage close; product viewport teardown remains a separate
+unqualified path.
+
 ## Demonstration
 
 Actual isolated minimal Kit rendering from the installed Windows Isaac Sim 4.5 SDK.
