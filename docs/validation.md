@@ -1,5 +1,20 @@
 # Validation status
 
+## Matched no-render attach control, 2026-10-23
+
+[Attach-only versus no-attach controls](attach-only-control.md) each completed
+60 updates using the same pinned fixture and shared admission. Wait preserved
+default pending=false and reached public close/CLOSING/CLOSED/native exit0, but
+SDK errors7/warnings506 fail strict clean qualification (launcher exit2). Attach
+completed at update1 and changed default pending to true while its own context
+pending stayed false. Stage IDs differed; default layer hashes/edit target stayed
+unchanged and no viewport/capture was created. Close was blocked and its owned Job
+contained (exit1, errors0/warnings109). All fixture/PID/Job/lease cleanup was verified.
+Installed and same-version official API usage was reviewed; no validated safe
+pending-isolation setting was found. This reproduces the attach-associated behavior,
+not its unique native/callback cause, and does not resolve original Full shutdown.
+Final Windows CPU: 183 cases, 181 passed, two privilege skips; PowerShell syntax passed.
+
 ## Pending transition separated from observer effects, 2026-10-23
 
 [Combined investigation and distinct controls](reuse-profile-control.md#pending-transition-localization-and-observer-correction)

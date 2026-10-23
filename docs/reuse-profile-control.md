@@ -165,9 +165,10 @@ The corrected baseline has a genuine native exit 0 without forced cleanup, but S
 shutdown errors, graphics leaks and Fabric-history warnings still fail strict clean
 qualification. It does not qualify original Full or the candidate's shutdown.
 The candidate preservation contract must include native pending state, not only USD
-text. No safe correction for the attach interval is established. The next distinct
-choice is an attach-only, no-widget/no-capture control with the same phase receipts,
-or investigation of native/context event callbacks. Do not clear pending, dismiss
+text. No safe correction for the attach interval is established. The subsequent
+[matched attach-only control](attach-only-control.md) reproduced the transition
+without viewport/capture and separated it from 60 no-attach updates. Further
+investigation must distinguish native/context event callbacks. Do not clear pending, dismiss
 save prompts, patch SDK or reinterpret the blocked candidate as successful shutdown.
 Final Windows CPU regression: 180 cases, 178 passed, two privilege skips, no
 failures/errors (44.028s). These CPU checks do not qualify native Full support.
