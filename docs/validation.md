@@ -1,5 +1,18 @@
 # Validation status
 
+## Close observer correction and instrumented contrast, 2026-10-23
+
+The diagnostic now uses actual window titles, observes labels only and never
+selects Save/Don't Save. [The instrumented reduced-profile contrast](reuse-profile-control.md#instrumented-contrast)
+passed the candidate's 40 checks/two cycles, but native pending edits were true
+before and after the candidate. Same default context/stage, clean root, dirty
+session and present file utility were observed; no save prompt was found. The
+guard stopped before public file.close and the owned Job was contained, with
+fixture/PID/Job/lease cleanup verified. Zero error lines, 131 warnings; no clean
+shutdown claim. The pending transition predates the candidate and remains
+unattributed. Added pre-import/pre-query sampling is CPU-tested but not native-run.
+Full product guard is unchanged. Final Windows CPU: 179 cases, 177 passed, two skips.
+
 ## Sequential candidate ran; shutdown incomplete, 2026-10-23
 
 The [public Widget treatment](reuse-profile-control.md) ran once under the pinned

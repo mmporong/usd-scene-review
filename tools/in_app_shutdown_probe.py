@@ -94,6 +94,26 @@ class Probe(omni.ext.IExt):
             self.result['pending_edit_before_quit']=ctx.has_pending_edit()
             self.result['session_dirty_before_quit']=ctx.get_stage().GetSessionLayer().dirty
             self.result['fixture_sha256']=original_hash
+            initial_stage=ctx.get_stage()
+            from shutdown_observation import window_receipts,close_receipt,context_receipt
+            early=context_receipt(omni.usd.get_context(),ctx,initial_stage,fixture)
+            early['phase']='before-observer-imports'
+            self.result['close_observations']=[early]
+            self.write()
+            import importlib
+            import omni.ui as ui
+            import omni.kit.ui_test as ui_test
+            file_impl=importlib.import_module('omni.kit.window.file.file_window')
+            def observe(phase):
+                before_query=context_receipt(omni.usd.get_context(),ctx,initial_stage,fixture)
+                windows=window_receipts(ui.Workspace.get_windows(),ui_test.find_all)
+                receipt=close_receipt(omni.usd.get_context(),ctx,initial_stage,fixture,file_impl,windows)
+                receipt['before_window_query_pending_edit']=before_query['pending_edit']
+                receipt['phase']=phase
+                self.result.setdefault('close_observations',[]).append(receipt)
+                self.write()
+                return receipt
+            observe('before-candidate')
             def stage_event(event):
                 number=int(event.type)
                 self.result.setdefault('raw_stage_events',[]).append(number)
@@ -116,6 +136,7 @@ class Probe(omni.ext.IExt):
                 self.write()
                 from viewport_reuse_candidate import evaluate
                 candidate=await evaluate(self,self.root)
+                observe('after-candidate-cleanup')
                 self.result['candidate']=candidate
                 self.result['candidate_settings_preserved']=before_settings=={key:settings.get(key) for key in settings_keys}
                 self.check('candidate rendering settings preserved',self.result['candidate_settings_preserved'])
@@ -126,33 +147,29 @@ class Probe(omni.ext.IExt):
                 return
             if route=='file-close':
                 import omni.kit.window.file as file_window
+                before_close=observe('before-public-close')
+                self.check('close only unchanged owned stage',before_close['same_context'] and before_close['same_stage'] and before_close['fixture_active'] and not before_close['root_dirty'])
+                if before_close['pending_edit'] or before_close['save_prompt_observed']:
+                    self.result.update(status='failed',reason='pending edits or save prompt observed; public close not invoked')
+                    self.write()
+                    return
                 def closed():
                     self.result['file_close_callback']=True
                     self.check('public close leaves no stage',ctx.get_stage() is None)
                     app.post_quit(0)
                 file_window.close(closed)
+                observe('public-close-returned')
             else:
                 app.post_quit(0)
-            # UI-test events target only the fresh owned host. Never save or
-            # bypass a prompt by mutating pending-edit/global settings.
-            import omni.kit.ui_test as ui_test
-            for _ in range(600):
+            # Observe only. Never select Save/Don't Save or change pending edits.
+            for update in range(600):
                 await app.next_update_async()
-                if not self.result['discard_clicked']:
-                    candidates=[]
-                    for button in ui_test.find_all('*//Frame/**/Button[*]'):
-                        if button.widget.text!="Don't Save":
-                            continue
-                        scope=button.path.split('//',1)[0]
-                        labels=ui_test.find_all(scope+'//Frame/**/Label[*]')
-                        if any(label.widget.text=='Would you like to save this stage?' for label in labels):
-                            candidates.append(button)
-                    if candidates:
-                        self.check('one owned save prompt',len(candidates)==1)
-                        self.check('discard only owned fixture',ctx.get_stage() is not None and Path(ctx.get_stage().GetRootLayer().realPath).resolve()==fixture)
-                        self.result['discard_clicked']=True
+                if update in (0,1,4,19) or (update+1)%60==0:
+                    receipt=observe('close-update-'+str(update+1))
+                    if receipt['save_prompt_observed']:
+                        self.result.update(status='failed',reason='save prompt observed; no dialog action taken')
                         self.write()
-                        await candidates[0].click()
+                        return
             self.result.update(status='failed',reason='normal shutdown did not finish within 600 updates')
             self.write()
         except Exception as exc:
