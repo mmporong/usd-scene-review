@@ -16,6 +16,11 @@ camera, selection and save state in synthetic Full Isaac tests. It does not move
 the camera or replace the requested green mesh ghost. See
 [installation, real capture and exact limits](docs/viewport-bounds-overlay.md).
 
+[Two-scale deployment QA](docs/bounds-deployment-qa.md) measures 32/2,048 synthetic
+Cubes and repeated cleanup. Verified-report reuse reduces the measured large-case
+reopen from about 41s to 1.55s; initial Compare still takes about 40s and selection
+about 0.49s on that machine. Real mouse and production/long-session use remain unqualified.
+
 Same-app review must preserve the working stage and its save state when only the
 review closes. [Current preservation evidence](docs/review-preservation.md) separates
 that requirement from whole-app exit: named-context controls preserved contents and

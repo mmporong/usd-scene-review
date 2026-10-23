@@ -39,6 +39,9 @@ class PackageTests(unittest.TestCase):
                 self.assertEqual(observation['process_exit'],0)
                 self.assertFalse(observation['strict_clean_shutdown'])
                 self.assertFalse(observation['stock_full_app_shutdown_qualified'])
+                scale=json.loads(archive.read('diagnostics/bounds-scale-qa-v1.json'))
+                self.assertFalse(scale['limits']['real_mouse_tested'])
+                self.assertIn('docs/bounds-deployment-qa.md',archive.namelist())
                 self.assertFalse(any(n.endswith(('.so', '.dll', '.pyc')) for n in archive.namelist()))
             with self.assertRaises(ValueError):
                 module.package(a)

@@ -1,0 +1,630 @@
+{
+  "schema": 1,
+  "id": "isaac45-bounds-scale-qa-v1",
+  "date": "2026-10-23",
+  "environment": {
+    "os": "Windows 11 Pro",
+    "cpu": "AMD Ryzen 7 5800X",
+    "visible_ram_bytes": 85810319360,
+    "gpu": "RTX 3060 12288 MiB",
+    "driver": "610.62",
+    "isaac_sim": "4.5.0-rc.36",
+    "kit": "106.5",
+    "python": "3.10.15",
+    "usd": "22.11"
+  },
+  "method": {
+    "order": "one host per code version; 32 then 2048; one run each",
+    "cycles_per_scale": 3,
+    "selection_samples_per_scale": 12,
+    "open_samples_per_scale": 3,
+    "mouse": "unavailable; actual UI callbacks only",
+    "selection": "synchronous callback wall ms; excludes later frames",
+    "settle": "callback start through two rendered frames",
+    "memory": "own process Windows working set/private bytes after 20 updates and Python gc; no OS trim",
+    "stage_setup": "owned B working copies opened per scale; unchanged pinned fixture restored as a new setup epoch before public close",
+    "profile": "no-navigation with persistent manager exclusions/dry-solve",
+    "qa_host_deadline_seconds": 600
+  },
+  "qa_helper_sha256": "07030e3108f65f518dcf62a1855f131745deb320f12878e35e162b14d938fe2d",
+  "fixtures": [
+    {
+      "cubes": 32,
+      "prims_in_source": 33,
+      "changed_prims": 8,
+      "source": {
+        "A": {
+          "sha256": "d2b02bd4c74257b93bfc7873bbb11cf4542f7bf2f9e67c4bd2b04824c7e4147d",
+          "bytes": 5639
+        },
+        "B": {
+          "sha256": "f57706fc3b3efd9d2737edf1caf107980f6e053b40609e95af320661b6ba7df8",
+          "bytes": 5671
+        }
+      }
+    },
+    {
+      "cubes": 2048,
+      "prims_in_source": 2049,
+      "changed_prims": 8,
+      "source": {
+        "A": {
+          "sha256": "bf9767fa3367c3ff9c387602679895802e662306349b21aff75d54a1342b883b",
+          "bytes": 358444
+        },
+        "B": {
+          "sha256": "ac3b44dc8af6c5092e217826ce1e6c60f035e11f16459375321ac2d84fb77c88",
+          "bytes": 358476
+        }
+      }
+    }
+  ],
+  "before": {
+    "candidate_checks": 37,
+    "outer_checks": 19,
+    "product_code_sha256": {
+      "engine": "b57d788a4028a3c13499a71685d85d6e30e407ff3d632186793602a342b0d2bf",
+      "overlay": "3a08c8249ceb38dc0bfb1638eae3db9ae3a6f11c97e9ab0e91b403074d5d2746",
+      "extension": "b2289e43d96fbbdfd1e8f6a8aa4f40c32048bedb041b3226fd0ee68294913350",
+      "adapter": "4b9a4d6dcc29a2fc109294cc07d41331bfcd2b9d069a7cf9db1acecc7e67b137"
+    },
+    "manual_mouse_tested": false,
+    "scales": [
+      {
+        "count": 32,
+        "changes_expected": 8,
+        "memory_before_compare": {
+          "working_set": 6482960384,
+          "private": 9173196800
+        },
+        "selection_ms": [
+          126.00769998971373,
+          141.9202999677509,
+          130.60059992130846,
+          133.1615000963211,
+          119.38089993782341,
+          130.14539994765073,
+          126.22370000462979,
+          121.4764000615105,
+          118.01440000999719,
+          121.97470001410693,
+          116.55779997818172,
+          120.28120004106313
+        ],
+        "selection_to_two_frames_ms": [
+          138.02049995865673,
+          152.08959998562932,
+          142.70520000718534,
+          143.89510010369122,
+          131.05269998777658,
+          141.4369000121951,
+          137.051000026986,
+          131.49950001388788,
+          128.09600005857646,
+          132.28919997345656,
+          126.70259992592037,
+          130.3230000194162
+        ],
+        "open_ms": [
+          916.4273999631405,
+          832.6301999622956,
+          825.2585000591353
+        ],
+        "close_ms": [
+          0.6625000387430191,
+          0.6330000469461083,
+          0.5207000067457557
+        ],
+        "cleanup": [
+          {
+            "cycle": 0,
+            "memory": {
+              "working_set": 6510313472,
+              "private": 9152712704
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          },
+          {
+            "cycle": 1,
+            "memory": {
+              "working_set": 6542462976,
+              "private": 9183879168
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          },
+          {
+            "cycle": 2,
+            "memory": {
+              "working_set": 6515113984,
+              "private": 9153466368
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          }
+        ],
+        "compare_ms": 565.6844999175519,
+        "auxiliary_coverage": {
+          "status": "complete",
+          "snapshots": {
+            "before": {
+              "status": "complete",
+              "scanned_prims": 33,
+              "geometry_examined": 32,
+              "known_bounds": 32,
+              "points_transformed": 256,
+              "exclusions": {}
+            },
+            "after": {
+              "status": "complete",
+              "scanned_prims": 33,
+              "geometry_examined": 32,
+              "known_bounds": 32,
+              "points_transformed": 256,
+              "exclusions": {}
+            }
+          },
+          "eligible_paths": 32,
+          "pairs_examined": 496,
+          "classifications": {
+            "disjoint-to-disjoint": 496
+          },
+          "exclusions": {}
+        },
+        "viewports_expected": 1,
+        "selection_summary": {
+          "samples": 12,
+          "min_ms": 116.55779997818172,
+          "median_ms": 123.99120000191033,
+          "max_ms": 141.9202999677509
+        },
+        "settle_summary": {
+          "samples": 12,
+          "min_ms": 126.70259992592037,
+          "median_ms": 134.67010000022128,
+          "max_ms": 152.08959998562932
+        },
+        "memory_cleanup_private_delta": 753664
+      },
+      {
+        "count": 2048,
+        "changes_expected": 8,
+        "memory_before_compare": {
+          "working_set": 6589177856,
+          "private": 9303015424
+        },
+        "selection_ms": [
+          479.7721999930218,
+          482.3615000350401,
+          486.5007000043988,
+          479.8295999644324,
+          484.2156999511644,
+          482.25210001692176,
+          489.2737000482157,
+          478.9635998895392,
+          489.5111999940127,
+          497.4441999802366,
+          491.52859998866916,
+          491.88169999979436
+        ],
+        "selection_to_two_frames_ms": [
+          490.28420005925,
+          492.51830007415265,
+          496.0338999517262,
+          491.40479997731745,
+          494.13119989912957,
+          491.9851999729872,
+          499.5207000756636,
+          489.4424999365583,
+          499.58459998015314,
+          506.7659999476746,
+          501.36350002139807,
+          502.5766999460757
+        ],
+        "open_ms": [
+          40838.461600011215,
+          40973.66580006201,
+          41375.43190002907
+        ],
+        "close_ms": [
+          5.480899941176176,
+          5.225099972449243,
+          5.207899957895279
+        ],
+        "cleanup": [
+          {
+            "cycle": 0,
+            "memory": {
+              "working_set": 6136705024,
+              "private": 8796717056
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          },
+          {
+            "cycle": 1,
+            "memory": {
+              "working_set": 6139617280,
+              "private": 8804659200
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          },
+          {
+            "cycle": 2,
+            "memory": {
+              "working_set": 6139809792,
+              "private": 8802516992
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          }
+        ],
+        "compare_ms": 39192.308200057596,
+        "auxiliary_coverage": {
+          "status": "partial",
+          "snapshots": {
+            "before": {
+              "status": "complete",
+              "scanned_prims": 2049,
+              "geometry_examined": 2048,
+              "known_bounds": 2048,
+              "points_transformed": 16384,
+              "exclusions": {}
+            },
+            "after": {
+              "status": "complete",
+              "scanned_prims": 2049,
+              "geometry_examined": 2048,
+              "known_bounds": 2048,
+              "points_transformed": 16384,
+              "exclusions": {}
+            }
+          },
+          "eligible_paths": 2048,
+          "pairs_examined": 1000000,
+          "classifications": {
+            "disjoint-to-disjoint": 1000000
+          },
+          "exclusions": {
+            "budget-pairs": 1
+          }
+        },
+        "viewports_expected": 1,
+        "selection_summary": {
+          "samples": 12,
+          "min_ms": 478.9635998895392,
+          "median_ms": 485.3581999777816,
+          "max_ms": 497.4441999802366
+        },
+        "settle_summary": {
+          "samples": 12,
+          "min_ms": 489.4424999365583,
+          "median_ms": 495.0825499254279,
+          "max_ms": 506.7659999476746
+        },
+        "memory_cleanup_private_delta": 5799936
+      }
+    ],
+    "fixture_epoch_restored": true,
+    "render_settings_preserved": true,
+    "process_exit": 0,
+    "wrapper_exit": 2,
+    "native_exit_ok": true,
+    "profile_conditions_met": true,
+    "strict_clean_shutdown": false,
+    "diagnostics": {
+      "error_lines": 72,
+      "warning_lines": 668,
+      "error_categories": {
+        "carb.scripting-python.plugin": 3,
+        "omni.ext.plugin": 3,
+        "omni.kit.menu.utils.app_menu": 66
+      },
+      "traceback_observed": true,
+      "graphics_objects_leaked": true,
+      "fabric_history_outstanding": true
+    },
+    "fixture_preserved": true,
+    "owned_process_reaped": true,
+    "owned_job_empty": true,
+    "owned_job_closed": true,
+    "descendant_containment_required": false,
+    "shared_lock_naturally_released": true
+  },
+  "after": {
+    "candidate_checks": 37,
+    "outer_checks": 19,
+    "product_code_sha256": {
+      "engine": "b57d788a4028a3c13499a71685d85d6e30e407ff3d632186793602a342b0d2bf",
+      "overlay": "9e18a32684473af54188435bc79636f0473df0cc7cbee37418d100dc16c12dbc",
+      "extension": "2c23070e0c4301e86933c6fb017693da8ea085a4c89b8999af9b2dbd50102239",
+      "adapter": "c59a1c96f43ca67673248cc7010300e1dd9c06df2978e8506beb0cedf1680379"
+    },
+    "manual_mouse_tested": false,
+    "scales": [
+      {
+        "count": 32,
+        "changes_expected": 8,
+        "memory_before_compare": {
+          "working_set": 6458380288,
+          "private": 9123094528
+        },
+        "selection_ms": [
+          121.46920000668615,
+          130.02630008850247,
+          128.80750000476837,
+          128.86679999064654,
+          122.96020006760955,
+          120.1614000601694,
+          137.74549996014684,
+          122.94399994425476,
+          120.9171999944374,
+          123.31309996079654,
+          123.31290007568896,
+          128.1157999765128
+        ],
+        "selection_to_two_frames_ms": [
+          134.61130007635802,
+          141.989600029774,
+          140.9163000062108,
+          140.28419996611774,
+          135.27119997888803,
+          131.1503000324592,
+          148.83850002661347,
+          133.24789993930608,
+          132.13139993604273,
+          134.65490005910397,
+          134.36800008639693,
+          141.90089993644506
+        ],
+        "open_ms": [
+          344.55289994366467,
+          347.9234999977052,
+          337.4909999547526
+        ],
+        "close_ms": [
+          0.824799994006753,
+          0.811500009149313,
+          0.5771999713033438
+        ],
+        "cleanup": [
+          {
+            "cycle": 0,
+            "memory": {
+              "working_set": 6562402304,
+              "private": 9194663936
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          },
+          {
+            "cycle": 1,
+            "memory": {
+              "working_set": 6518300672,
+              "private": 9146245120
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          },
+          {
+            "cycle": 2,
+            "memory": {
+              "working_set": 6522703872,
+              "private": 9148198912
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          }
+        ],
+        "compare_ms": 565.5553999822587,
+        "auxiliary_coverage": {
+          "status": "complete",
+          "snapshots": {
+            "before": {
+              "status": "complete",
+              "scanned_prims": 33,
+              "geometry_examined": 32,
+              "known_bounds": 32,
+              "points_transformed": 256,
+              "exclusions": {}
+            },
+            "after": {
+              "status": "complete",
+              "scanned_prims": 33,
+              "geometry_examined": 32,
+              "known_bounds": 32,
+              "points_transformed": 256,
+              "exclusions": {}
+            }
+          },
+          "eligible_paths": 32,
+          "pairs_examined": 496,
+          "classifications": {
+            "disjoint-to-disjoint": 496
+          },
+          "exclusions": {}
+        },
+        "viewports_expected": 1,
+        "selection_summary": {
+          "samples": 12,
+          "min_ms": 120.1614000601694,
+          "median_ms": 123.31300001824275,
+          "max_ms": 137.74549996014684
+        },
+        "settle_summary": {
+          "samples": 12,
+          "min_ms": 131.1503000324592,
+          "median_ms": 134.963050018996,
+          "max_ms": 148.83850002661347
+        },
+        "memory_cleanup_private_delta": -46465024
+      },
+      {
+        "count": 2048,
+        "changes_expected": 8,
+        "memory_before_compare": {
+          "working_set": 6589526016,
+          "private": 9254359040
+        },
+        "selection_ms": [
+          479.6638999832794,
+          487.674199976027,
+          485.8780999202281,
+          494.81009994633496,
+          485.69500003941357,
+          487.63649992179126,
+          481.0900000156835,
+          481.7815999267623,
+          490.91040005441755,
+          490.7219000160694,
+          497.0688000321388,
+          500.0925000058487
+        ],
+        "selection_to_two_frames_ms": [
+          490.7361000077799,
+          497.2373000346124,
+          495.8954999456182,
+          505.0131999887526,
+          495.62579998746514,
+          497.02819995582104,
+          492.14610003400594,
+          491.47999996785074,
+          501.28440000116825,
+          500.39870000910014,
+          506.99520006310195,
+          510.72210003621876
+        ],
+        "open_ms": [
+          1549.0512000396848,
+          1544.5713000372052,
+          1579.083300079219
+        ],
+        "close_ms": [
+          5.217200028710067,
+          5.25390007533133,
+          5.589500069618225
+        ],
+        "cleanup": [
+          {
+            "cycle": 0,
+            "memory": {
+              "working_set": 6142644224,
+              "private": 8750596096
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          },
+          {
+            "cycle": 1,
+            "memory": {
+              "working_set": 6147207168,
+              "private": 8751624192
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          },
+          {
+            "cycle": 2,
+            "memory": {
+              "working_set": 6147297280,
+              "private": 8757891072
+            },
+            "live_tracked_scene_views": 0,
+            "viewports": 1,
+            "owned_overlay_cleared": true
+          }
+        ],
+        "compare_ms": 40018.83720001206,
+        "auxiliary_coverage": {
+          "status": "partial",
+          "snapshots": {
+            "before": {
+              "status": "complete",
+              "scanned_prims": 2049,
+              "geometry_examined": 2048,
+              "known_bounds": 2048,
+              "points_transformed": 16384,
+              "exclusions": {}
+            },
+            "after": {
+              "status": "complete",
+              "scanned_prims": 2049,
+              "geometry_examined": 2048,
+              "known_bounds": 2048,
+              "points_transformed": 16384,
+              "exclusions": {}
+            }
+          },
+          "eligible_paths": 2048,
+          "pairs_examined": 1000000,
+          "classifications": {
+            "disjoint-to-disjoint": 1000000
+          },
+          "exclusions": {
+            "budget-pairs": 1
+          }
+        },
+        "viewports_expected": 1,
+        "selection_summary": {
+          "samples": 12,
+          "min_ms": 479.6638999832794,
+          "median_ms": 487.65534994890913,
+          "max_ms": 500.0925000058487
+        },
+        "settle_summary": {
+          "samples": 12,
+          "min_ms": 490.7361000077799,
+          "median_ms": 497.1327499952167,
+          "max_ms": 510.72210003621876
+        },
+        "memory_cleanup_private_delta": 7294976
+      }
+    ],
+    "fixture_epoch_restored": true,
+    "render_settings_preserved": true,
+    "process_exit": 0,
+    "wrapper_exit": 2,
+    "native_exit_ok": true,
+    "profile_conditions_met": true,
+    "strict_clean_shutdown": false,
+    "diagnostics": {
+      "error_lines": 16,
+      "warning_lines": 342,
+      "error_categories": {
+        "carb.scripting-python.plugin": 4,
+        "omni.ext.plugin": 4,
+        "omni.kit.menu.utils.app_menu": 8
+      },
+      "traceback_observed": true,
+      "graphics_objects_leaked": true,
+      "fabric_history_outstanding": true
+    },
+    "fixture_preserved": true,
+    "owned_process_reaped": true,
+    "owned_job_empty": true,
+    "owned_job_closed": true,
+    "descendant_containment_required": false,
+    "shared_lock_naturally_released": true
+  },
+  "limits": {
+    "real_mouse_tested": false,
+    "production_assets_tested": false,
+    "long_soak_tested": false,
+    "stock_full_shutdown_qualified": false,
+    "live_ab_guard_removed": false,
+    "green_mesh_ghost_qualified": false
+  }
+}

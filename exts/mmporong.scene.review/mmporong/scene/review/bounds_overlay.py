@@ -6,8 +6,8 @@ import omni.usd
 import omni.ui as ui
 from omni.ui import scene as sc
 from pxr import UsdGeom
-from usd_scene_review import compare,load_snapshot
-from usd_scene_review.overlay import bounds_plan,overlay_text
+from usd_scene_review import load_snapshot
+from usd_scene_review.overlay import bounds_plan,overlay_text,validate_report_reference
 
 FRAME_NAME='mmporong.scene.review.snapshot-bounds'
 
@@ -19,12 +19,11 @@ class BoundsOverlay:
         self.window=self.api=self.host=self.stage=self.caption=None
         self.line_count=0;self._matrices=None
 
-    def open(self,paths,report,selected=None):
+    def open(self,paths,report,selected=None,comparison_receipt=None):
         self.close()
         if report.get('status')=='unknown':raise ValueError('Compare complete frozen snapshots before overlay')
         if not omni.timeline.get_timeline_interface().is_stopped():raise ValueError('Bounds overlay requires stopped timeline')
-        if compare(paths['A'],paths['B'],analysis_config=report['analysis_config'],policy=report['policy_config'])!=report:
-            raise ValueError('Inputs changed; compare again before overlay')
+        validate_report_reference(paths,report,comparison_receipt)
         from omni.kit.viewport.utility import get_active_viewport_window
         window=get_active_viewport_window()
         if window is None:raise ValueError('An existing working viewport is required')
