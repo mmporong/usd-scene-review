@@ -88,6 +88,13 @@ candidate's 40 checks before this same file-close route. It is restricted to the
 reduced profile and is not a product guard override. The new combined SDK treatment
 remains unrun while another owner holds the lease.
 
+The separate `-Candidate viewport-bounds` treatment exercises only stage-free
+review UI callbacks. Its [single exit attempt](viewport-bounds-overlay.md#reduced-profile-exit-follow-up-failed-before-public-close)
+did not reach file.close: dynamic activation reintroduced excluded navigation,
+and a diagnostic read after SDK instance clearing failed. The new precondition
+guard and unload receipt are CPU-tested; no follow-up GPU rerun or normal exit is
+claimed. Original baseline records are preserved.
+
 `process-result.json` separates native exit, all probe checks, fixture preservation,
 stage event order, navigation/inventory agreement, actual admission, owned root
 reaping, Job emptiness/closure, log categories and strict clean-shutdown status.
