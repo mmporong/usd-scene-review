@@ -65,9 +65,11 @@ memory data exist only in this diagnostic record.
 | 32 | 0.566 s | 0.833 / 0.345 s | 123 / 138 ms | 135 ms |
 | 2,048 | 40.019 s | 40.974 / 1.549 s | 488 / 500 ms | 497 ms |
 
-The initial Compare still blocks the UI for about 40 seconds in the larger fixture;
-selection remains about half a second. The fix addresses repeated open cost, not
-these remaining delays. Large auxiliary AABB coverage is explicitly **partial**:
+This native run measured initial Compare blocking the UI for about 40 seconds in
+the larger fixture, with selection about half a second. The reopen fix addresses
+repeated open cost. The later [CPU analysis](cpu-bottleneck-analysis.md) reduces
+standalone Compare cost without remeasuring UI latency; selection checks remain.
+Large auxiliary AABB coverage is explicitly **partial**:
 all 2,048 bounds are known, but the one-million-pair budget stops full pair coverage.
 Semantic change results and collision-unknown status are not promoted by this QA.
 

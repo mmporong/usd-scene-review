@@ -18,8 +18,11 @@ the camera or replace the requested green mesh ghost. See
 
 [Two-scale deployment QA](docs/bounds-deployment-qa.md) measures 32/2,048 synthetic
 Cubes and repeated cleanup. Verified-report reuse reduces the measured large-case
-reopen from about 41s to 1.55s; initial Compare still takes about 40s and selection
-about 0.49s on that machine. Real mouse and production/long-session use remain unqualified.
+reopen from about 41s to 1.55s; that native run measured initial Compare at about
+40s and selection at 0.49s. A subsequent [CPU bottleneck fix](docs/cpu-bottleneck-analysis.md)
+reduces same-input standalone Compare from 34.65s to 16.81s with identical reports;
+native UI timing has not been remeasured. Selection validation remains unchanged.
+Real mouse and production/long-session use remain unqualified.
 
 Same-app review must preserve the working stage and its save state when only the
 review closes. [Current preservation evidence](docs/review-preservation.md) separates
