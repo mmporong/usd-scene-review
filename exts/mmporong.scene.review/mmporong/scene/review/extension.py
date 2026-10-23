@@ -42,6 +42,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._viewer = get_viewer_client()
         from .in_app import retained_review, full_host_blocked
         self._in_app = retained_review()
+        self._bounds_overlay = None
         self._in_app_blocked=full_host_blocked()
         self._task = None
         self._frame_requested = False
@@ -98,6 +99,10 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.HStack(height=26):
                     ui.Label('New output folder', width=150)
                     ui.StringField(model=self._export_path)
+                with ui.HStack(height=28):
+                    ui.Button('Show snapshot bounds in working viewport',clicked_fn=self._show_bounds_overlay)
+                    ui.Button('Clear bounds overlay',clicked_fn=self._hide_bounds_overlay)
+                ui.Label('Bounds only: A blue dashed / B orange solid. No mesh ghost, camera move or stage selection.',height=24)
                 ui.StringField(model=self._status, read_only=True, multiline=True, height=52)
                 with ui.HStack(height=26):
                     ui.Label('Path search', width=85)
@@ -146,6 +151,7 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.CollapsableFrame('Raw comparison evidence', collapsed=True):
                     ui.StringField(model=self._details, read_only=True, multiline=True, height=120)
         self._render_numeric(None)
+        self._window.set_visibility_changed_fn(lambda visible:self._close_bounds_overlay() if not visible else None)
         self._query_callback = self._query.add_value_changed_fn(lambda _: self._render_rows())
         self._focus_callback = self._focus.add_value_changed_fn(
             lambda _: self._request_frame() if self._viewer.state == 'running' else None)
@@ -217,6 +223,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._schedule(self._compare_async())
 
     async def _compare_async(self):
+        self._close_bounds_overlay()
         if self._in_app and not await self._in_app.close():
             raise RuntimeError('In-app cleanup unconfirmed; comparison remains pinned')
         if not await self._viewer.close():
@@ -265,6 +272,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._load_review()
         self._details.set_value(details(change))
         self._render_numeric(change)
+        self._update_bounds_overlay()
         self._request_frame()
 
     def _render_pairs(self):
@@ -291,7 +299,45 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.HStack(height=26):
                     ui.Label(name, width=220)
                     ui.Label(value, word_wrap=True)
+        self._update_bounds_overlay()
         self._request_frame()
+
+    def _show_bounds_overlay(self):
+        if self._task and not self._task.done():
+            self._message('Wait for the current review operation before showing bounds.');return
+        try:
+            if not self._report or self._report.get('status')=='unknown':
+                raise ValueError('Compare complete frozen snapshots first')
+            if ((self._in_app and self._in_app.state!='closed') or self._viewer.state!='closed'
+                    or self._viewer.process is not None):
+                raise ValueError('Close the existing review viewer before showing working-viewport bounds')
+            from .bounds_overlay import BoundsOverlay
+            self._close_bounds_overlay()
+            self._bounds_overlay=BoundsOverlay(self._message)
+            self._bounds_overlay.open(self._comparison_paths,self._report,self._selected)
+            self._message('Snapshot A/B world bounds overlay shown; working camera and selection are unchanged.')
+        except Exception as exc:
+            self._close_bounds_overlay()
+            self._message('Bounds overlay unavailable: '+str(exc))
+
+    def _update_bounds_overlay(self):
+        if self._bounds_overlay is None or self._bounds_overlay.state!='open':return
+        try:
+            self._bounds_overlay.select(self._selected)
+            if self._selected_pair:
+                self._bounds_overlay.caption.text+='\nPair selected: use panel evidence; this overlay displays one changed prim.'
+        except Exception as exc:
+            self._close_bounds_overlay();self._message('Bounds overlay cleared: '+str(exc))
+
+    def _close_bounds_overlay(self):
+        was_open=self._bounds_overlay is not None and self._bounds_overlay.state=='open'
+        if self._bounds_overlay is not None:self._bounds_overlay.close()
+        self._bounds_overlay=None
+        return was_open
+
+    def _hide_bounds_overlay(self):
+        self._close_bounds_overlay()
+        self._message('Bounds overlay cleared; working viewport was not edited.')
 
     def _review_identity(self):
         if not self._report or not (self._selected_change or self._selected_pair):
@@ -425,6 +471,10 @@ class SceneReviewExtension(omni.ext.IExt):
         self._accept_reply(reply)
 
     def _close_review(self):
+        overlay_closed=self._close_bounds_overlay()
+        if (overlay_closed and self._viewer.state=='closed' and self._viewer.process is None
+                and (self._in_app is None or self._in_app.state=='closed')):
+            self._message('Bounds overlay closed; working viewport unchanged.');return
         self._schedule(self._close())
 
     async def _close(self):
@@ -446,6 +496,7 @@ class SceneReviewExtension(omni.ext.IExt):
         if get_active_extension() is self:
             _active = None
         self._shutting_down = True
+        self._close_bounds_overlay()
         self._frame_requested = False
         in_app_pending=False
         if self._in_app:

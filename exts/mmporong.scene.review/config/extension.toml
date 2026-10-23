@@ -11,6 +11,8 @@ readme = "docs/README.md"
 "omni.usd" = {}
 "omni.timeline" = {}
 "omni.kit.widget.viewport" = {}
+"omni.kit.viewport.window" = {}
+"omni.ui.scene" = {}
 "omni.kit.viewport.utility" = {}
 "omni.kit.manipulator.camera" = {}
 

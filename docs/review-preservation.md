@@ -69,8 +69,16 @@ Window title/visibility equality is not actual dock-layout restoration or mouse 
 
 ## Actual deployment boundary
 
-CPU comparison/snapshot/report features and the retained separate worker's tested
-static review remain the available paths within their documented limits. The worker
+The later [stage-free working-viewport bounds overlay](viewport-bounds-overlay.md)
+uses no named context or owned renderer texture. Actual Full Isaac checks preserve
+root/session contents, native pending false-to-false, selection and camera while
+drawing A/B bounds and closing/reopening/unloading that UI overlay. This qualifies
+only that narrow bounds route; the historical named-context results below and the
+live A/B Full guard are unchanged. AABB lines do not fulfill the green mesh ghost.
+
+CPU comparison/snapshot/report features, the narrow stage-free bounds route above
+and the retained separate worker's tested static review are available within their
+documented limits. The worker
 does not fulfill same-app integration. Full in-app A/B remains blocked before native
 ownership. Minimal in-app code is a developer experiment, not a generally qualified
 working-stage-preserving deployment: this pair reproduced the pending side effect.

@@ -10,8 +10,8 @@
 | Focus an object | Sent only to an already opened owned review viewer; the working viewport is never a target |
 | Open same-app live A/B | Experimental named contexts/widgets; Full guard refuses before ownership |
 | Legacy single-viewport review | Retained Isaac/Kit child viewer, explicitly a separate process, not same-app completion |
-| Main working-viewport stage-free geometry overlay | Not implemented; existing SceneView is a camera manipulator on owned review widgets |
-| Close review | Existing owned viewer cleanup; does not close the user's working stage |
+| Main working-viewport stage-free bounds overlay | Separate UI SceneView with A/B boxes and values; no USD/session edits, camera movement or native selection change |
+| Close review | Clears the bounds overlay and/or existing owned viewer; does not close the user's working stage |
 
 Selection routing now retains the latest request while opening, switching or
 framing is in flight. Previously numeric evidence changed immediately but the
@@ -25,7 +25,9 @@ source USD layer or host viewport is an authoring target of this routing change.
 Stateful CPU regressions exercise the actual product scheduling/selection methods
 with delayed operations. They do not establish actual mouse-click/GPU focus or
 unblock Full. No new native or whole-app shutdown experiment accompanies this fix.
-The existing Full integration and stage-free overlay gap remain explicit.
+The live A/B Full integration gap remains. The separate
+[working-viewport bounds route](viewport-bounds-overlay.md) now has native Full
+rendering and preservation evidence; it is not a mesh/green-face replacement.
 
 Current [review-close/preservation contract and minimal/Full-derived pair](review-preservation.md)
 separate window/resource closure from whole-app exit. Named-open controls closed
@@ -82,7 +84,8 @@ In a minimal-Kit test host:
    Stage changes, window hiding and Play events invalidate review. Exact full-Isaac
    dock restoration and actual Play cleanup have not been qualified.
 
-In full Isaac, use Compare/export or **Legacy worker A/B**. That worker is the earlier
+In full Isaac, use Compare/export, the
+[stage-free bounds overlay](viewport-bounds-overlay.md), or **Legacy worker A/B**. That worker is the earlier
 separate-process route; the existing demo GIF does not demonstrate split mode.
 The legacy optional focus/normalized-light controls apply to that route. In-app
 selection always uses common focus. No physics or robot validation is performed.

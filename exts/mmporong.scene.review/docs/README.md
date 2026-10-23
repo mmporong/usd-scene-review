@@ -1,5 +1,11 @@
 # Kit adapter
 
+**Show snapshot bounds in working viewport** is a separate same-app UI-scene
+route: selected A blue dashed/B orange solid boxes and values, no USD/session edit,
+camera move or native selection change. See the
+[bounds guide and actual Full Isaac validation](../../../docs/viewport-bounds-overlay.md).
+It is not a mesh ghost or simultaneous live A/B completion.
+
 The local **Open A/B in Isaac** candidate renders two synchronized views in the same
 app. Read its [installation, use and failed/pending validation](../../../docs/in-app-review.md)
 before trying it. Green surfaces passed settled minimal-Kit capture, but full Isaac's
