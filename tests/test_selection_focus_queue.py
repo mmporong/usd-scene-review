@@ -12,7 +12,7 @@ def owner():
     path=Path(__file__).resolve().parents[1]/'exts/mmporong.scene.review/mmporong/scene/review/extension.py'
     tree=ast.parse(path.read_text())
     source=next(node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='SceneReviewExtension')
-    names={'_schedule','_run','_request_frame','_operation_finished','_select','_select_pair'}
+    names={'_schedule','_run','_request_frame','_operation_finished','_select','_select_pair','_update_bounds_overlay','_close_bounds_overlay'}
     node=ast.ClassDef(name='SelectionRouter',bases=[],keywords=[],decorator_list=[],
                       body=[method for method in source.body if isinstance(method,(ast.FunctionDef,ast.AsyncFunctionDef)) and method.name in names])
     env={'asyncio':asyncio,'carb':NS(log_warn=Mock()),'details':lambda change:change['path'],
@@ -21,6 +21,7 @@ def owner():
     result=env['SelectionRouter']()
     result._task=None;result._frame_requested=False;result._shutting_down=False
     result._report={'changes':[]};result._viewer=NS(state='closed');result._in_app=None
+    result._bounds_overlay=None
     result._selected=None;result._selected_pair=None;result._selected_change=None
     result._reason=Mock();result._details=Mock();result._load_review=Mock()
     result._selected_label=Mock();result._motion=Mock();result._numeric=MagicMock()
@@ -38,6 +39,13 @@ async def settle(result):
 
 
 class SelectionFocusQueueTests(unittest.IsolatedAsyncioTestCase):
+    async def test_overlay_selection_updates_without_native_viewer_focus(self):
+        item=owner();item._frame=AsyncMock()
+        item._bounds_overlay=NS(state='open',select=Mock(),caption=NS(text=''))
+        item._select({'path':'/OverlayTarget'})
+        item._bounds_overlay.select.assert_called_once_with('/OverlayTarget')
+        self.assertEqual(item.numeric_path,'/OverlayTarget');item._frame.assert_not_awaited()
+
     async def test_metadata_selection_without_viewer_never_requests_native_focus(self):
         item=owner();item._frame=AsyncMock()
         item._select({'path':'/EvidenceOnly'})
