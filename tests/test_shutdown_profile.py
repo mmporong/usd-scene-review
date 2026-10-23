@@ -7,14 +7,66 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import sys
 from unittest.mock import patch,Mock
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'tools'))
 spec=importlib.util.spec_from_file_location('shutdown_policy',ROOT/'tools/shutdown_profile.py')
 policy=importlib.util.module_from_spec(spec);spec.loader.exec_module(policy)
 
 
 class ShutdownProfileTests(unittest.TestCase):
+    def test_dynamic_activation_navigation_drift_refuses_treatment(self):
+        from viewport_bounds_candidate import navigation_exclusions_retained
+        manager=Mock()
+        for enabled,expected in (({'schema'},True),({'schema','core'},False),({'schema','recast'},False),(set(),False)):
+            manager.is_extension_enabled.side_effect=lambda name:name.rsplit('.',1)[-1] in enabled
+            self.assertEqual(navigation_exclusions_retained(manager),expected)
+
+    def test_unload_receipt_does_not_read_scrubbed_extension_instance(self):
+        from types import SimpleNamespace
+        from viewport_bounds_candidate import disable_review
+        owner=SimpleNamespace(_bounds_overlay=None)
+        manager=Mock();manager.set_extension_enabled_immediate.side_effect=lambda *args:owner.__dict__.clear()
+        manager.is_extension_enabled.return_value=False
+        receipt=disable_review(manager,bool(owner._bounds_overlay))
+        self.assertFalse(hasattr(owner,'_bounds_overlay'))
+        self.assertEqual(receipt,{'owned_resources_remaining':False,'extension_disabled':True})
+
+    def test_bounds_treatment_requires_clean_save_state_and_actual_unload(self):
+        from viewport_bounds_candidate import check_names
+        profile,report,process,log=self.observed()
+        profile['candidate']='viewport-bounds'
+        report['checks']=[row for row in report['checks'] if row['name']!='review extension never enabled']
+        report['checks'] += [{'name':name,'passed':True} for name in ('review initially disabled','review disabled after candidate')]
+        report['candidate']={'status':'passed','owned_resources_remaining':False,'working_stage_preserved':True,
+            'pending_before':False,'pending_after':False,'checks':[{'name':name,'passed':True} for name in check_names()]}
+        report['candidate_settings_preserved']=True
+        log+='\n[1s] [ext: mmporong.scene.review-0.1.0] startup'
+        self.assertTrue(policy.assess(report,process,log,profile)['passed'])
+        for key,value in (('pending_before',True),('pending_after',True),('owned_resources_remaining',True),('working_stage_preserved',False)):
+            changed=copy.deepcopy(report);changed['candidate'][key]=value
+            self.assertFalse(policy.assess(changed,process,log,profile)['profile_conditions_met'])
+        changed=copy.deepcopy(report);changed['candidate']['checks'].pop()
+        self.assertFalse(policy.assess(changed,process,log,profile)['passed'])
+        failed=copy.deepcopy(process);failed['process_exit']=1
+        self.assertFalse(policy.assess(report,failed,log,profile)['native_exit_ok'])
+        observed=policy.assess(report,process,log+'\n[Warning] [fixture] SDK warning',profile)
+        self.assertTrue(observed['native_exit_ok']);self.assertFalse(observed['strict_clean_shutdown'])
+
+    def test_bounds_inputs_are_prepared_before_host_without_changing_baseline(self):
+        from viewport_bounds_candidate import prepare
+        from usd_scene_review import compare
+        profile,data=policy.load_profile('no-navigation')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);fixture=root/'shutdown-fixture.usda';fixture.write_bytes(data)
+            prepare(root,data)
+            paths=json.loads((root/'bounds-inputs.json').read_text())
+            report=compare(paths['A'],paths['B'])
+            self.assertTrue(any(row['path']=='/World/Item' for row in report['changes']))
+            self.assertEqual(hashlib.sha256(fixture.read_bytes()).hexdigest(),profile['fixture_sha256'])
+
     def observed(self,variant='no-navigation'):
         profile,data=policy.load_profile(variant)
         nav=variant=='matched-full'

@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$IsaacRoot,
     [Parameter(Mandatory=$true)][string]$Output,
     [ValidateSet('no-navigation','matched-full')][string]$DiagnosticProfile='no-navigation',
-    [ValidateSet('none','viewport-reuse')][string]$Candidate='none',
+    [ValidateSet('none','viewport-reuse','viewport-bounds')][string]$Candidate='none',
     [ValidateSet('none','wait','attach','open')][string]$AttachControl='none',
     [switch]$OwnedChild
 )

@@ -1,4 +1,4 @@
-"""Owned clean-file shutdown controls; no review extension or added viewport.
+"""Owned clean-file shutdown controls and explicit reduced-profile treatments.
 
 The launcher creates the only file this probe may open. It never saves, clears
 pending edits, changes global save policy, or connects to an existing host.
@@ -62,7 +62,8 @@ class Probe(omni.ext.IExt):
             native_observe('startup-before-ready')
             self.check('supported route',route in ('normal','file-close','uncancellable'))
             self.check('owned portable config',Path(settings.get('/app/userConfigPath')).resolve()==self.root/'user.config.json')
-            self.check('review extension never enabled',not app.get_extension_manager().is_extension_enabled('mmporong.scene.review'))
+            bounds_candidate=settings.get('/exts/in.app.probe/profile') and json.loads((self.root/'shutdown-profile.json').read_text()).get('candidate')=='viewport-bounds'
+            self.check('review initially disabled' if bounds_candidate else 'review extension never enabled',not app.get_extension_manager().is_extension_enabled('mmporong.scene.review'))
             async def ready():
                 from omni.kit.viewport.utility import get_active_viewport,next_viewport_frame_async
                 while not app.is_app_ready() or ctx.get_stage() is None or get_active_viewport() is None:
@@ -157,14 +158,18 @@ class Probe(omni.ext.IExt):
                 from attach_only_control import evaluate as evaluate_attach
                 await evaluate_attach(self,self.root,profile['attach_control'])
             if profile_name and profile.get('candidate'):
-                self.check('candidate only on reduced profile',profile['variant']=='no-navigation' and profile['candidate']=='viewport-reuse')
+                self.check('candidate only on reduced profile',profile['variant']=='no-navigation' and profile['candidate'] in ('viewport-reuse','viewport-bounds'))
                 settings_keys=('/rtx/useViewLightingMode','/rtx/post/tonemap/op','/app/asyncRendering',
                     '/renderer/multiGpu/autoEnable','/app/fastShutdown','/app/settings/persistent')
                 before_settings={key:settings.get(key) for key in settings_keys}
                 self.result['candidate']={'status':'running','kind':'sequential capture, not live split'}
                 self.write()
-                from viewport_reuse_candidate import evaluate
+                if bounds_candidate:
+                    from viewport_bounds_candidate import evaluate
+                else:
+                    from viewport_reuse_candidate import evaluate
                 candidate=await evaluate(self,self.root)
+                if bounds_candidate:self.check('review disabled after candidate',not manager.is_extension_enabled('mmporong.scene.review'))
                 observe('after-candidate-cleanup')
                 self.result['candidate']=candidate
                 self.result['candidate_settings_preserved']=before_settings=={key:settings.get(key) for key in settings_keys}

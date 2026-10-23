@@ -110,3 +110,61 @@ CPU regression uses the documented bundled-USD environment and
 196 pass and two privilege-dependent cases are skipped. It covers stale input,
 units mismatch, invalid selection, ancestor/deletion bounds, cleanup and camera
 copy direction. CPU mocks alone did not establish the native rendering result.
+
+## Reduced-profile exit follow-up: failed before public close
+
+A single later treatment reused the pinned crash-free **navigation-excluded**
+baseline, its unchanged `shutdown-clean.usda` hash, canonical shared lease, SDK
+and public file-close/normal-quit route. A/B bundles were authored by the CPU
+launcher before Kit started; the working fixture was not edited. No mouse-control
+tool was available. Actual Compare scheduling and change/select/show/clear/Close
+button callbacks were exercised twice in the installed Full-derived host.
+
+18 treatment checks passed, including both selection/toggle/close cycles, removed
+subscriptions, preserved working state and extension disable. Pending was false
+before and after. However, logs show navigation core/recast starting immediately
+after dynamic review-extension activation, despite their startup exclusion. Thus
+the reduced baseline configuration was no longer preserved. The diagnostic also
+tried to read the unloaded extension's `_bounds_overlay`: installed Kit clears an
+extension instance's `__dict__` after `on_shutdown`, causing an AttributeError.
+This is an observation-code defect, not evidence of a viewport teardown crash.
+
+Public file.close and app quit were **not invoked**. The controller contained its
+owned Job (exit1); the fixture hash was preserved, all owned PIDs were reaped, the
+Job was empty/closed, and the wrapper naturally released its lock. There were zero
+console error lines and 110 warning lines before containment. Post-treatment frozen
+input-hash completion was not reached. No normal-exit or crash-free-overlay shutdown
+claim follows from this failed attempt; the original reduced baseline's exit0
+observation and earlier Full overlay's 40 functional passes remain distinct.
+
+The diagnostic now refuses immediately if activation re-enables either excluded
+navigation extension or loses schema. Its unload receipt samples owned resources
+before disable and never reads the scrubbed instance afterward. CPU regressions
+cover both defects, incomplete receipts, changed pending, warnings and nonzero
+exit. These follow-up changes have **not** been rerun on the GPU; the same failed
+conditions are not repeated.
+
+Final Windows CPU/package regression after those diagnostic fixes: 202 cases,
+200 passed, two privilege skips, no failures/errors (46.979s). This does not add a
+native shutdown pass.
+
+Reproduction is explicit and restricted to the owned reduced profile:
+
+```powershell
+tools/run_shutdown_profile.ps1 -IsaacRoot <existing-sdk> -Output <new-evidence-dir> -DiagnosticProfile no-navigation -Candidate viewport-bounds
+```
+
+This is a fail-closed diagnostic, not a recommended user-app configuration. Before
+another exit treatment, a supported activation path must preserve the exclusions
+(for example a separately reviewed startup-loaded treatment); manually turning
+navigation off again would conceal the configuration drift. No SDK or user settings
+were changed here.
+
+Remaining qualification priorities:
+
+1. Preserve and verify the reduced host configuration through extension activation,
+   then obtain an actual file.close/normal-exit result in a distinct treatment.
+2. Check real mouse hit/navigation behavior and representative assembly performance;
+   current evidence is native rendering plus UI callbacks on synthetic fixtures.
+3. Keep live A/B named-context/texture lifecycle and green mesh faces as separate
+   unresolved work. Their Full guard stays enabled; bounds do not replace them.

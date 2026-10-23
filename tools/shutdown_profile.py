@@ -83,24 +83,35 @@ def assess(report, process, log, profile=None):
         expected_ids=list(profile['observation']['startup_extensions'])
         if expected:
             expected_ids+=profile['navigation_extension_ids']
+        bounds=profile.get('candidate')=='viewport-bounds'
+        required_checks=set(REQUIRED_CHECKS)
+        if bounds:
+            expected_ids+=['mmporong.scene.review-0.1.0']
+            required_checks.remove('review extension never enabled')
+            required_checks.update(('review initially disabled','review disabled after candidate'))
         events=report.get('stage_events',[])
         required={
-            'required_checks':REQUIRED_CHECKS.issubset({c.get('name') for c in checks if c.get('passed') is True}),
+            'required_checks':required_checks.issubset({c.get('name') for c in checks if c.get('passed') is True}),
             'fixture':process.get('fixture_bytes_preserved') is True and report.get('fixture_sha256')==profile['fixture_sha256'],
             'public_close':report.get('file_close_callback') is True,
             'stage_event_order':'CLOSING' in events and 'CLOSED' in events and events.index('CLOSING')<events.index('CLOSED'),
             'navigation_state':nav.get('core_enabled') is expected and nav.get('recast_enabled') is expected and nav.get('core_dll_loaded') is expected and nav.get('schema_enabled') is True,
             'startup_inventory':startup_extensions(log)==sorted(set(expected_ids)),
-            'review_disabled':any(c.get('name')=='review extension never enabled' and c.get('passed') is True for c in checks),
+            'review_disabled':any(c.get('name')==('review disabled after candidate' if bounds else 'review extension never enabled') and c.get('passed') is True for c in checks),
             'lease':process.get('shared_admission',{}).get('admitted') is True,
         }
         if profile.get('candidate'):
             candidate=report.get('candidate',{})
             candidate_checks=candidate.get('checks',[])
+            if bounds:
+                from viewport_bounds_candidate import check_names
+                names=check_names()
+            else:names=reuse_check_names()
             required['candidate']=(profile['variant']=='no-navigation' and candidate.get('status')=='passed'
-                and len(candidate_checks)==40 and {c.get('name') for c in candidate_checks if c.get('passed') is True}==reuse_check_names()
+                and len(candidate_checks)==len(names) and {c.get('name') for c in candidate_checks if c.get('passed') is True}==names
                 and candidate.get('owned_resources_remaining') is False and candidate.get('working_stage_preserved') is True
                 and report.get('candidate_settings_preserved') is True)
+            if bounds:required['candidate']=required['candidate'] and candidate.get('pending_before') is False and candidate.get('pending_after') is False
         if profile.get('attach_control'):
             control=report.get('attach_control',{})
             required['attach_control']=(profile['variant']=='no-navigation' and not profile.get('candidate')

@@ -45,11 +45,11 @@ def main():
     parser.add_argument('--probe',type=Path,default=Path(__file__).with_name('in_app_lifecycle_probe.py'))
     parser.add_argument('--timeout',type=float,default=180)
     parser.add_argument('--full-app',action='store_true',help='Use the existing full Isaac app in a fresh portable profile')
-    parser.add_argument('--baseline',action='store_true',help='Project-free full-app control; does not package or expose the review extension')
+    parser.add_argument('--baseline',action='store_true',help='Project-free full-app control unless an explicit reduced-profile treatment is selected')
     parser.add_argument('--shutdown-control',choices=('normal','file-close','uncancellable'),
                         help='Owned unchanged-fixture shutdown route; requires --baseline and containment')
     parser.add_argument('--shutdown-profile',choices=PROFILES,help='Pinned owned baseline only; requires official shared wrapper')
-    parser.add_argument('--shutdown-candidate',choices=('viewport-reuse',),help='Explicit sequential candidate treatment, no-navigation profile only')
+    parser.add_argument('--shutdown-candidate',choices=('viewport-reuse','viewport-bounds'),help='Explicit project treatment, no-navigation profile only')
     parser.add_argument('--attach-control',choices=('wait','attach','open'),help='Matched 60-update no-viewport control, reduced profile only')
     parser.add_argument('--full-feature-validation',action='store_true',help='Explicit owned-host probe-only access behind the unchanged full-app product guard')
     parser.add_argument('--verify-full-guard',action='store_true',help='SDK topology probe also checks product Full Isaac refusal before native review ownership')
@@ -90,10 +90,13 @@ def main():
     elif args.shutdown_control:
         fixture.write_text('#usda 1.0\n(\n    upAxis = "Z"\n    metersPerUnit = 1\n)\ndef Xform "World" {\n    def Cube "Item" {\n        double size = 2\n    }\n}\n',encoding='utf-8')
     fixture_hash=hashlib.sha256(fixture.read_bytes()).hexdigest() if args.shutdown_control else None
-    if not args.baseline:
+    if not args.baseline or args.shutdown_candidate=='viewport-bounds':
         package(root/'extension.zip')
         with zipfile.ZipFile(root/'extension.zip') as archive:
             archive.extractall(root/'exts/mmporong.scene.review')
+    if args.shutdown_candidate=='viewport-bounds':
+        from viewport_bounds_candidate import prepare
+        prepare(root,fixture_data)
     runner=root/'exts/in.app.probe';(runner/'config').mkdir(parents=True)
     (runner/'config/extension.toml').write_text('''[package]
 version="0.1.0"
@@ -115,7 +118,8 @@ name="probe"
     if args.attach_control:
         shutil.copyfile(Path(__file__).with_name('attach_only_control.py'),runner/'attach_only_control.py')
     if args.shutdown_candidate:
-        shutil.copyfile(Path(__file__).with_name('viewport_reuse_candidate.py'),runner/'viewport_reuse_candidate.py')
+        name='viewport_bounds_candidate.py' if args.shutdown_candidate=='viewport-bounds' else 'viewport_reuse_candidate.py'
+        shutil.copyfile(Path(__file__).with_name(name),runner/name)
     app=root/'in-app.kit'
     app.write_text('''[package]
 title="USD Review In-App Validation"
