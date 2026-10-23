@@ -9,7 +9,9 @@ import subprocess
 import sys
 import time
 import zipfile
+sys.path.insert(0,str(Path(__file__).resolve().parent))
 from package_extension import package
+from shutdown_profile import PROFILES,load_profile,validate_sdk,shared_admission,finish_job,assess
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'src'))
 from usd_scene_review.worker_client import WindowsJob, resume_owned_process
 
@@ -46,6 +48,7 @@ def main():
     parser.add_argument('--baseline',action='store_true',help='Project-free full-app control; does not package or expose the review extension')
     parser.add_argument('--shutdown-control',choices=('normal','file-close','uncancellable'),
                         help='Owned unchanged-fixture shutdown route; requires --baseline and containment')
+    parser.add_argument('--shutdown-profile',choices=PROFILES,help='Pinned owned baseline only; requires official shared wrapper')
     parser.add_argument('--full-feature-validation',action='store_true',help='Explicit owned-host probe-only access behind the unchanged full-app product guard')
     parser.add_argument('--verify-full-guard',action='store_true',help='SDK topology probe also checks product Full Isaac refusal before native review ownership')
     parser.add_argument('--fail-fast-native',action='store_true',help='Contain the owned Job at the first known native graphics failure')
@@ -62,9 +65,21 @@ def main():
         parser.error('--full-feature-validation requires --full-app without --baseline')
     if args.verify_full_guard and (not args.full_app or args.baseline):
         parser.error('--verify-full-guard requires --full-app without --baseline')
+    if args.shutdown_profile and not (args.full_app and args.baseline and args.shutdown_control=='file-close' and args.fail_fast_native):
+        parser.error('--shutdown-profile requires --full-app --baseline --shutdown-control file-close --fail-fast-native')
+    profile=fixture_data=None
+    if args.shutdown_profile:
+        profile,fixture_data=load_profile(args.shutdown_profile)
+        validate_sdk(sdk,profile)
+    # Every native diagnostic now requires real canonical lease ownership, not
+    # an idle snapshot or a completed/old JSON owner string.
+    admission=shared_admission(profile['owner'] if profile else None)
     root.mkdir(parents=True,exist_ok=False)
+    if profile:(root/'shutdown-profile.json').write_text(json.dumps(profile,indent=2))
     fixture=root/'shutdown-fixture.usda'
-    if args.shutdown_control:
+    if fixture_data is not None:
+        fixture.write_bytes(fixture_data)
+    elif args.shutdown_control:
         fixture.write_text('#usda 1.0\n(\n    upAxis = "Z"\n    metersPerUnit = 1\n)\ndef Xform "World" {\n    def Cube "Item" {\n        double size = 2\n    }\n}\n',encoding='utf-8')
     fixture_hash=hashlib.sha256(fixture.read_bytes()).hexdigest() if args.shutdown_control else None
     if not args.baseline:
@@ -113,6 +128,7 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
              '--/app/userConfigPath='+str(root/'user.config.json'),
              '--/exts/in.app.probe/output='+str(root),
              '--/exts/in.app.probe/shutdownRoute='+str(args.shutdown_control or ''),
+             '--/exts/in.app.probe/profile='+('shutdown-profile.json' if profile else ''),
              '--/exts/in.app.probe/topology='+args.topology,
              '--/exts/in.app.probe/fullFeatureValidation='+str(args.full_feature_validation).lower(),
              '--/exts/in.app.probe/verifyFullGuard='+str(args.verify_full_guard).lower(),
@@ -120,12 +136,25 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
              '--/app/extensions/registryEnabled=false','--/app/extensions/syncRegistryOnStartup=false',
              '--/renderer/multiGpu/autoEnable=false','--/app/asyncRendering=false',
              '--/app/window/width=1600','--/app/window/height=900']
+    if profile:
+        command+=['--/app/extensions/excluded/'+str(i)+'='+name for i,name in enumerate(profile['exclusions'])]
+        command+=['--enable',profile['required_schema']]
     process=job=None
     def receipt(result):
+        nonlocal job
         result.update(owned_pid=process.pid,owned_process_reaped=process.poll() is not None)
+        result['shared_admission']=admission
+        if job:
+            try:result.update(finish_job(job))
+            except Exception as exc:
+                result.update(owned_job_empty=False,owned_job_cleanup_error=type(exc).__name__)
+            finally:
+                job.close();job=None
+        result['owned_job_closed']=True
         if fixture_hash is not None:
-            result['fixture_bytes_preserved']=hashlib.sha256(fixture.read_bytes()).hexdigest()==fixture_hash
-            result['passed']=result['passed'] and result['fixture_bytes_preserved']
+            result['fixture_bytes_preserved']=fixture.is_file() and hashlib.sha256(fixture.read_bytes()).hexdigest()==fixture_hash
+        report=json.loads((root/'result.json').read_text()) if (root/'result.json').exists() else {}
+        result.update(assess(report,result,(root/'console.log').read_text(encoding='utf-8',errors='replace'),profile))
         (root/'process-result.json').write_text(json.dumps(result,indent=2))
         print(json.dumps(result))
     parent_env=dict(os.environ)
@@ -134,6 +163,9 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
         'isolated_python':args.isolated_python_environment,
         'removed_variable_names':sorted(set(parent_env)-set(env))},indent=2))
     try:
+        confirmed=shared_admission(profile['owner'] if profile else None)
+        if confirmed['lease_id']!=admission['lease_id']:
+            raise RuntimeError('Shared lease changed before suspended host creation')
         with (root/'console.log').open('w',encoding='utf-8') as log:
             process=subprocess.Popen(command,cwd=sdk,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=4)
             job=WindowsJob(process);resume_owned_process(process)
@@ -161,7 +193,8 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
         failures=native_failures((root/'console.log').read_text(encoding='utf-8',errors='replace'))
         result=dict(process_exit=code,functional_checks_passed=report.get('status')=='passed',native_errors=failures,
                     passed=code==0 and report.get('status')=='passed' and not failures)
-        receipt(result);return 0 if result['passed'] else 1
+        receipt(result)
+        return 0 if result['passed'] else (2 if result['native_exit_ok'] and result['profile_conditions_met'] else 1)
     finally:
         if process and process.poll() is None:
             if job:job.terminate()

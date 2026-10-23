@@ -16,6 +16,11 @@ callback (`940-972`). `prompt_if_unsaved_stage` offers Save, Don't Save and Canc
 
 ## Prepared isolated routes
 
+Use the [pinned profile and canonical shared-wrapper entry](shutdown-profile.md)
+for the preserved reduced control and its matched Full counterpart. All native
+launcher paths require active shared admission; low GPU utilization alone is not
+permission to run. A completed/old owner string does not grant a lease.
+
 `tools/run_in_app_validation.py --shutdown-control ROUTE` requires
 `--full-app --baseline --fail-fast-native`, before creating any output. Baseline
 mode does not package or expose the review extension. The launcher creates one
@@ -35,8 +40,8 @@ close hypothesis, then normal and same-fixture uncancellable controls only if no
 native failure occurred. At the first known native error the launcher contains
 only its owned Job; do not proceed automatically to another GPU control.
 
-Use the installed Python/OpenUSD environment described in the Windows validation
-instructions. Example arguments after the existing `with_openusd.py` wrapper:
+The internal arguments below are only for a child already admitted by the official
+shared wrapper. They are refused outside that ownership; prefer the profile entry.
 
 ```text
 tools/run_in_app_validation.py --isaac-root <existing-sdk> --output <new-owned-output> --full-app --baseline --shutdown-control file-close --fail-fast-native --timeout 240
@@ -61,10 +66,14 @@ are confirmed. Unexpected prompts fail or time out; there is no substitute quit.
   functional checks passed, no known native failures, unchanged fixture, and PID
   reaping. Review the log separately for warnings not in the known failure set.
 
-The new three-route controls are **NOT RUN** at preparation time because another
-Kit host continued using the GPU. Final Windows CPU regression ran 159 cases:
-157 passed, two privilege skips, zero failures/errors (67.331 s). CPU checks verify
-the launch restrictions and absence of save/pending-edit mutation calls; they do
-not verify the SDK prompt, close callbacks, or clean exit. Previous uncancellable
-baseline failures and the 40-check candidate shutdown failure remain unresolved.
+Later file-close observations: the navigation-included SDK baseline crashed in
+navigation core after its close callback (shared GPU exclusion was not verified).
+One official-lease navigation-excluded host then reached exit0, CLOSING/CLOSED,
+unchanged file and reaping, but retained82 errors/824 warnings. The stricter
+[preserved profile](shutdown-profile.md) does not call this clean success. Ordinary
+quit and save/discard UI remain unrun. A later lease-controlled matched Full passed
+14 checks then crashed at navigation core `+0x18014`; its owned Job and shared lock
+were recovered. See the pinned profile for the two-control contrast. Prior
+uncancellable failures and the40-check viewport candidate shutdown failure remain
+unresolved. CPU checks verify policies, not SDK prompt/cleanup behavior.
 No upstream issue was sent, and no SDK, driver or global setting was changed.
