@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory=$true)][string]$Output,
     [ValidateSet('no-navigation','matched-full')][string]$DiagnosticProfile='no-navigation',
     [ValidateSet('none','viewport-reuse')][string]$Candidate='none',
-    [ValidateSet('none','wait','attach')][string]$AttachControl='none',
+    [ValidateSet('none','wait','attach','open')][string]$AttachControl='none',
     [switch]$OwnedChild
 )
 $ErrorActionPreference='Stop'

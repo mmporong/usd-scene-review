@@ -109,7 +109,8 @@ def assess(report, process, log, profile=None):
                 and control.get('default_pending_preserved') is True
                 and control.get('owned_resources_remaining') is False
                 and bool(control.get('checks')) and all(check.get('passed') is True for check in control['checks'])
-                and (control.get('mode')=='wait' or control.get('owned_stage_closed') is True))
+                and (control.get('mode')=='wait' or control.get('owned_stage_closed') is True)
+                and (control.get('mode')!='open' or control.get('owned_fixture_preserved') is True))
         reasons=[name for name,ok in required.items() if not ok]
         conditions=conditions and not reasons
     clean=native_ok and conditions and not any(summary.get(k) for k in

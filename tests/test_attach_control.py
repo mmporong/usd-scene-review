@@ -17,6 +17,18 @@ policy=importlib.util.module_from_spec(spec);spec.loader.exec_module(policy)
 
 
 class AttachControlTests(unittest.TestCase):
+    def test_open_fixture_is_independent_exact_bytes_and_never_overwritten(self):
+        spec=importlib.util.spec_from_file_location('owned_open_copy',ROOT/'tools/attach_only_control.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            source=Path(tmp)/'source.usda';destination=Path(tmp)/'owned.usda'
+            source.write_bytes(b'owned fixture\r\n')
+            digest=module.prepare_open_fixture(source,destination)
+            import hashlib
+            self.assertEqual(digest,hashlib.sha256(source.read_bytes()).hexdigest())
+            self.assertEqual(source.read_bytes(),destination.read_bytes())
+            with self.assertRaises(FileExistsError):module.prepare_open_fixture(source,destination)
+            self.assertEqual(source.read_bytes(),b'owned fixture\r\n')
     def test_unpinned_full_and_combined_candidate_controls_fail_before_admission(self):
         path=ROOT/'tools/run_in_app_validation.py'
         spec=importlib.util.spec_from_file_location('attach_control_launcher',path)
@@ -63,4 +75,8 @@ class AttachControlTests(unittest.TestCase):
         report['attach_control'].update(mode='attach');profile['attach_control']='attach'
         self.assertFalse(policy.assess(report,process,log,profile)['passed'])
         report['attach_control']['owned_stage_closed']=True
+        self.assertTrue(policy.assess(report,process,log,profile)['passed'])
+        report['attach_control']['mode']='open';profile['attach_control']='open'
+        self.assertFalse(policy.assess(report,process,log,profile)['passed'])
+        report['attach_control']['owned_fixture_preserved']=True
         self.assertTrue(policy.assess(report,process,log,profile)['passed'])

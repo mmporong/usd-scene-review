@@ -2,13 +2,20 @@
 import asyncio
 import hashlib
 import json
+from pathlib import Path
 from uuid import uuid4
 
 UPDATE_BUDGET=60
 
 
+def prepare_open_fixture(fixture,destination):
+    data=fixture.read_bytes()
+    with destination.open('xb') as stream:stream.write(data)
+    return hashlib.sha256(data).hexdigest()
+
+
 async def evaluate(parent,root,mode):
-    if mode not in ('wait','attach'):
+    if mode not in ('wait','attach','open'):
         raise ValueError('Unknown attach control')
     import omni.kit.app
     import omni.usd
@@ -24,6 +31,7 @@ async def evaluate(parent,root,mode):
     parent.result['attach_control']=result
     name='review_attach_'+uuid4().hex
     ctx=timeline=stage=cache_id=task=subscription=None
+    open_fixture=root/'owned-open-fixture.usda'
     def write():
         (root/'attach-control-result.json').write_text(json.dumps(result,indent=2))
         parent.write()
@@ -44,27 +52,40 @@ async def evaluate(parent,root,mode):
         ctx=omni.usd.create_context(name)
         timeline=omni.timeline.get_timeline_interface(name);ctx.set_timeline(name)
         sample('context-created')
-        layer=Sdf.Layer.CreateAnonymous('attach-fixture.usda')
-        check('pinned fixture copied',layer.ImportFromString(fixture.read_text(encoding='utf-8')))
-        stage=Usd.Stage.Open(layer)
-        cache_id=UsdUtils.StageCache.Get().Insert(stage)
+        if mode=='open':
+            result['owned_fixture_sha256']=prepare_open_fixture(fixture,open_fixture)
+            check('separate pinned file copy',open_fixture.resolve()!=fixture.resolve())
+        else:
+            layer=Sdf.Layer.CreateAnonymous('attach-fixture.usda')
+            check('pinned fixture copied',layer.ImportFromString(fixture.read_text(encoding='utf-8')))
+            stage=Usd.Stage.Open(layer)
+            cache_id=UsdUtils.StageCache.Get().Insert(stage)
         result['fixture_sha256']=hashlib.sha256(fixture.read_bytes()).hexdigest()
         def event(event):
-            result['owned_stage_events'].append(int(event.type));write()
+            number=int(event.type)
+            result['owned_stage_events'].append(number)
+            if number==int(omni.usd.StageEventType.DIRTY_STATE_CHANGED):
+                result.setdefault('owned_dirty_events',[]).append({'updates_completed':result['updates_completed'],
+                    'state':context_receipt(ctx,ctx,stage,fixture)})
+            write()
         subscription=ctx.get_stage_event_stream().create_subscription_to_pop(event,name='owned attach-only receipt')
         sample('fixture-ready')
         if mode=='attach':task=asyncio.ensure_future(ctx.attach_stage_async(stage))
+        elif mode=='open':task=asyncio.ensure_future(ctx.open_stage_async(str(open_fixture)))
         for update in range(UPDATE_BUDGET):
             await app.next_update_async()
             result['updates_completed']=update+1
-            if task is not None and task.done() and 'attach_completed_update' not in result:
-                result['attach_completed_update']=update+1
+            if task is not None and task.done() and mode+'_completed_update' not in result:
+                result[mode+'_completed_update']=update+1
+                if mode=='open':stage=ctx.get_stage()
             sample('update-'+str(update+1))
         if task is not None:
-            check('attach finished within budget',task.done())
-            ok,error=task.result();result['attach_error']=error
-            check('attach succeeded',ok)
+            check('operation finished within budget',task.done())
+            ok,error=task.result();result['operation_error']=error
+            check('operation succeeded',ok)
             check('owned context holds independent stage',ctx.get_stage()==stage and stage!=original)
+            if mode=='open':
+                check('opened only owned file',Path(stage.GetRootLayer().realPath).resolve()==open_fixture.resolve())
         else:
             check('wait leaves context empty',ctx.get_stage() is None)
         check('no extra viewport',len(list(ViewportWidget.get_instances()))==views)
@@ -88,6 +109,9 @@ async def evaluate(parent,root,mode):
             ctx=None;result['context_destroyed']=bool(omni.usd.destroy_context(name))
             timeline=None;result['timeline_destroyed']=bool(omni.timeline.destroy_timeline(name))
         result['owned_resources_remaining']=not (result.get('context_destroyed') and result.get('timeline_destroyed'))
+        if mode=='open' and 'owned_fixture_sha256' in result:
+            result['owned_fixture_preserved']=hashlib.sha256(open_fixture.read_bytes()).hexdigest()==result['owned_fixture_sha256']
+            if not result['owned_fixture_preserved']:result.update(status='failed',reason='Owned open fixture changed')
         sample('after-cleanup');write()
     if result['status']!='passed' or result['owned_resources_remaining']:
         raise RuntimeError('Attach-only control failed: '+result.get('reason','cleanup'))
