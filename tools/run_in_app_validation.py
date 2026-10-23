@@ -1,5 +1,6 @@
 """Owned, isolated installed-Kit test host; never attaches to an existing app."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -43,6 +44,8 @@ def main():
     parser.add_argument('--timeout',type=float,default=180)
     parser.add_argument('--full-app',action='store_true',help='Use the existing full Isaac app in a fresh portable profile')
     parser.add_argument('--baseline',action='store_true',help='Project-free full-app control; does not package or expose the review extension')
+    parser.add_argument('--shutdown-control',choices=('normal','file-close','uncancellable'),
+                        help='Owned unchanged-fixture shutdown route; requires --baseline and containment')
     parser.add_argument('--full-feature-validation',action='store_true',help='Explicit owned-host probe-only access behind the unchanged full-app product guard')
     parser.add_argument('--verify-full-guard',action='store_true',help='SDK topology probe also checks product Full Isaac refusal before native review ownership')
     parser.add_argument('--fail-fast-native',action='store_true',help='Contain the owned Job at the first known native graphics failure')
@@ -53,11 +56,17 @@ def main():
     if args.probe.name=='in_app_native_texture_probe.py' and (not args.full_app or not args.fail_fast_native):
         parser.error('native texture reproducer requires --full-app and --fail-fast-native')
     if args.baseline and not args.full_app:parser.error('--baseline requires --full-app')
+    if args.shutdown_control and (not args.baseline or not args.fail_fast_native):
+        parser.error('--shutdown-control requires --baseline --full-app --fail-fast-native')
     if args.full_feature_validation and (not args.full_app or args.baseline):
         parser.error('--full-feature-validation requires --full-app without --baseline')
     if args.verify_full_guard and (not args.full_app or args.baseline):
         parser.error('--verify-full-guard requires --full-app without --baseline')
     root.mkdir(parents=True,exist_ok=False)
+    fixture=root/'shutdown-fixture.usda'
+    if args.shutdown_control:
+        fixture.write_text('#usda 1.0\n(\n    upAxis = "Z"\n    metersPerUnit = 1\n)\ndef Xform "World" {\n    def Cube "Item" {\n        double size = 2\n    }\n}\n',encoding='utf-8')
+    fixture_hash=hashlib.sha256(fixture.read_bytes()).hexdigest() if args.shutdown_control else None
     if not args.baseline:
         package(root/'extension.zip')
         with zipfile.ZipFile(root/'extension.zip') as archive:
@@ -75,7 +84,8 @@ version="0.1.0"
 [[python.module]]
 name="probe"
 ''',encoding='utf-8')
-    probe=Path(__file__).with_name('in_app_baseline_probe.py') if args.baseline else args.probe
+    probe=Path(__file__).with_name('in_app_shutdown_probe.py') if args.shutdown_control else (
+        Path(__file__).with_name('in_app_baseline_probe.py') if args.baseline else args.probe)
     shutil.copyfile(probe,runner/'probe.py')
     app=root/'in-app.kit'
     app.write_text('''[package]
@@ -102,6 +112,7 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
              '--ext-folder',str(root/'exts'),'--/log/file='+str(root/'kit.log'),
              '--/app/userConfigPath='+str(root/'user.config.json'),
              '--/exts/in.app.probe/output='+str(root),
+             '--/exts/in.app.probe/shutdownRoute='+str(args.shutdown_control or ''),
              '--/exts/in.app.probe/topology='+args.topology,
              '--/exts/in.app.probe/fullFeatureValidation='+str(args.full_feature_validation).lower(),
              '--/exts/in.app.probe/verifyFullGuard='+str(args.verify_full_guard).lower(),
@@ -110,6 +121,13 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
              '--/renderer/multiGpu/autoEnable=false','--/app/asyncRendering=false',
              '--/app/window/width=1600','--/app/window/height=900']
     process=job=None
+    def receipt(result):
+        result.update(owned_pid=process.pid,owned_process_reaped=process.poll() is not None)
+        if fixture_hash is not None:
+            result['fixture_bytes_preserved']=hashlib.sha256(fixture.read_bytes()).hexdigest()==fixture_hash
+            result['passed']=result['passed'] and result['fixture_bytes_preserved']
+        (root/'process-result.json').write_text(json.dumps(result,indent=2))
+        print(json.dumps(result))
     parent_env=dict(os.environ)
     env=kit_environment(parent_env,args.isolated_python_environment)
     (root/'launch-environment.json').write_text(json.dumps({
@@ -128,8 +146,7 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                             job.terminate();process.wait(timeout=15)
                             result=dict(process_exit=process.returncode,passed=False,native_errors=failures,
                                         termination='owned Job contained after native failure; not a clean shutdown')
-                            (root/'process-result.json').write_text(json.dumps(result,indent=2))
-                            print(json.dumps(result));return 1
+                            receipt(result);return 1
                     remaining=deadline-time.monotonic()
                     if remaining<=0:raise subprocess.TimeoutExpired(command,args.timeout)
                     try:process.wait(timeout=min(.5,remaining))
@@ -139,14 +156,12 @@ exts."omni.kit.viewport.window".startup.disableWindowOnLoad=true
                 job.terminate();process.wait(timeout=15)
                 result=dict(process_exit=process.returncode,passed=False,timed_out=True,
                             termination='owned Windows Job terminated; not a clean shutdown')
-                (root/'process-result.json').write_text(json.dumps(result,indent=2))
-                print(json.dumps(result));return 1
+                receipt(result);return 1
         report=json.loads((root/'result.json').read_text()) if (root/'result.json').exists() else {}
         failures=native_failures((root/'console.log').read_text(encoding='utf-8',errors='replace'))
         result=dict(process_exit=code,functional_checks_passed=report.get('status')=='passed',native_errors=failures,
                     passed=code==0 and report.get('status')=='passed' and not failures)
-        (root/'process-result.json').write_text(json.dumps(result,indent=2))
-        print(json.dumps(result));return 0 if result['passed'] else 1
+        receipt(result);return 0 if result['passed'] else 1
     finally:
         if process and process.poll() is None:
             if job:job.terminate()

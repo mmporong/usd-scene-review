@@ -5,6 +5,36 @@ import unittest
 
 
 class EngineProbePlanTests(unittest.TestCase):
+    def test_shutdown_control_requires_project_free_owned_containment(self):
+        import contextlib
+        import importlib.util
+        import io
+        import sys
+        import tempfile
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        tool=Path(__file__).resolve().parents[1]/'tools/run_in_app_validation.py'
+        spec=importlib.util.spec_from_file_location('shutdown_containment',tool)
+        module=importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules,{'package_extension':SimpleNamespace(package=None)}):
+            spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp:
+            output=Path(temp)/'not-created'
+            for flags in ([],['--baseline'],['--full-app'],['--full-app','--baseline']):
+                argv=[str(tool),'--isaac-root',temp,'--output',str(output),'--shutdown-control','normal',*flags]
+                with patch.object(sys,'argv',argv),contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit) as error:module.main()
+                self.assertEqual(error.exception.code,2)
+                self.assertFalse(output.exists())
+
+    def test_shutdown_probe_cannot_save_or_clear_pending_edits(self):
+        source=Path(__file__).resolve().parents[1]/'tools/in_app_shutdown_probe.py'
+        tree=ast.parse(source.read_text())
+        attrs={n.func.attr for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)}
+        self.assertFalse(attrs & {'Save','Export','set_pending_edit','set_bool','set','create_context','new_stage_async','CreateInMemory'})
+        names={n.func.id for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name)}
+        self.assertNotIn('ViewportWidget',names)
+
     def test_native_reproducer_refuses_launch_without_containment(self):
         import contextlib
         import importlib.util
