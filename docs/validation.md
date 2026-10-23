@@ -1,5 +1,30 @@
 # Validation status
 
+## Full Isaac follow-up branch, 2026-10-23
+
+The current follow-up is local and is not automatically merged back into main.
+A project-free Full Isaac baseline crashed on normal unload. Its dump and the
+previous topology run both report `0xc0000005` at `tf.dll+0xec7b`, providing matched
+baseline evidence distinct from the historical navigation-plugin error.
+
+An actual Full Isaac feature attempt passed 27 checks (selection/focus/evidence,
+camera synchronization, native Kit UI-test row click, rendered .22 green faces and
+opaque control) and captured the real UI, then failed on a released Hydra texture
+interface at the first review close. Fail-fast contained only the owned Job. Input
+snapshot integrity and source/frozen-copy equality pass after termination; working
+stage/settings restoration, repeat open/close, stage switch, active disable and
+full feature host exit were not reached. This is not a clean integration pass.
+
+The actual run exposed a filename-only Full-app guard detection defect. The local
+correction also checks the enabled `isaacsim.exp.full` experience and covers suffix
+and derived-app cases. Main still contains the earlier condition until separately
+authorized publication; source-presence checks had not proved actual refusal.
+CPU regressions pass, but native confirmation and serial texture-teardown diagnosis
+are pending after another Factory GPU host started. No SDK/driver repair was made.
+
+Final CPU: **155 cases, 153 passed, two privilege skips, zero failures/errors**,
+73.140 seconds. See [precise evidence and remaining checks](in-app-sdk-diagnosis.md).
+
 ## Continuation, 2026-10-23 (CPU only)
 
 Other Factory/Isaac GPU work was confirmed running; no new GPU host was launched

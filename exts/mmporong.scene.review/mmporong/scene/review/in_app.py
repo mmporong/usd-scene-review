@@ -39,8 +39,12 @@ def retained_review():
 
 
 def full_host_blocked():
-    filename=omni.kit.app.get_app().get_app_filename().replace('\\','/').rsplit('/',1)[-1].lower()
-    return filename=='isaacsim.exp.full.kit'
+    app=omni.kit.app.get_app()
+    filename=app.get_app_filename().replace('\\','/').rsplit('/',1)[-1].lower()
+    # Experience identity is also an enabled extension. Do not rely on the
+    # filename including its suffix, or on a derived app retaining that filename.
+    return (filename in ('isaacsim.exp.full','isaacsim.exp.full.kit')
+            or app.get_extension_manager().is_extension_enabled('isaacsim.exp.full'))
 
 
 class InAppReview:

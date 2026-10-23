@@ -1,4 +1,59 @@
-# Read-only SDK structure diagnosis, 2026-10-22
+# SDK structure and runtime diagnosis
+
+## Actual Full Isaac follow-up, 2026-10-23
+
+After the other Kit host exited, precheck found only a CPU dashboard plus desktop
+GPU clients, about 2.4 GiB occupied VRAM and no Kit/Isaac compute host. Two owned,
+fresh-profile tests were run sequentially on the merged code. No SDK/driver or other
+process was changed. A new Factory host subsequently occupied the GPU, so further
+native diagnosis and validation of the guard correction below are pending.
+
+**Project-free baseline:** the review extension was not exposed or enabled and no
+extra context/viewport was created. Its two setup checks passed. Normal SDK unload
+then crashed after viewport-window extension shutdown; the owned Job was contained,
+not a clean exit. The baseline minidump and prior `engine-sequence-01` minidump both
+report access violation `0xc0000005` at **`tf.dll+0xec7b`**. Module/exception addresses
+were read from the standard minidump module-list and exception streams. This is
+concrete matched baseline evidence for that shutdown failure, distinct from the
+historical navigation-plugin fault. It does not prove every comparison teardown
+failure has the same cause. Sensor UI `_menu_button1` and manipulator-factory Python
+errors also appear in this project-free control.
+
+**Full feature attempt:** 27 checks passed, covering two actual in-process views,
+translation/rotation/add/delete/parent selection and common focus/projection,
+35-degree evidence, camera synchronization, actual Kit UI-test row click,
+rendered green surfaces and the .22-versus-opaque control. Actual Full Isaac UI and
+viewport captures were produced. The first review close emitted the released
+Hydra-texture-interface warning, and fail-fast contained only the owned Job.
+Thus the overall run failed. Normal close confirmation, renderer/default-stage
+restoration, repeated opening, stage switch, active disable/re-enable and full
+feature host shutdown were **not reached**. No desktop mouse QA or Play was run.
+Postmortem loading verifies both snapshot manifests/dependencies; both original
+synthetic source files still match their frozen copies. Working-stage and renderer
+restoration at close cannot be established from this interrupted process.
+
+**Guard defect:** that actual Full host returned false from the former filename-only
+guard; the 27-check attempt therefore did not enter its requested test-only override.
+Earlier statements that the guard was present were source checks, not native proof
+that Full Isaac was correctly recognized. The follow-up branch now accepts filename
+with/without `.kit` and also checks the public extension manager for enabled
+`isaacsim.exp.full`. This covers renamed/derived Full experiences. CPU regressions
+pass, but the corrected actual-host refusal check is pending because Factory GPU
+work restarted. The merged main still has the earlier filename-only condition until
+a separately authorized publication/merge; this follow-up does not update main.
+
+The disposable feature probe has an explicit `--full-feature-validation` switch,
+scoped guard restoration in `finally` and CPU tests for refusal without opt-in and
+restoration after success/failure. It is not shipped in the extension. The SDK
+topology probe now supports `--verify-full-guard`, records actual app identity and
+brackets each viewport destruction plus an update barrier before the next. These
+new guard/serial-teardown native checks have **not run**; no native fix is claimed.
+
+Private run directories are `full-baseline-20261023-01` and
+`full-feature-20261023-01`; compact dump evidence is
+`shutdown-comparison-20261023.json`. Raw dumps/logs and host paths are not bundled.
+Final CPU regression: 155 cases, 153 passed, two privilege skips, no failures/errors
+(73.140 s). This includes the new experience-identity and probe-override regressions.
 
 The original structure review was CPU-only. The subsequently authorized narrow
 GPU controls below are now complete. Existing user changes, the full-app guard,
