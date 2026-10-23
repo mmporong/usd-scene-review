@@ -1,5 +1,20 @@
 # Validation status
 
+## Latest selected evidence and focus stay linked, 2026-10-23
+
+The [change-list routing audit](in-app-review.md#current-change-list-routes)
+identified dropped focus requests while a viewer operation was busy. The panel
+updated to the newly clicked item but the viewer could remain on the old one.
+Product selection routing now coalesces the latest prim/pair request and dispatches
+it after the current operation, only if an owned viewer is actually open. It never
+opens a viewer, targets the host camera or replays after viewer close/failure/shutdown.
+Actual product methods are covered by delayed-opening/frame/close CPU regressions.
+Same-app Full remains blocked and the host stage-free overlay is not implemented.
+This change adds no native mouse-click or GPU acceptance claim; no app-exit test ran.
+Final Windows CPU/package regression: 190 cases, 188 passed, two privilege skips,
+no failures/errors (43.704s). Six new stateful cases cover latest prim/pair focus,
+opening, in-flight work, stale completion and closed/failed/shutdown behavior.
+
 ## Working-stage contract versus whole-app exit, 2026-10-23
 
 One [grounded minimal/Full-derived named-open pair](review-preservation.md) used

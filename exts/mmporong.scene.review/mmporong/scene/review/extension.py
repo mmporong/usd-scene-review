@@ -44,6 +44,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._in_app = retained_review()
         self._in_app_blocked=full_host_blocked()
         self._task = None
+        self._frame_requested = False
         self._shutting_down = False
         self._report = None
         self._selected = None
@@ -147,9 +148,9 @@ class SceneReviewExtension(omni.ext.IExt):
         self._render_numeric(None)
         self._query_callback = self._query.add_value_changed_fn(lambda _: self._render_rows())
         self._focus_callback = self._focus.add_value_changed_fn(
-            lambda _: self._schedule(self._frame()) if self._viewer.state == 'running' else None)
+            lambda _: self._request_frame() if self._viewer.state == 'running' else None)
         self._ghost_callback = self._ghost.add_value_changed_fn(
-            lambda _: self._schedule(self._frame()) if self._viewer.state == 'running' else None)
+            lambda _: self._request_frame() if self._viewer.state == 'running' else None)
         self._inherited_callback = self._inherited.add_value_changed_fn(lambda _: self._render_rows())
         global _active
         _active = weakref.ref(self)
@@ -179,6 +180,30 @@ class SceneReviewExtension(omni.ext.IExt):
             self._message('Wait for the current viewer operation to complete.')
             return
         self._task = asyncio.ensure_future(self._run(operation))
+        self._task.add_done_callback(self._operation_finished)
+
+    def _request_frame(self):
+        # Keep the latest selection while opening/switching/framing is in flight.
+        # This never opens a viewer or targets the working stage's viewport.
+        if self._shutting_down or self._report is None:
+            self._frame_requested = False
+            return
+        self._frame_requested = True
+        if self._task and not self._task.done():
+            return
+        self._frame_requested = False
+        if self._viewer.state == 'running' or (self._in_app and self._in_app.state == 'open'):
+            self._schedule(self._frame())
+
+    def _operation_finished(self, task):
+        # An older completion must not clear a newer operation's ownership.
+        if self._task is not task:
+            return
+        self._task = None
+        if self._shutting_down:
+            self._frame_requested = False
+        elif self._frame_requested:
+            self._request_frame()
 
     async def _run(self, operation):
         try:
@@ -198,6 +223,7 @@ class SceneReviewExtension(omni.ext.IExt):
             self._message('Viewer cleanup unconfirmed. Close review before comparing again.')
             return
         self._report = None
+        self._frame_requested = False
         self._selected = None
         self._selected_change = None
         self._selected_pair = None
@@ -239,8 +265,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._load_review()
         self._details.set_value(details(change))
         self._render_numeric(change)
-        if self._viewer.state == 'running' or (self._in_app and self._in_app.state=='open'):
-            self._schedule(self._frame())
+        self._request_frame()
 
     def _render_pairs(self):
         self._pair_rows.clear()
@@ -266,8 +291,7 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.HStack(height=26):
                     ui.Label(name, width=220)
                     ui.Label(value, word_wrap=True)
-        if self._viewer.state == 'running' or (self._in_app and self._in_app.state=='open'):
-            self._schedule(self._frame())
+        self._request_frame()
 
     def _review_identity(self):
         if not self._report or not (self._selected_change or self._selected_pair):
@@ -304,7 +328,7 @@ class SceneReviewExtension(omni.ext.IExt):
     def _reload_review(self):
         self._load_review()
         if self._viewer.state == 'running':
-            self._schedule(self._frame())
+            self._request_frame()
 
     def _record_review(self, disposition):
         try:
@@ -315,7 +339,7 @@ class SceneReviewExtension(omni.ext.IExt):
                            forbidden_roots=[p.parent for p in self._comparison_paths.values()])
             self._show_review(event)
             if self._viewer.state == 'running':
-                self._schedule(self._frame())
+                self._request_frame()
         except Exception as exc:
             self._disposition.set_value('Review not saved: ' + str(exc))
 
@@ -422,6 +446,7 @@ class SceneReviewExtension(omni.ext.IExt):
         if get_active_extension() is self:
             _active = None
         self._shutting_down = True
+        self._frame_requested = False
         in_app_pending=False
         if self._in_app:
             self._in_app.message=lambda message,log=carb.log_warn:log('USD Scene Review: '+message)

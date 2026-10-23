@@ -1,5 +1,32 @@
 # Local in-app A/B candidate: full Isaac blocked
 
+## Current change-list routes
+
+| Action in the Isaac extension | Actual current route |
+| --- | --- |
+| Compare frozen snapshots | Shared comparison engine; no named context attachment |
+| Click a changed prim | Kit panel before/after values, deltas and direct/parent evidence update |
+| Click an AABB pair | Pair evidence and collision-unknown status; no fabricated changed prim |
+| Focus an object | Sent only to an already opened owned review viewer; the working viewport is never a target |
+| Open same-app live A/B | Experimental named contexts/widgets; Full guard refuses before ownership |
+| Legacy single-viewport review | Retained Isaac/Kit child viewer, explicitly a separate process, not same-app completion |
+| Main working-viewport stage-free geometry overlay | Not implemented; existing SceneView is a camera manipulator on owned review widgets |
+| Close review | Existing owned viewer cleanup; does not close the user's working stage |
+
+Selection routing now retains the latest request while opening, switching or
+framing is in flight. Previously numeric evidence changed immediately but the
+generic busy scheduler discarded the new frame request, leaving focus on the old
+object. Rapid prim/pair clicks now coalesce into one latest follow-up after the
+current operation completes. A closed/failed viewer, shutdown or comparison invalidation
+discards the request rather than reopening a viewer. Selecting evidence with no
+viewer never requests a native focus. No working-stage selection, source camera,
+source USD layer or host viewport is an authoring target of this routing change.
+
+Stateful CPU regressions exercise the actual product scheduling/selection methods
+with delayed operations. They do not establish actual mouse-click/GPU focus or
+unblock Full. No new native or whole-app shutdown experiment accompanies this fix.
+The existing Full integration and stage-free overlay gap remain explicit.
+
 Current [review-close/preservation contract and minimal/Full-derived pair](review-preservation.md)
 separate window/resource closure from whole-app exit. Named-open controls closed
 their owned contexts and preserved working contents/interaction in both hosts, but
