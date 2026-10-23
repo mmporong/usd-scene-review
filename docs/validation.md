@@ -1,12 +1,19 @@
 # Validation status
 
-## Prepared sequential candidate treatment, 2026-10-23
+## Sequential candidate ran; shutdown incomplete, 2026-10-23
 
-The [40-check/two-cycle public Widget treatment](reuse-profile-control.md) can now
-run before the same pinned reduced baseline file.close. Full-profile invocation is
-refused. Windows CPU 175 cases: 173 passed, two skips; new combined SDK treatment
-NOT RUN because normal shared acquisition returned 73 under RL Triage v2. No child
-was created. This is diagnostic preparation, not product A/B or clean-exit acceptance.
+The [public Widget treatment](reuse-profile-control.md) ran once under the pinned
+reduced profile and verified shared exclusion. All 40 candidate checks across two
+cycles and renderer-settings preservation passed. Public file.close then failed
+to produce its callback or default-stage CLOSING/CLOSED within 600 updates. The
+launcher contained only its owned Job and returned 1; no natural native exit or
+clean shutdown was observed. PID recovery, empty/closed Job, unchanged fixture and
+natural shared-lease release were verified. Console: zero error lines, 715 warning
+lines; no known native crash signature before containment. The exact close-path
+blocker is not established. No unchanged repeat is planned. Full-host product guard
+remains enabled; sequential cached A/B is not simultaneous live review. The prior
+Windows CPU result remains 175 cases: 173 passed, two skips; this result update is
+documentation only.
 
 ## Prepared shutdown-route controls, 2026-10-23
 
