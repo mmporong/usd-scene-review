@@ -83,12 +83,13 @@ def assess(report, process, log, profile=None):
         expected_ids=list(profile['observation']['startup_extensions'])
         if expected:
             expected_ids+=profile['navigation_extension_ids']
-        bounds=profile.get('candidate')=='viewport-bounds'
+        bounds=profile.get('candidate') in ('viewport-bounds','viewport-bounds-scale')
         required_checks=set(REQUIRED_CHECKS)
         if bounds:
             expected_ids+=['mmporong.scene.review-0.1.0']
             required_checks.remove('review extension never enabled')
             required_checks.update(('review initially disabled','review disabled after candidate'))
+            if profile.get('candidate')=='viewport-bounds-scale':required_checks.add('QA restored pinned fixture epoch')
         events=report.get('stage_events',[])
         required={
             'required_checks':required_checks.issubset({c.get('name') for c in checks if c.get('passed') is True}),
@@ -104,7 +105,10 @@ def assess(report, process, log, profile=None):
             candidate=report.get('candidate',{})
             candidate_checks=candidate.get('checks',[])
             if bounds:
-                from viewport_bounds_candidate import check_names
+                if profile.get('candidate')=='viewport-bounds-scale':
+                    from viewport_bounds_scale_qa import check_names
+                else:
+                    from viewport_bounds_candidate import check_names
                 names=check_names()
             else:names=reuse_check_names()
             required['candidate']=(profile['variant']=='no-navigation' and candidate.get('status')=='passed'
@@ -114,6 +118,9 @@ def assess(report, process, log, profile=None):
             if bounds:required['candidate']=(required['candidate'] and candidate.get('pending_before') is False and candidate.get('pending_after') is False
                 and candidate.get('activation_mode')=='persistent-manager-exclusions-v1'
                 and candidate.get('exclusion_preflight',{}).get('navigation_absent') is True)
+            if profile.get('candidate')=='viewport-bounds-scale':
+                from viewport_bounds_scale_qa import metrics_complete
+                required['scale_qa']=(candidate.get('fixture_epoch_restored') is True and metrics_complete(candidate.get('scales',[])))
         if profile.get('attach_control'):
             control=report.get('attach_control',{})
             required['attach_control']=(profile['variant']=='no-navigation' and not profile.get('candidate')

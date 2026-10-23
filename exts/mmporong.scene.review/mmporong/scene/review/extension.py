@@ -11,6 +11,7 @@ import omni.ext
 import omni.ui as ui
 
 from usd_scene_review import compare
+from usd_scene_review.overlay import ComparisonReceipt
 from usd_scene_review.presentation import details, summary, visible_changes
 from usd_scene_review.measurements import detail_rows, measurements
 from usd_scene_review.dispositions import change_identity, record, history, latest
@@ -43,6 +44,7 @@ class SceneReviewExtension(omni.ext.IExt):
         from .in_app import retained_review, full_host_blocked
         self._in_app = retained_review()
         self._bounds_overlay = None
+        self._overlay_receipt = None
         self._in_app_blocked=full_host_blocked()
         self._task = None
         self._frame_requested = False
@@ -223,6 +225,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._schedule(self._compare_async())
 
     async def _compare_async(self):
+        self._overlay_receipt=None
         self._close_bounds_overlay()
         if self._in_app and not await self._in_app.close():
             raise RuntimeError('In-app cleanup unconfirmed; comparison remains pinned')
@@ -243,7 +246,9 @@ class SceneReviewExtension(omni.ext.IExt):
         report = compare(paths['A'], paths['B'])
         if hashes != {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in paths.items()}:
             raise RuntimeError('Manifests changed during comparison; recreate frozen bundles')
+        receipt=ComparisonReceipt.capture(paths,report,hashes)
         self._report = report
+        self._overlay_receipt=receipt
         self._comparison_paths = paths
         self._comparison_hashes = hashes
         self._details.set_value(summary(self._report))
@@ -314,7 +319,7 @@ class SceneReviewExtension(omni.ext.IExt):
             from .bounds_overlay import BoundsOverlay
             self._close_bounds_overlay()
             self._bounds_overlay=BoundsOverlay(self._message)
-            self._bounds_overlay.open(self._comparison_paths,self._report,self._selected)
+            self._bounds_overlay.open(self._comparison_paths,self._report,self._selected,comparison_receipt=self._overlay_receipt)
             self._message('Snapshot A/B world bounds overlay shown; working camera and selection are unchanged.')
         except Exception as exc:
             self._close_bounds_overlay()
@@ -496,6 +501,7 @@ class SceneReviewExtension(omni.ext.IExt):
         if get_active_extension() is self:
             _active = None
         self._shutting_down = True
+        self._overlay_receipt=None
         self._close_bounds_overlay()
         self._frame_requested = False
         in_app_pending=False

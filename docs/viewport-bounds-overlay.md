@@ -1,5 +1,9 @@
 # Snapshot bounds in the working Isaac viewport
 
+See the later [two-scale deployment QA](bounds-deployment-qa.md) for actual callback
+latencies, repeated cleanup/memory samples and the verified-report reopen fix.
+Real mouse QA remains unavailable and large initial Compare is still blocking.
+
 The **Show snapshot bounds in working viewport** action draws selected revision
 bounds inside the existing default Isaac viewport. It creates an `omni.ui.scene`
 overlay, not USD prims, another USD context, a renderer texture or another viewport.

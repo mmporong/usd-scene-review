@@ -7,7 +7,10 @@ import unittest
 from unittest.mock import Mock
 from pxr import Gf,Usd,UsdGeom
 from usd_scene_review import compare,create_snapshot,load_snapshot
-from usd_scene_review.overlay import bounds_plan,overlay_text
+from usd_scene_review.overlay import bounds_plan,overlay_text,ComparisonReceipt,validate_report_reference
+from usd_scene_review.snapshot import digest
+from unittest.mock import patch
+import importlib
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -50,6 +53,29 @@ def adapter(snapshots,report):
 
 
 class BoundsOverlayTests(unittest.TestCase):
+    def test_pinned_report_avoids_reanalysis_without_accepting_changed_report_or_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths,report=fixture(Path(tmp));hashes={side:digest(path) for side,path in paths.items()}
+            receipt=ComparisonReceipt.capture(paths,report,hashes)
+            module=importlib.import_module('usd_scene_review.compare')
+            with patch.object(module,'compare',wraps=module.compare) as engine:
+                validate_report_reference(paths,report,receipt);engine.assert_not_called()
+                validate_report_reference(paths,report);engine.assert_called_once()
+            changed=copy.deepcopy(report);changed['analysis_config']['overlap']['tolerance_m']*=2
+            with self.assertRaises(ValueError):validate_report_reference(paths,changed,receipt)
+            with self.assertRaises(ValueError):validate_report_reference(paths,report,object())
+            paths['A'].write_text('{}')
+            self.assertFalse(receipt.matches(paths,report))
+            with self.assertRaises(ValueError):ComparisonReceipt.capture(paths,report,hashes)
+
+    def test_receipt_never_replaces_current_bundle_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths,report=fixture(Path(tmp));receipt=ComparisonReceipt.capture(paths,report,{s:digest(p) for s,p in paths.items()})
+            snapshots={s:load_snapshot(p) for s,p in paths.items()}
+            snapshot=snapshots['A'];snapshot.root.write_text(snapshot.root.read_text()+'\n# mutated\n')
+            self.assertTrue(receipt.matches(paths,report)) # manifest/report still pinned
+            with self.assertRaises(ValueError):bounds_plan(report,snapshots,'/World/Moved')
+
     def test_move_parent_delete_hidden_none_and_source_layers_preserved(self):
         with tempfile.TemporaryDirectory() as tmp:
             paths,report=fixture(Path(tmp));snapshots={s:load_snapshot(p) for s,p in paths.items()}

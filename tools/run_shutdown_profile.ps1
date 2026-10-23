@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$IsaacRoot,
     [Parameter(Mandatory=$true)][string]$Output,
     [ValidateSet('no-navigation','matched-full')][string]$DiagnosticProfile='no-navigation',
-    [ValidateSet('none','viewport-reuse','viewport-bounds')][string]$Candidate='none',
+    [ValidateSet('none','viewport-reuse','viewport-bounds','viewport-bounds-scale')][string]$Candidate='none',
     [ValidateSet('none','wait','attach','open')][string]$AttachControl='none',
     [switch]$OwnedChild
 )
@@ -47,5 +47,7 @@ $python=Join-Path $sdk 'kit/python/python.exe'
 $candidateArgs=@()
 if($Candidate -ne 'none'){$candidateArgs=@('--shutdown-candidate',$Candidate)}
 if($AttachControl -ne 'none'){$candidateArgs=@('--attach-control',$AttachControl)}
-& $python -B (Join-Path $PSScriptRoot 'with_openusd.py') --isaac-root $sdk --python $python --timeout 300 -- (Join-Path $PSScriptRoot 'run_in_app_validation.py') --isaac-root $sdk --output $outputPath --full-app --baseline --shutdown-control file-close --shutdown-profile $DiagnosticProfile --fail-fast-native --timeout 240 @candidateArgs
+$hostLimit=240
+if($Candidate -eq 'viewport-bounds-scale'){$hostLimit=600}
+& $python -B (Join-Path $PSScriptRoot 'with_openusd.py') --isaac-root $sdk --python $python --timeout ($hostLimit+60) -- (Join-Path $PSScriptRoot 'run_in_app_validation.py') --isaac-root $sdk --output $outputPath --full-app --baseline --shutdown-control file-close --shutdown-profile $DiagnosticProfile --fail-fast-native --timeout $hostLimit @candidateArgs
 exit $LASTEXITCODE
