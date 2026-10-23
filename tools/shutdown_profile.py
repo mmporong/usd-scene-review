@@ -101,6 +101,15 @@ def assess(report, process, log, profile=None):
                 and len(candidate_checks)==40 and {c.get('name') for c in candidate_checks if c.get('passed') is True}==reuse_check_names()
                 and candidate.get('owned_resources_remaining') is False and candidate.get('working_stage_preserved') is True
                 and report.get('candidate_settings_preserved') is True)
+        if profile.get('attach_control'):
+            control=report.get('attach_control',{})
+            required['attach_control']=(profile['variant']=='no-navigation' and not profile.get('candidate')
+                and control.get('mode')==profile['attach_control'] and control.get('status')=='passed'
+                and control.get('update_budget')==60 and control.get('updates_completed')==60
+                and control.get('default_pending_preserved') is True
+                and control.get('owned_resources_remaining') is False
+                and bool(control.get('checks')) and all(check.get('passed') is True for check in control['checks'])
+                and (control.get('mode')=='wait' or control.get('owned_stage_closed') is True))
         reasons=[name for name,ok in required.items() if not ok]
         conditions=conditions and not reasons
     clean=native_ok and conditions and not any(summary.get(k) for k in

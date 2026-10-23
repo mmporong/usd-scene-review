@@ -148,6 +148,10 @@ class Probe(omni.ext.IExt):
                 self.write()
             self.subscriptions.append(ctx.get_stage_event_stream().create_subscription_to_pop(stage_event,name='owned shutdown stage receipt'))
             self.subscriptions.append(app.get_shutdown_event_stream().create_subscription_to_pop(quit_event,name='owned shutdown route receipt',order=-1))
+            if profile_name and profile.get('attach_control'):
+                self.check('attach control reduced without candidate',profile['variant']=='no-navigation' and not profile.get('candidate'))
+                from attach_only_control import evaluate as evaluate_attach
+                await evaluate_attach(self,self.root,profile['attach_control'])
             if profile_name and profile.get('candidate'):
                 self.check('candidate only on reduced profile',profile['variant']=='no-navigation' and profile['candidate']=='viewport-reuse')
                 settings_keys=('/rtx/useViewLightingMode','/rtx/post/tonemap/op','/app/asyncRendering',

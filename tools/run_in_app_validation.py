@@ -50,6 +50,7 @@ def main():
                         help='Owned unchanged-fixture shutdown route; requires --baseline and containment')
     parser.add_argument('--shutdown-profile',choices=PROFILES,help='Pinned owned baseline only; requires official shared wrapper')
     parser.add_argument('--shutdown-candidate',choices=('viewport-reuse',),help='Explicit sequential candidate treatment, no-navigation profile only')
+    parser.add_argument('--attach-control',choices=('wait','attach'),help='Matched 60-update no-viewport control, reduced profile only')
     parser.add_argument('--full-feature-validation',action='store_true',help='Explicit owned-host probe-only access behind the unchanged full-app product guard')
     parser.add_argument('--verify-full-guard',action='store_true',help='SDK topology probe also checks product Full Isaac refusal before native review ownership')
     parser.add_argument('--fail-fast-native',action='store_true',help='Contain the owned Job at the first known native graphics failure')
@@ -70,10 +71,13 @@ def main():
         parser.error('--shutdown-profile requires --full-app --baseline --shutdown-control file-close --fail-fast-native')
     if args.shutdown_candidate and args.shutdown_profile!='no-navigation':
         parser.error('--shutdown-candidate requires the pinned no-navigation profile')
+    if args.attach_control and (args.shutdown_profile!='no-navigation' or args.shutdown_candidate):
+        parser.error('--attach-control requires no-navigation without a candidate')
     profile=fixture_data=None
     if args.shutdown_profile:
         profile,fixture_data=load_profile(args.shutdown_profile)
         profile['candidate']=args.shutdown_candidate
+        profile['attach_control']=args.attach_control
         validate_sdk(sdk,profile)
     # Every native diagnostic now requires real canonical lease ownership, not
     # an idle snapshot or a completed/old JSON owner string.
@@ -108,6 +112,8 @@ name="probe"
     shutil.copyfile(probe,runner/'probe.py')
     if args.shutdown_control:
         shutil.copyfile(Path(__file__).with_name('shutdown_observation.py'),runner/'shutdown_observation.py')
+    if args.attach_control:
+        shutil.copyfile(Path(__file__).with_name('attach_only_control.py'),runner/'attach_only_control.py')
     if args.shutdown_candidate:
         shutil.copyfile(Path(__file__).with_name('viewport_reuse_candidate.py'),runner/'viewport_reuse_candidate.py')
     app=root/'in-app.kit'

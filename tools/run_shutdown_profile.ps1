@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory=$true)][string]$Output,
     [ValidateSet('no-navigation','matched-full')][string]$DiagnosticProfile='no-navigation',
     [ValidateSet('none','viewport-reuse')][string]$Candidate='none',
+    [ValidateSet('none','wait','attach')][string]$AttachControl='none',
     [switch]$OwnedChild
 )
 $ErrorActionPreference='Stop'
@@ -13,11 +14,12 @@ $wrapper=Join-Path $sharedRoot 'Use-GpuLease.ps1'
 $outputPath=[System.IO.Path]::GetFullPath($Output)
 if(Test-Path -LiteralPath $outputPath){throw 'Output must be new; never overwrite evidence'}
 if($Candidate -ne 'none' -and $DiagnosticProfile -ne 'no-navigation'){throw 'Candidate only allowed on pinned reduced profile'}
+if($AttachControl -ne 'none' -and ($DiagnosticProfile -ne 'no-navigation' -or $Candidate -ne 'none')){throw 'Attach control only allowed on reduced profile without candidate'}
 if(-not (Test-Path -LiteralPath $wrapper)){throw 'Existing canonical shared wrapper required; no install or bypass'}
 $owner='USDSceneReview-shutdown-'+$DiagnosticProfile+'-v1'
 if(-not $OwnedChild){
     $childShell=(Get-Process -Id $PID).Path
-    & $wrapper -Owner $owner -FilePath $childShell -ArgumentList @('-NoProfile','-NonInteractive','-File',$PSCommandPath,'-IsaacRoot',$IsaacRoot,'-Output',$outputPath,'-DiagnosticProfile',$DiagnosticProfile,'-Candidate',$Candidate,'-OwnedChild') -WaitTimeoutSeconds 1 -PollIntervalMilliseconds 100 -GpuProbeTimeoutSeconds 1
+    & $wrapper -Owner $owner -FilePath $childShell -ArgumentList @('-NoProfile','-NonInteractive','-File',$PSCommandPath,'-IsaacRoot',$IsaacRoot,'-Output',$outputPath,'-DiagnosticProfile',$DiagnosticProfile,'-Candidate',$Candidate,'-AttachControl',$AttachControl,'-OwnedChild') -WaitTimeoutSeconds 1 -PollIntervalMilliseconds 100 -GpuProbeTimeoutSeconds 1
     $wrapperExit=$LASTEXITCODE
     if(Test-Path -LiteralPath $outputPath){
         $lease=Get-Content -LiteralPath (Join-Path $sharedRoot 'gpu-lease.json') -Raw | ConvertFrom-Json
@@ -44,5 +46,6 @@ $env:PYTHONUTF8='1'
 $python=Join-Path $sdk 'kit/python/python.exe'
 $candidateArgs=@()
 if($Candidate -ne 'none'){$candidateArgs=@('--shutdown-candidate',$Candidate)}
+if($AttachControl -ne 'none'){$candidateArgs=@('--attach-control',$AttachControl)}
 & $python -B (Join-Path $PSScriptRoot 'with_openusd.py') --isaac-root $sdk --python $python --timeout 300 -- (Join-Path $PSScriptRoot 'run_in_app_validation.py') --isaac-root $sdk --output $outputPath --full-app --baseline --shutdown-control file-close --shutdown-profile $DiagnosticProfile --fail-fast-native --timeout 240 @candidateArgs
 exit $LASTEXITCODE
