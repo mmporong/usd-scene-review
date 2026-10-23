@@ -1,5 +1,14 @@
 # Validation status
 
+## Prepared shutdown-route controls, 2026-10-23
+
+The project-free launcher now prepares three contained, unchanged-file controls:
+ordinary quit, public file-close then ordinary quit, and same-fixture uncancellable
+quit. [API evidence, ownership restrictions and independent receipts](shutdown-controls.md)
+separate stage close from actual process exit. These new routes are **NOT RUN** at
+preparation time; CPU restrictions do not establish clean SDK exit. Existing native
+failures and the Full Isaac product guard remain unchanged.
+
 ## Official ownership/reuse assessment, 2026-10-23
 
 No failed teardown control was repeated for this phase. Installed SDK source shows
@@ -11,11 +20,12 @@ roots is not an independent simultaneous revision contract. See the
 A synthetic sequential-capture candidate is retained only on the local
 `experiment/owned-viewport-reuse` branch. Its CPU suite has 158 cases (156 passed,
 two privilege skips), including separate same-path A/B pose/material/light data and
-common camera fixtures. Its two-cycle official-window destruction/recreation and
-GPU capture checks remain **NOT RUN** because other Kit work resumed. This is not
-native acceptance. The executable candidate is not included in main; the product
-runtime and its actual-host-verified guard are unchanged. Main receives only the
-source-backed assessment and its packaged links from this phase.
+common camera fixtures. The native tests are recorded in the linked assessment:
+the official-window path passed 22 checks before recreation crashed; an explicit
+widget variant passed 40 checks across two cycles, then failed the whole-app
+shutdown warning gate. Neither is native product acceptance. The executable
+candidate is not included in main; the product runtime and its actual-host-verified
+guard are unchanged.
 
 ## SDK-only teardown reduction, 2026-10-23
 
