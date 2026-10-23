@@ -1,5 +1,10 @@
 # SDK structure and runtime diagnosis
 
+The later [teardown investigation](teardown-investigation.md) reduces the texture
+warning to the second public native texture update-stop call with no added UI,
+ghost, material or manipulator. A child-environment-isolated baseline retains the
+same tf.dll shutdown crash. No tested ordering repair is applied to product code.
+
 ## Actual Full Isaac follow-up, 2026-10-23
 
 After the other Kit host exited, precheck found only a CPU dashboard plus desktop
