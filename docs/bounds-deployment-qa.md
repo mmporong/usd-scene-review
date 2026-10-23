@@ -84,7 +84,7 @@ stability. All tracked SceneViews were gone, owned subscriptions/snapshots clear
 and the viewport count stayed one after every cycle in both runs.
 
 Each native run passed 37 candidate and 19 outer checks, restored the pinned fixture,
-and exited naturally0 through public file.close. Owned PIDs were reaped, Jobs empty
+and exited naturally 0 through public file.close. Owned PIDs were reaped, Jobs empty
 and closed without containment, and shared leases naturally released. Before-fix
 shutdown logged 72 errors/668 warnings; after-fix logged 16/342, naming SDK shutdown
 callbacks/menu failures and retaining graphics/Fabric diagnostics. Those counts are
@@ -101,10 +101,77 @@ excluded from public artifacts.
 Final Windows CPU/package regression: 213 cases, 211 passed, two privilege skips,
 no failures/errors (50.059s). Native measurement was completed before that suite.
 
+## Thirty-cycle stability follow-up
+
+One additional owned host used the same 2,048-Cube source bytes and optimized
+engine from main 9de3373. After three warm-up cycles, **30 measured cycles** each
+opened the bounds overlay, selected first/middle/last/first changed rows, toggled
+off/on, hid/reopened the panel, and closed review. This exercised actual UI
+callbacks and rendered frames, not mouse input. The native host ran for about
+five minutes, so this is a bounded repetition sample, not long-duration assurance.
+
+Every open owned one tracked SceneView and two subscription handles. Every cleanup
+left **zero live tracked SceneViews and zero owned subscription handles**, with
+the viewport count unchanged at one. These are project-owned handles, not a global
+event-stream inventory. Working root/session contents and dirty/pending flags,
+selection, camera, timeline, settings, sources and frozen bundles were preserved.
+
+| Measured post-warm-up metric | Observation |
+| --- | --- |
+| Private memory first / last | 8,770.77 / 8,329.66 MiB |
+| Private memory minimum / maximum | 8,321.59 / 8,774.52 MiB |
+| First-to-last private delta | -441.11 MiB |
+| Last five cleanup samples | All 8,329.66 MiB |
+| Last 15 samples linear slope | +0.522 MiB/cycle |
+| Cycle median / maximum | 7.272 / 7.373 s |
+| Open / Close review median | 1.559 s / 5.13 ms |
+| Selection median / maximum | 487 / 514 ms |
+
+The earlier three-cycle +6.96MiB observation does not extend into monotonic growth
+in this sample. Large downward steps and later small steps/plateaus, alongside no
+retained tracked objects, are consistent with allocator/cache variation. The last
+15-sample positive slope is retained: neither this counter nor the five-sample
+plateau identifies the SDK allocator responsible or rules out a smaller native
+leak. Whole-process private memory includes SDK caches and measurement metadata.
+
+The guard would stop on any retained owned SceneView/subscription, more than
+512MiB first-to-last growth, or five consecutive increases totaling over 128MiB.
+It did not trigger. Measurements follow 20 updates and Python gc, without OS trim,
+pending-flag reset, save-dialog action, or SDK/system changes.
+
+All 142 candidate and 19 outer checks passed. The pinned unchanged fixture was
+restored, public file.close emitted CLOSING/CLOSED and the app exited naturally 0.
+Owned PID/Job cleanup completed without containment and the exclusive shared lease
+released naturally. There were 28 errors and 483 warnings, so wrapper exit 2 and
+**strict-clean=false** remain. Logged SDK menu callbacks referred to unavailable
+selection/semantics objects during shutdown; scripting/extension, graphics-object
+and Fabric diagnostics also remain. This run does not establish that every SDK
+diagnostic is unrelated to product activity or qualify stock Full shutdown.
+
+[Sanitized per-cycle samples and preservation/cleanup receipts](../diagnostics/bounds-stability-30-v1.json)
+include warm-up separately, all timings and memory bytes, ownership counts,
+fixture/code digests and diagnostic categories. No raw logs, machine paths or
+private assets are included. Reproduce only on an owned host with the existing
+official shared lease wrapper:
+
+```powershell
+pwsh -NoProfile -File tools/run_shutdown_profile.ps1 -IsaacRoot <installed-sdk> -Output <new-owned-output> -DiagnosticProfile no-navigation -Candidate viewport-bounds-stability -LeaseWaitSeconds 1800
+```
+
+The launcher defaults to a one-second lease attempt; optional waiting is capped
+at 30 minutes. Lock contention never launches a child; post-acquisition GPU/other
+Kit checks and pinned SDK/exclusion/dry-solve checks still fail closed. Do not use
+this command to alter a running user app or bypass another job's lease.
+
+Final Windows CPU/package regression after this sample:219 cases,217 passed,
+two privilege skips, no failures/errors (50.242s). No additional GPU experiment
+was started after this bounded sample.
+
 ## Remaining deployment limits
 
 1. Large initial Compare and selection are synchronous; responsive large-assembly
    use is not qualified by the faster reopen path.
-2. Real mouse/navigation input and long-session memory behavior remain untested.
+2. Real mouse/navigation input and long-session memory behavior remain untested;
+   the 30-cycle sample above does not qualify either.
 3. Complex production scenes and the stock Full SDK shutdown remain unqualified.
    The guarded live A/B and green mesh ghost are separate work; this is AABB-only.

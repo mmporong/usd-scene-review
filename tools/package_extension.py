@@ -23,6 +23,7 @@ def package(destination):
     files['docs/cpu-bottleneck-analysis.md'] = (repo/'docs/cpu-bottleneck-analysis.md').read_bytes()
     files['diagnostics/cpu-bottleneck-v1.json'] = (repo/'diagnostics/cpu-bottleneck-v1.json').read_bytes()
     files['diagnostics/bounds-scale-qa-v1.json'] = (repo/'diagnostics/bounds-scale-qa-v1.json').read_bytes()
+    files['diagnostics/bounds-stability-30-v1.json'] = (repo/'diagnostics/bounds-stability-30-v1.json').read_bytes()
     files['diagnostics/bounds-persistent-exclusions-v1.json'] = (repo/'diagnostics/bounds-persistent-exclusions-v1.json').read_bytes()
     files['examples/usd-scene-review-viewport-bounds.png'] = (repo/'examples/usd-scene-review-viewport-bounds.png').read_bytes()
     files['docs/in-app-sdk-diagnosis.md'] = (repo/'docs/in-app-sdk-diagnosis.md').read_bytes()
