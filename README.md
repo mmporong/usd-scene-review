@@ -23,6 +23,10 @@ reopen from about 41s to 1.55s; that native run measured initial Compare at abou
 reduces same-input standalone Compare from 34.65s to 16.81s with identical reports;
 native UI timing has not been remeasured. Selection validation remains unchanged.
 Real mouse and production/long-session use remain unqualified.
+The [bounded stability follow-up](docs/bounds-deployment-qa.md#thirty-cycle-stability-follow-up)
+completed 30 measured overlay cycles after warm-up, retaining no tracked SceneViews
+or owned subscription handles. It does not establish long-session stability;
+SDK shutdown diagnostics remain despite natural exit 0 in the reduced host.
 
 Same-app review must preserve the working stage and its save state when only the
 review closes. [Current preservation evidence](docs/review-preservation.md) separates

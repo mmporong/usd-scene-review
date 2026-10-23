@@ -12,14 +12,30 @@ import weakref
 
 SCALES=(32,2048)
 CYCLES=3
+STABILITY_WARMUP=3
+STABILITY_CYCLES=30
 
 
-def check_names():
+def stability_stop(samples):
+    """Admission guard, not a leak verdict: stop owned work on retained objects or steep growth."""
+    if not samples:return None
+    latest=samples[-1]
+    if latest.get('live_tracked_scene_views') or latest.get('owned_subscriptions') or not latest.get('owned_overlay_cleared'):
+        return 'owned-resource-retained'
+    values=[sample['memory']['private'] for sample in samples]
+    if values[-1]-values[0]>512*1024**2:return 'private-growth-over-512-MiB'
+    tail=values[-6:]
+    if len(tail)==6 and all(b>a for a,b in zip(tail,tail[1:])) and tail[-1]-tail[0]>128*1024**2:
+        return 'five-consecutive-increases-over-128-MiB'
+    return None
+
+
+def check_names(scales=SCALES,cycles=CYCLES):
     names={'persistent exclusion solve','navigation exclusions retained','fresh extracted engine',
            'extension disabled','navigation exclusions after disable','pinned fixture epoch restored','inputs preserved'}
-    for count in SCALES:
+    for count in scales:
         names.update(name+str(count) for name in ('owned working geometry ','comparison ','case preservation '))
-        for cycle in range(CYCLES):
+        for cycle in range(cycles):
             names.update(name+str(count)+'/'+str(cycle) for name in ('selection ','panel close/reopen ','resources cleared ','working state '))
     return names
 
@@ -43,9 +59,13 @@ def build_scale(root,count):
     return {'count':count,'paths':paths,'working':str(working),'changed':len(changed)}
 
 
-def prepare(root,fixture_data):
+def prepare(root,fixture_data,stability=False):
     root=Path(root)
-    cases=[build_scale(root/('scale-'+str(count)),count) for count in SCALES]
+    cases=[build_scale(root/('scale-'+str(count)),count) for count in ((2048,) if stability else SCALES)]
+    if stability:
+        expected=json.loads((Path(__file__).resolve().parents[1]/'diagnostics/cpu-bottleneck-v1.json').read_text())['cases'][-1]['source_sha256']
+        actual={side:hashlib.sha256((root/'scale-2048'/('source-'+side)/'scene.usda').read_bytes()).hexdigest() for side in ('A','B')}
+        if actual!=expected:raise RuntimeError('Stability fixture differs from the preserved synthetic input')
     (root/'bounds-scales.json').write_text(json.dumps(cases))
 
 
@@ -67,14 +87,14 @@ def latency_summary(values):
     return {'samples':len(values),'min_ms':min(values),'median_ms':statistics.median(values),'max_ms':max(values)}
 
 
-def metrics_complete(rows):
-    if [row.get('count') for row in rows]!=list(SCALES):return False
+def metrics_complete(rows,scales=SCALES,cycles=CYCLES):
+    if [row.get('count') for row in rows]!=list(scales):return False
     for row in rows:
-        for key,length in (('selection_ms',12),('selection_to_two_frames_ms',12),('open_ms',3),('close_ms',3)):
+        for key,length in (('selection_ms',4*cycles),('selection_to_two_frames_ms',4*cycles),('open_ms',cycles),('close_ms',cycles)):
             values=row.get(key,[])
             if len(values)!=length or any(type(value) not in (int,float) or not math.isfinite(value) or value<0 for value in values):return False
         cleanup=row.get('cleanup',[])
-        if len(cleanup)!=CYCLES:return False
+        if len(cleanup)!=cycles:return False
         for sample in cleanup:
             if (sample.get('owned_overlay_cleared') is not True or sample.get('live_tracked_scene_views')!=0
                     or sample.get('viewports')!=row.get('viewports_expected')):return False
@@ -82,7 +102,20 @@ def metrics_complete(rows):
     return True
 
 
-async def evaluate(probe,root):
+def stability_metrics_complete(rows):
+    if not metrics_complete(rows,(2048,),STABILITY_WARMUP+STABILITY_CYCLES):return False
+    samples=rows[0]['cleanup']
+    for index,sample in enumerate(samples):
+        if (sample.get('cycle')!=index or sample.get('phase')!=('warmup' if index<STABILITY_WARMUP else 'measured')
+            or sample.get('owned_subscriptions')!=0 or sample.get('active_owned_subscriptions')!=2
+            or sample.get('active_owned_scene_views')!=1):return False
+        value=sample.get('cycle_ms')
+        if type(value) not in (int,float) or not math.isfinite(value) or value<0:return False
+        if stability_stop(samples[:index+1]):return False
+    return True
+
+
+async def evaluate(probe,root,stability=False):
     import omni.kit.app
     import omni.usd
     import omni.timeline
@@ -91,11 +124,15 @@ async def evaluate(probe,root):
     from pxr import UsdGeom
     from viewport_bounds_candidate import persist_owned_exclusions,navigation_exclusions_retained,disable_review
     root=Path(root);app=omni.kit.app.get_app();ctx=omni.usd.get_context();manager=app.get_extension_manager()
+    scales=(2048,) if stability else SCALES
+    cycles=STABILITY_WARMUP+STABILITY_CYCLES if stability else CYCLES
     result={'status':'running','kind':'two-scale owned stage QA','checks':[],'scales':[],
             'manual_mouse_tested':False,'activation_mode':'persistent-manager-exclusions-v1',
             'selection_metric':'synchronous actual UI callback wall time; excludes later frames',
             'settle_metric':'callback start to two rendered frames',
             'memory_metric':'own Windows process bytes; after 20 updates and explicit Python gc; not a leak verdict'}
+    result['stability']={'enabled':stability,'warmup_cycles':STABILITY_WARMUP if stability else 0,'measured_cycles':STABILITY_CYCLES if stability else CYCLES,
+                         'early_stop_policy':'retained owned objects; >512MiB overall; or five consecutive increases totaling >128MiB'}
     def check(name,passed):
         result['checks'].append({'name':name,'passed':bool(passed)});probe.result['candidate']=result;probe.write()
         if not passed:raise RuntimeError('Scale QA: '+name)
@@ -103,7 +140,7 @@ async def evaluate(probe,root):
         for _ in range(n):await app.next_update_async()
     def hashes():
         return {str(path.relative_to(root)):hashlib.sha256(path.read_bytes()).hexdigest()
-            for count in SCALES for path in (root/('scale-'+str(count))).rglob('*') if path.is_file()}
+            for count in scales for path in (root/('scale-'+str(count))).rglob('*') if path.is_file()}
     files=hashes();fixture=root/'shutdown-fixture.usda';fixture_hash=hashlib.sha256(fixture.read_bytes()).hexdigest()
     profile=json.loads((root/'shutdown-profile.json').read_text())
     result['exclusion_preflight']=persist_owned_exclusions(manager,profile);check('persistent exclusion solve',True)
@@ -118,7 +155,7 @@ async def evaluate(probe,root):
         owner=get_active_extension()
         if owner is None or not owner._in_app_blocked:raise RuntimeError('Full guard not retained')
         cases=json.loads((root/'bounds-scales.json').read_text())
-        if [case.get('count') for case in cases]!=list(SCALES):raise ValueError('Expected only the two owned QA scales')
+        if [case.get('count') for case in cases]!=list(scales):raise ValueError('Expected only the configured owned QA scales')
         for case in cases:
             count=case['count'];working=(root/('scale-'+str(count))/'working.usda').resolve()
             if Path(case['working']).resolve()!=working:raise ValueError('Only owned generated working fixtures may open')
@@ -146,10 +183,13 @@ async def evaluate(probe,root):
             targets=[changes[0],changes[len(changes)//2],changes[-1],changes[0]]
             weak_views=[];widget_count=len(list(ViewportWidget.get_instances()))
             metrics['viewports_expected']=widget_count
-            for cycle in range(CYCLES):
+            for cycle in range(cycles):
+                cycle_start=time.perf_counter()
                 owner._window.visible=True;start=time.perf_counter();owner._show_bounds_overlay()
                 metrics['open_ms'].append((time.perf_counter()-start)*1000)
                 if owner._bounds_overlay is None:raise RuntimeError('Overlay failed to open')
+                active_subscriptions=len(owner._bounds_overlay.subscriptions)
+                active_scene_views=1 if owner._bounds_overlay.scene_view is not None else 0
                 weak_views.append(weakref.ref(owner._bounds_overlay.scene_view))
                 for change in targets:
                     start=time.perf_counter();owner._select(change)
@@ -165,10 +205,18 @@ async def evaluate(probe,root):
                 weak_views.append(weakref.ref(owner._bounds_overlay.scene_view))
                 overlay=owner._bounds_overlay;start=time.perf_counter();owner._close_review()
                 metrics['close_ms'].append((time.perf_counter()-start)*1000)
+                cleared_subscriptions=len(overlay.subscriptions)
                 clear=overlay.scene_view is None and not overlay.subscriptions and not overlay.snapshots
                 overlay=None;await updates();gc.collect()
                 metrics['cleanup'].append({'cycle':cycle,'memory':memory_bytes(),'live_tracked_scene_views':sum(ref() is not None for ref in weak_views),
-                    'viewports':len(list(ViewportWidget.get_instances())),'owned_overlay_cleared':clear})
+                    'viewports':len(list(ViewportWidget.get_instances())),'owned_overlay_cleared':clear,
+                    'owned_subscriptions':cleared_subscriptions,'active_owned_subscriptions':active_subscriptions,'active_owned_scene_views':active_scene_views,
+                    'phase':'warmup' if stability and cycle<STABILITY_WARMUP else 'measured','cycle_ms':(time.perf_counter()-cycle_start)*1000})
+                if stability:
+                    reason=stability_stop(metrics['cleanup'])
+                    if reason:
+                        result['early_stop_reason']=reason;probe.write();raise RuntimeError('Stability guard: '+reason)
+                    if active_subscriptions!=2 or active_scene_views!=1:raise RuntimeError('Unexpected active overlay ownership')
                 check('resources cleared '+str(count)+'/'+str(cycle),clear and owner._bounds_overlay is None and len(list(ViewportWidget.get_instances()))==widget_count and not any(ref() is not None for ref in weak_views))
                 check('working state '+str(count)+'/'+str(cycle),state()==before)
             metrics['selection_summary']=latency_summary(metrics['selection_ms'])
@@ -186,6 +234,7 @@ async def evaluate(probe,root):
     check('inputs preserved',hashes()==files)
     result.update(working_stage_preserved=True,owned_resources_remaining=remaining,
                   pending_before=False,pending_after=ctx.has_pending_edit(),status='passed')
-    if not metrics_complete(result['scales']):raise RuntimeError('Incomplete measured scale receipts')
-    if {row['name'] for row in result['checks']}!=check_names():raise RuntimeError('Incomplete scale QA')
+    if not metrics_complete(result['scales'],scales,cycles):raise RuntimeError('Incomplete measured scale receipts')
+    if stability and not stability_metrics_complete(result['scales']):raise RuntimeError('Incomplete stability ownership receipts')
+    if {row['name'] for row in result['checks']}!=check_names(scales,cycles):raise RuntimeError('Incomplete scale QA')
     probe.result['candidate']=result;probe.write();return result

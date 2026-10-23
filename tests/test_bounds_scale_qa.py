@@ -13,6 +13,45 @@ qa=importlib.util.module_from_spec(spec);spec.loader.exec_module(qa)
 
 
 class BoundsScaleQaTests(unittest.TestCase):
+    def test_native_thirty_cycle_record_keeps_cleanup_and_limits_explicit(self):
+        record=json.loads((ROOT/'diagnostics/bounds-stability-30-v1.json').read_text())
+        self.assertTrue(qa.stability_metrics_complete(record['scales']))
+        self.assertEqual(record['candidate_checks'],len(qa.check_names((2048,),33)))
+        self.assertEqual(record['shutdown']['process_exit'],0)
+        self.assertTrue(record['shutdown']['profile_conditions_met'])
+        self.assertFalse(record['shutdown']['strict_clean_shutdown'])
+        self.assertTrue(record['lease']['admitted_exclusively']);self.assertTrue(record['lease']['naturally_released'])
+        self.assertFalse(record['shutdown']['descendant_containment_required'])
+        self.assertFalse(record['limits']['real_mouse_tested']);self.assertFalse(record['limits']['long_duration_operation_qualified'])
+        self.assertFalse(record['limits']['stock_full_shutdown_qualified']);self.assertFalse(record['limits']['live_ab_guard_removed'])
+
+    def test_stability_guard_stops_retention_or_steep_growth_not_allocator_noise(self):
+        def sample(value):return {'memory':{'private':value},'live_tracked_scene_views':0,'owned_subscriptions':0,'owned_overlay_cleared':True}
+        self.assertIsNone(qa.stability_stop([sample(1000),sample(2000),sample(1500)]))
+        self.assertEqual(qa.stability_stop([sample(1),sample(513*1024**2)]),'private-growth-over-512-MiB')
+        self.assertEqual(qa.stability_stop([sample((index+1)*30*1024**2) for index in range(6)]),'five-consecutive-increases-over-128-MiB')
+        for key,value in (('live_tracked_scene_views',1),('owned_subscriptions',1),('owned_overlay_cleared',False)):
+            changed=sample(1000);changed[key]=value
+            self.assertEqual(qa.stability_stop([changed]),'owned-resource-retained')
+
+    def test_stability_has_three_warmup_plus_thirty_measured_cycles(self):
+        self.assertEqual((qa.STABILITY_WARMUP,qa.STABILITY_CYCLES),(3,30))
+        names=qa.check_names((2048,),33)
+        self.assertIn('resources cleared 2048/32',names)
+        self.assertNotIn('resources cleared 32/0',names)
+        rows=[{'count':2048,'selection_ms':[1]*132,'selection_to_two_frames_ms':[2]*132,'open_ms':[3]*33,'close_ms':[1]*33,
+            'viewports_expected':1,'cleanup':[{'owned_overlay_cleared':True,'live_tracked_scene_views':0,'viewports':1,
+                'memory':{'working_set':1000,'private':2000}} for _ in range(33)]}]
+        self.assertTrue(qa.metrics_complete(rows,(2048,),33))
+        self.assertFalse(qa.stability_metrics_complete(rows))
+        for index,sample in enumerate(rows[0]['cleanup']):
+            sample.update(cycle=index,phase='warmup' if index<3 else 'measured',cycle_ms=1000,
+                          owned_subscriptions=0,active_owned_subscriptions=2,active_owned_scene_views=1)
+        self.assertTrue(qa.stability_metrics_complete(rows))
+        rows[0]['cleanup'][20]['owned_subscriptions']=1
+        self.assertFalse(qa.stability_metrics_complete(rows))
+        rows[0]['cleanup'].pop();self.assertFalse(qa.metrics_complete(rows,(2048,),33))
+
     def test_measured_record_keeps_mouse_and_deployment_limits_explicit(self):
         record=json.loads((ROOT/'diagnostics/bounds-scale-qa-v1.json').read_text())
         for name in ('before','after'):
