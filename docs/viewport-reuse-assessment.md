@@ -84,8 +84,21 @@ No SDK private cache or global extension setting was patched.
 A local variant uses one explicit public `ViewportWidget` in a plain `ui.Window`,
 without the official window's automatic menu layers. It still destroys the widget
 and window and creates fresh owners on cycle two. This tests a different ownership
-hypothesis; it is not pooling. Its native check is **not run** because another
-user Kit host occupied the GPU when it was prepared. The product guard remains.
+hypothesis; it is not pooling. After other Kit hosts exited and two idle checks,
+this explicit-widget variant ran once in an owned Full Isaac host. All 40 checks
+passed: two complete A/B/A capture cycles, matched camera matrices, independent
+rendered colors/namespaces, source preservation, actual widget removal, fresh
+recreation, and stage/context/timeline destruction receipts. No simultaneous live
+split or full comparison-extension acceptance is implied by those fixture checks.
+
+Only after the second cycle, during whole-app extension shutdown, the launcher
+detected `omni.hydratexture.plugin was already released` at viewport-window unload
+and contained its owned Job. Process exit was 1, **not a clean shutdown**. A dump
+filename existed but its file was empty; no native exception/module can be inferred
+from it. This run did not reproduce the official-window candidate's creation crash,
+but did not establish leak freedom or safe application exit either. It used the
+uncancellable quit route discussed below. The product guard remains unchanged;
+the candidate is local-only at `ca940ec`, not enabled or shipped on main.
 
 ## Shutdown control limitation
 
