@@ -62,11 +62,42 @@ from CPU fixture semantics.
 
 Local candidate CPU regression: 158 cases, 156 passed, two privilege skips, zero
 failures/errors (66.986 s). That count includes the local candidate fixture test;
-it does not describe additional main functionality or a GPU pass. No candidate
-GPU host was started: other Kit processes appeared during preparation, followed
-by a sustained host with roughly 6 GiB occupied VRAM. The prepared native checks,
-including actual destruction/recreation and the independent app-exit outcome,
-remain **not run**. Resource pooling, leak freedom and successful reuse are not claimed.
+it does not describe additional main functionality or a GPU pass.
+
+After the GPU became idle, one owned Full Isaac test of the official-window
+candidate ran. It passed 22 checks, including cycle-zero independent A/B/A
+rendered pixels, matching cameras, preserved source roots, window removal,
+stage/context/timeline destruction receipts and working-stage preservation.
+During fresh cycle-one creation it crashed with `0xc0000005` in
+`omni.usd.dll+0x86d60`. This differs from the recorded `tf.dll+0xec7b` shutdown
+control. The launcher contained only its owned test Job; containment is not
+normal exit. Recreation, full lifecycle and whole-app exit therefore **failed or
+were not reached**. First-cycle destruction receipts do not prove leak freedom.
+
+Immediately before that crash, the installed lighting menu callback encountered
+a cached viewport whose `usd_context` was `None`. In lighting 106.0.2,
+`menu_container.py:204-208` stores contexts keyed by viewport ID; the inspected
+global lighting-setting callback (`431-442`) visits those entries. The observed
+Python error and native fault are temporally associated, not a proven C++ cause.
+No SDK private cache or global extension setting was patched.
+
+A local variant uses one explicit public `ViewportWidget` in a plain `ui.Window`,
+without the official window's automatic menu layers. It still destroys the widget
+and window and creates fresh owners on cycle two. This tests a different ownership
+hypothesis; it is not pooling. Its native check is **not run** because another
+user Kit host occupied the GPU when it was prepared. The product guard remains.
+
+## Shutdown control limitation
+
+The project-free control used `IApp.post_uncancellable_quit()` to avoid a save
+dialog. Installed `omni.kit.window.file` 1.3.57 handles ordinary `post_quit()` by
+cancelling shutdown when edits are pending, prompting, and asynchronously closing
+the stage before posting quit again (`file_window.py:361-369,940-972`, depending
+on `fastShutdown`). Thus the existing fault establishes failure of that tested
+uncancellable shutdown route, not every File > Exit interaction. A normal quit
+plus explicit discard in a fresh owned test is still unverified. This is a new
+harness hypothesis, not evidence that the native fault is fixed. No user stage
+may be closed or modified to make this control pass.
 
 ## Minimum user-visible change if this candidate becomes viable
 
