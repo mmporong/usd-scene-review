@@ -7,11 +7,30 @@ def inherited_only(change):
             and set(change.get('fields', {})) == {'world'} and not change.get('authored'))
 
 
-def visible_changes(report, query='', include_inherited=False):
+CHANGE_KINDS = ('all', 'modified', 'added', 'removed', 'unobserved')
+
+
+def visible_changes(report, query='', include_inherited=False, kind='all'):
+    if kind not in CHANGE_KINDS:
+        raise ValueError('Unknown change type filter')
     query = query.casefold().strip()
     return [c for c in report.get('changes', [])
             if (include_inherited or not inherited_only(c))
+            and (kind == 'all' or c.get('kind') == kind)
             and (not query or query in c.get('path', '').casefold())]
+
+
+def adjacent_change(changes, selected_path, direction):
+    """Navigate only visible evidence, without wrapping or mutating its order."""
+    if direction not in (-1, 1):
+        raise ValueError('Navigation direction must be -1 or 1')
+    if not changes:
+        return None
+    index = next((i for i, c in enumerate(changes) if c['path'] == selected_path), None)
+    if index is None:
+        return changes[0 if direction == 1 else -1]
+    target = index + direction
+    return changes[target] if 0 <= target < len(changes) else None
 
 
 def summary(report):
