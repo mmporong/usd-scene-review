@@ -3,6 +3,25 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import shutil
+import tempfile
+import importlib
+
+
+def current_extension():
+    # Kit unload removes extension modules; never retain a getter across enable cycles.
+    return importlib.import_module('mmporong.scene.review.extension').get_active_extension()
+
+
+async def capture_evidence(recorder,destination,updates,temp_parent=None):
+    """Installed capture plugin requires an ASCII target; Python copies Unicode output."""
+    with tempfile.TemporaryDirectory(prefix='usd-review-capture-',dir=temp_parent) as folder:
+        target=Path(folder)/'frame.png'
+        if not str(target).isascii():
+            raise ValueError('SDK_CAPTURE_PATH: owned capture temporary directory must have an ASCII path')
+        recorder.capture_next_frame_swapchain(str(target));await updates(8);recorder.wait_async_capture()
+        if not target.is_file():raise RuntimeError('SDK_CAPTURE: native image was not saved; no success is inferred')
+        shutil.copyfile(target,destination)
 
 
 def check_names(faces=False):
@@ -16,6 +35,7 @@ def check_names(faces=False):
         if faces:names.update(label+str(cycle) for label in ('ready feedback ','unsupported feedback ','pair feedback ','closed feedback '))
         if faces:names.update(label+str(cycle) for label in ('filtered navigation ','navigation boundary '))
     if faces:names.update(('faces screenshot captured','alpha changes rendered pixels','green faces rendered','faces controls preserved','transparent face colors stay green','reselected transparent colors stay green','concave screenshot captured','panel scroll reaches values'))
+    if faces:names.update(('invalid input keeps evidence','panel close clears overlay','extension reactivated from package','quoted manifests compare after reactivation'))
     return names
 
 
@@ -140,8 +160,7 @@ async def evaluate(probe,root,faces=False):
         manager.set_extension_enabled_immediate('mmporong.scene.review',True);await updates()
         result['navigation_after_enable']={name:manager.is_extension_enabled('omni.anim.navigation.'+name) for name in ('core','recast','schema')}
         check('navigation exclusions retained',navigation_exclusions_retained(manager))
-        from mmporong.scene.review.extension import get_active_extension
-        owner=get_active_extension()
+        owner=current_extension()
         check('Full A/B guard retained',owner is not None and owner._in_app_blocked)
         if faces:
             # Only our newly created review panel in the disposable test host;
@@ -226,7 +245,7 @@ async def evaluate(probe,root,faces=False):
             owner._panel_scroll.scroll_y=0;await updates()
             owner._show_bounds_overlay();owner._select(changed);owner._bounds_faces.set_value(True);await updates(20)
             async def capture(name):
-                recorder.capture_next_frame_swapchain(str(root/name));await updates(8);recorder.wait_async_capture()
+                await capture_evidence(recorder,root/name,updates)
             await capture('ui-faces-alpha22.png')
             # Owned UI primitives only: opacity control does not touch USD/session or renderer settings.
             mesh_data=owner._bounds_overlay.last_plan['old_faces']['meshes']
@@ -265,6 +284,28 @@ async def evaluate(probe,root,faces=False):
             recorder=acquire_renderer_capture_interface();await capture('ui-concave-review.png');recorder=None
             check('concave screenshot captured',(root/'ui-concave-review.png').stat().st_size>1000)
             check('faces screenshot captured',(root/'ui-faces-review.png').stat().st_size>1000)
+            previous_report=owner._report;previous_overlay=owner._bounds_overlay
+            owner._paths['A'].set_value('');owner._compare()
+            if owner._task:await owner._task
+            check('invalid input keeps evidence',owner._report is previous_report
+                  and owner._bounds_overlay is previous_overlay and 'A baseline/before' in owner._status.as_string
+                  and 'failed worker' not in owner._status.as_string and state()==before)
+            owner._window.visible=False;await updates()
+            check('panel close clears overlay',owner._bounds_overlay is None and previous_overlay.scene_view is None
+                  and not previous_overlay.subscriptions and state()==before)
+            previous_overlay=None
+            owner=None;disable_review(manager,False);await updates()
+            manager.set_extension_enabled_immediate('mmporong.scene.review',True);await updates()
+            owner=current_extension()
+            check('extension reactivated from package',owner is not None and owner._report is None
+                  and owner._in_app_blocked and navigation_exclusions_retained(manager))
+            for side in ('A','B'):owner._paths[side].set_value('"'+paths[side]+'"')
+            owner._compare()
+            if owner._task:await owner._task
+            owner._select(next(c for c in owner._report['changes'] if c['path']=='/World/Item'))
+            owner._show_bounds_overlay();await updates()
+            check('quoted manifests compare after reactivation',owner._report==previous_report
+                  and owner._bounds_overlay.line_count==108 and state()==before)
             owner._hide_bounds_overlay();owner._bounds_faces.set_value(False)
             check('faces controls preserved',state()==before)
     finally:

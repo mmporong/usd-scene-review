@@ -1,0 +1,504 @@
+{
+  "candidate": {
+    "archive_bytes": 101704,
+    "payload_files": 43,
+    "reproducible_build": true,
+    "runtime_sha256": {
+      "exts/mmporong.scene.review/mmporong/scene/review/__init__.py": "63ae81a0be4d3c1d66c3853dd0db11265f90532892ea697fb968cda3983e4e4e",
+      "exts/mmporong.scene.review/mmporong/scene/review/bounds_overlay.py": "29b8ca142212c0397089e74fbcb7d4c3ecffe424544568018cc05d4c6d31af31",
+      "exts/mmporong.scene.review/mmporong/scene/review/extension.py": "c70777eb0ae5f83b683a7678ef37fbe02dd9439125d75e4f62bb0956a86af9e0",
+      "exts/mmporong.scene.review/mmporong/scene/review/in_app.py": "84774191849852cde391408040dbef73bfeff7a34c40e27b0aab5845da35e59c",
+      "exts/mmporong.scene.review/python/usd_scene_review/__init__.py": "8392e1825f401d79d1858298084a2df4c5a21ba20adf52080b4799a5c3afc265",
+      "exts/mmporong.scene.review/python/usd_scene_review/analysis_config.py": "6b0d8778ebb51e6590aed774fbde4f4605a5e421f8632f78e9ba6b2895b06d2b",
+      "exts/mmporong.scene.review/python/usd_scene_review/cli.py": "8d8a8cc24bab53aff547dcafe543d41ff569c1faaa1000261142127b65a3717e",
+      "exts/mmporong.scene.review/python/usd_scene_review/compare.py": "15f61df505cca0246c966161d4271009d371f04766b29b20eca9524fa6600eed",
+      "exts/mmporong.scene.review/python/usd_scene_review/display.py": "0a72efdeca8c0ff1edf01665c60fd967ca46537066e3dc9a6146fff8a1a2ea4d",
+      "exts/mmporong.scene.review/python/usd_scene_review/dispositions.py": "87a1e036c36830080695110b36af809e95acda97a5282e279f78a137278c9df6",
+      "exts/mmporong.scene.review/python/usd_scene_review/evidence.py": "3f76165fbf7c625e7e2d4299b811be8af5b9bb4d838fd7ebf5a83d3aa3056596",
+      "exts/mmporong.scene.review/python/usd_scene_review/exports.py": "e54fd1ecde17e36e5be1f76484e69c2b4e0728cdeeb34bf4e2144549ef8fd4a9",
+      "exts/mmporong.scene.review/python/usd_scene_review/ghost.py": "9836a0387955edf10ba2b8fce032a751b24a6dc5519be1574c4e9ca73edb3ea6",
+      "exts/mmporong.scene.review/python/usd_scene_review/in_app_logic.py": "96a9342c9409fe313a69c068500509073c723271014fb8c91c2c7b1b436b8852",
+      "exts/mmporong.scene.review/python/usd_scene_review/inputs.py": "8d8bb678d1674380228cd4e6a728e4e525f177b877cf55abb6e192541ff37c2f",
+      "exts/mmporong.scene.review/python/usd_scene_review/local_contract.py": "6e084a70f59911fd85feb60a1e3aa17345e1c38720052afad778e06d155e679a",
+      "exts/mmporong.scene.review/python/usd_scene_review/measurements.py": "2ed9a97b8eb4a35195e97403c92b44f6e953b437c42100bfe4a717b5d6d2448b",
+      "exts/mmporong.scene.review/python/usd_scene_review/overlap_analysis.py": "d9a81467e05908e786f2a88d654d055efa0b6df973df7024bd2a5e3fe52505a7",
+      "exts/mmporong.scene.review/python/usd_scene_review/overlay.py": "3ce0f4f3ec4498a91243e766aadf03b5e3b318c7cd38748c6dafd80d4e91b2e6",
+      "exts/mmporong.scene.review/python/usd_scene_review/polygon_faces.py": "8e20ae4c6eb7f03e9759efe459ef137f1600cebf487057b6127cca2fd03298fa",
+      "exts/mmporong.scene.review/python/usd_scene_review/presentation.py": "e7bb61c1502438566cbe70b5976f567b7d2995f3483d1227ad016e3e81cbd98d",
+      "exts/mmporong.scene.review/python/usd_scene_review/preview.py": "e7b55df04984ea4930a099f1dfe96b6261be1937dcd0c7d7f517d83dd67ed86f",
+      "exts/mmporong.scene.review/python/usd_scene_review/scene_faces.py": "c1c5061bbe3f40e03f4a9850b4a9121d80ca2be23a72545223c1161cf7930f21",
+      "exts/mmporong.scene.review/python/usd_scene_review/snapshot.py": "7c9e8e4930b14e21aad97245103e77a858f6d9f02a6e704f1f2dbe4c9bc79f92",
+      "exts/mmporong.scene.review/python/usd_scene_review/transform_analysis.py": "1dc97d198ec01d33c9c1b3f552808721101c594511b29dedbfff459af7f30916",
+      "exts/mmporong.scene.review/python/usd_scene_review/worker_client.py": "2974175f81881fa6ca105558fe19683fdbe95890fbb709300c63f49aa5096c62",
+      "exts/mmporong.scene.review/worker/evidence_panel.py": "593ad8e9404e3ebf16f9298cb1b7b9b2c7d55de54b577d8c3c513da68ef9e355",
+      "exts/mmporong.scene.review/worker/scene_review_worker.py": "e60b36e6a0bb11941b9ad98897276891eb0fc08b0306ba3781e59500e5686ecf",
+      "exts/usd.review.distribution/distribution_bootstrap.py": "ad8487f97ddd4ff1916f6921ce94087dd29a1a5b7d50d2ba7da43806108708d2",
+      "review_kit.py": "061a7b68536856eea1ef545748cfe5c2561010cd364dbc4ac6ea38915b0b8d4b"
+    },
+    "sha256": "b4b6b94a19906e5bec4d940165f52d185d20e541b8a4ad772a246f3047767b26",
+    "verified_payload_matches_native_runtime": true,
+    "version": "0.1.0-rc.4"
+  },
+  "cpu": {
+    "errors": 0,
+    "failures": 0,
+    "fresh_extract_sample_and_compare": true,
+    "package_bytes_preserved": true,
+    "passed": 241,
+    "real_sdk_cli_verify_doctor_extension_path_sample_snapshot_compare": true,
+    "seconds": 60.1,
+    "skipped": 2,
+    "tamper_rejected": true,
+    "total_cases": 243,
+    "unicode_space_paths": true
+  },
+  "failed_preceding_controls": [
+    {
+      "error_categories": {
+        "omni.kvdb.plugin": 2,
+        "omni.renderercapture.plugin": 2
+      },
+      "errors": 4,
+      "lease_released": true,
+      "native_exit": 1,
+      "normal_exit": false,
+      "owned_job_closed": true,
+      "owned_job_contained": true,
+      "owned_job_empty": true,
+      "owned_pid_reaped": true,
+      "reason": "SDK Unicode native cache/capture path failures",
+      "warnings": 110
+    },
+    {
+      "error_categories": {},
+      "errors": 0,
+      "lease_released": true,
+      "native_exit": 1,
+      "normal_exit": false,
+      "owned_job_closed": true,
+      "owned_job_contained": true,
+      "owned_job_empty": true,
+      "owned_pid_reaped": true,
+      "reason": "Diagnostic retained a stale getter across SDK module unload",
+      "warnings": 111
+    }
+  ],
+  "limits": {
+    "formal_release": false,
+    "legacy_worker_gpu_retested": false,
+    "license_selected": false,
+    "live_ab_guard_retained": true,
+    "mouse_tested": false,
+    "native_fixture": "synthetic polygon pair; packaged public rack pair exercised by CPU/CLI",
+    "native_state_path_requires_ascii": true,
+    "production_or_long_session_qualified": false,
+    "sdk_error_rate_claimed": false,
+    "stock_full_shutdown_qualified": false,
+    "unicode_inputs_cpu_qualified": true
+  },
+  "native": {
+    "candidate_check_count": 65,
+    "candidate_checks": [
+      {
+        "name": "fresh extracted engine",
+        "passed": true
+      },
+      {
+        "name": "persistent exclusion solve",
+        "passed": true
+      },
+      {
+        "name": "navigation exclusions retained",
+        "passed": true
+      },
+      {
+        "name": "Full A/B guard retained",
+        "passed": true
+      },
+      {
+        "name": "comparison callback completed",
+        "passed": true
+      },
+      {
+        "name": "show empty 0",
+        "passed": true
+      },
+      {
+        "name": "select before/after 0",
+        "passed": true
+      },
+      {
+        "name": "cube UI faces 0",
+        "passed": true
+      },
+      {
+        "name": "ready feedback 0",
+        "passed": true
+      },
+      {
+        "name": "triangle UI faces 0",
+        "passed": true
+      },
+      {
+        "name": "quad UI faces 0",
+        "passed": true
+      },
+      {
+        "name": "concave and hole UI faces 0",
+        "passed": true
+      },
+      {
+        "name": "nonplanar refused 0",
+        "passed": true
+      },
+      {
+        "name": "reflected parent UI faces 0",
+        "passed": true
+      },
+      {
+        "name": "subdivision refused 0",
+        "passed": true
+      },
+      {
+        "name": "unsupported feedback 0",
+        "passed": true
+      },
+      {
+        "name": "removed UI faces 0",
+        "passed": true
+      },
+      {
+        "name": "face toggle clears 0",
+        "passed": true
+      },
+      {
+        "name": "pair feedback 0",
+        "passed": true
+      },
+      {
+        "name": "filtered navigation 0",
+        "passed": true
+      },
+      {
+        "name": "navigation boundary 0",
+        "passed": true
+      },
+      {
+        "name": "toggle off 0",
+        "passed": true
+      },
+      {
+        "name": "toggle on 0",
+        "passed": true
+      },
+      {
+        "name": "close review 0",
+        "passed": true
+      },
+      {
+        "name": "closed feedback 0",
+        "passed": true
+      },
+      {
+        "name": "subscriptions released 0",
+        "passed": true
+      },
+      {
+        "name": "cycle preservation 0",
+        "passed": true
+      },
+      {
+        "name": "show empty 1",
+        "passed": true
+      },
+      {
+        "name": "select before/after 1",
+        "passed": true
+      },
+      {
+        "name": "cube UI faces 1",
+        "passed": true
+      },
+      {
+        "name": "ready feedback 1",
+        "passed": true
+      },
+      {
+        "name": "triangle UI faces 1",
+        "passed": true
+      },
+      {
+        "name": "quad UI faces 1",
+        "passed": true
+      },
+      {
+        "name": "concave and hole UI faces 1",
+        "passed": true
+      },
+      {
+        "name": "nonplanar refused 1",
+        "passed": true
+      },
+      {
+        "name": "reflected parent UI faces 1",
+        "passed": true
+      },
+      {
+        "name": "subdivision refused 1",
+        "passed": true
+      },
+      {
+        "name": "unsupported feedback 1",
+        "passed": true
+      },
+      {
+        "name": "removed UI faces 1",
+        "passed": true
+      },
+      {
+        "name": "face toggle clears 1",
+        "passed": true
+      },
+      {
+        "name": "pair feedback 1",
+        "passed": true
+      },
+      {
+        "name": "filtered navigation 1",
+        "passed": true
+      },
+      {
+        "name": "navigation boundary 1",
+        "passed": true
+      },
+      {
+        "name": "toggle off 1",
+        "passed": true
+      },
+      {
+        "name": "toggle on 1",
+        "passed": true
+      },
+      {
+        "name": "close review 1",
+        "passed": true
+      },
+      {
+        "name": "closed feedback 1",
+        "passed": true
+      },
+      {
+        "name": "subscriptions released 1",
+        "passed": true
+      },
+      {
+        "name": "cycle preservation 1",
+        "passed": true
+      },
+      {
+        "name": "panel scroll reaches values",
+        "passed": true
+      },
+      {
+        "name": "alpha changes rendered pixels",
+        "passed": true
+      },
+      {
+        "name": "green faces rendered",
+        "passed": true
+      },
+      {
+        "name": "transparent face colors stay green",
+        "passed": true
+      },
+      {
+        "name": "reselected transparent colors stay green",
+        "passed": true
+      },
+      {
+        "name": "concave screenshot captured",
+        "passed": true
+      },
+      {
+        "name": "faces screenshot captured",
+        "passed": true
+      },
+      {
+        "name": "invalid input keeps evidence",
+        "passed": true
+      },
+      {
+        "name": "panel close clears overlay",
+        "passed": true
+      },
+      {
+        "name": "extension reactivated from package",
+        "passed": true
+      },
+      {
+        "name": "quoted manifests compare after reactivation",
+        "passed": true
+      },
+      {
+        "name": "faces controls preserved",
+        "passed": true
+      },
+      {
+        "name": "extension disabled",
+        "passed": true
+      },
+      {
+        "name": "navigation exclusions after disable",
+        "passed": true
+      },
+      {
+        "name": "working state preserved",
+        "passed": true
+      },
+      {
+        "name": "inputs preserved",
+        "passed": true
+      }
+    ],
+    "containment_required": false,
+    "cycles": 2,
+    "environment": {
+      "driver": "610.62",
+      "gpu": "RTX3060 12GiB",
+      "kit": "106.5",
+      "python": "3.10.15",
+      "sdk": "Isaac Sim 4.5.0-rc.36+release.19112.f59b3005.gl",
+      "usd": "22.11"
+    },
+    "error_signature_counts": {
+      "menu.missing_window": 5,
+      "menu.none_selection": 100,
+      "menu.none_stage_state": 5,
+      "python.missing_manipulator_factory": 1,
+      "python.missing_menu_button": 1,
+      "python.none_get_prim": 1,
+      "shutdown.manipulator_core": 1,
+      "shutdown.physx_ui": 1,
+      "shutdown.xrdf_editor": 1
+    },
+    "exclusive_lease_observed": true,
+    "lease_naturally_released": true,
+    "log_summary": {
+      "error_categories": {
+        "carb.scripting-python.plugin": 3,
+        "omni.ext.plugin": 3,
+        "omni.kit.menu.utils.app_menu": 110
+      },
+      "error_lines": 116,
+      "fabric_history_outstanding": true,
+      "graphics_objects_leaked": true,
+      "traceback_observed": true,
+      "warning_lines": 640
+    },
+    "native_exit": 0,
+    "outer_check_count": 18,
+    "outer_checks": [
+      {
+        "name": "supported route",
+        "passed": true
+      },
+      {
+        "name": "owned portable config",
+        "passed": true
+      },
+      {
+        "name": "review initially disabled",
+        "passed": true
+      },
+      {
+        "name": "navigation core matches profile",
+        "passed": true
+      },
+      {
+        "name": "navigation recast matches profile",
+        "passed": true
+      },
+      {
+        "name": "navigation schema retained",
+        "passed": true
+      },
+      {
+        "name": "native navigation module matches profile",
+        "passed": true
+      },
+      {
+        "name": "no startup dependency failures",
+        "passed": true
+      },
+      {
+        "name": "startup inventory matches pinned profile",
+        "passed": true
+      },
+      {
+        "name": "only fresh anonymous startup replaced",
+        "passed": true
+      },
+      {
+        "name": "owned fixture opened",
+        "passed": true
+      },
+      {
+        "name": "only owned fixture active",
+        "passed": true
+      },
+      {
+        "name": "fixture root is not dirty",
+        "passed": true
+      },
+      {
+        "name": "candidate only on reduced profile",
+        "passed": true
+      },
+      {
+        "name": "review disabled after candidate",
+        "passed": true
+      },
+      {
+        "name": "candidate rendering settings preserved",
+        "passed": true
+      },
+      {
+        "name": "close only unchanged owned stage",
+        "passed": true
+      },
+      {
+        "name": "public close leaves no stage",
+        "passed": true
+      }
+    ],
+    "owned_job_closed": true,
+    "owned_job_empty": true,
+    "owned_pid_reaped": true,
+    "package_receipt": {
+      "archive_sha256": "b4b6b94a19906e5bec4d940165f52d185d20e541b8a4ad772a246f3047767b26",
+      "copied_bytes_verified": true,
+      "verified_extension_files": 30,
+      "version": "0.1.0-rc.4"
+    },
+    "preserved": [
+      "source files",
+      "working root/session",
+      "save pending",
+      "selection",
+      "camera/view/projection",
+      "timeline",
+      "render settings"
+    ],
+    "profile": "host-local no-navigation; core/recast excluded, schema retained",
+    "project_traceback_observed": false,
+    "public_close": true,
+    "stage_events": [
+      "CLOSING",
+      "CLOSED"
+    ],
+    "strict_clean": false,
+    "unclassified_errors": 0,
+    "wrapper_exit": 2
+  },
+  "schema": 1
+}

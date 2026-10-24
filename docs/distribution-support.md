@@ -1,3 +1,6 @@
+> rc.4 primary workflow: [stage-free review inside Isaac](first-use.md).
+> The minimal Kit launcher below is the optional legacy worker route, not live in-app A/B.
+
 # Candidate support and release boundary
 
 Candidate 0.1.0-rc.3 is a project-only archive for Windows and a separately installed

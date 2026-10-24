@@ -1,3 +1,6 @@
+> rc.4 primary workflow: [stage-free review inside Isaac](first-use.md).
+> The minimal Kit launcher below is the optional legacy worker route, not live in-app A/B.
+
 # Distribution candidate quick start — English
 
 Target: Windows, an already installed Isaac Sim 4.5 SDK (Kit 106.5, Python 3.10,

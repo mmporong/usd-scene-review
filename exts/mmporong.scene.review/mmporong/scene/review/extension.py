@@ -19,6 +19,7 @@ from usd_scene_review.worker_client import get_viewer_client
 from usd_scene_review.exports import save_report
 from usd_scene_review.in_app_logic import FULL_HOST_REVIEW_LIMITATION
 from usd_scene_review.snapshot import canonical
+from usd_scene_review.inputs import manifest_inputs
 from usd_scene_review.overlap_analysis import pair_rows
 
 _active = None
@@ -65,10 +66,10 @@ class SceneReviewExtension(omni.ext.IExt):
         self._normalized = ui.SimpleBoolModel(True)
         self._review_event = {}
         self._export_path = ui.SimpleStringModel()
-        self._status = ui.SimpleStringModel('Compare two frozen snapshots, then Open A/B in Isaac (experimental).')
+        self._status = ui.SimpleStringModel('Choose A baseline and B revision manifest.json, Compare, then Show snapshot bounds in working viewport.')
         self._display_feedback=ui.SimpleStringModel(display_feedback())
         if self._in_app_blocked:
-            self._status.set_value(FULL_HOST_REVIEW_LIMITATION)
+            self._status.set_value('Working-viewport bounds/old-A UI faces are available. Experimental live A/B remains blocked; see package README.')
         self._details = ui.SimpleStringModel('No comparison loaded.')
         self._revision = ui.SimpleStringModel('No saved scene attached')
         self._selected_label = ui.SimpleStringModel('Select a changed prim to inspect before / after / delta')
@@ -93,7 +94,7 @@ class SceneReviewExtension(omni.ext.IExt):
                 ui.Label('A = BEFORE saved scene | B = AFTER saved scene. A change may be intentional.', height=24)
                 for side in ('A', 'B'):
                     with ui.HStack(height=26):
-                        ui.Label(side + ' manifest', width=90)
+                        ui.Label(side + (' baseline' if side=='A' else ' revision'), width=90)
                         ui.StringField(model=self._paths[side])
                 with ui.HStack(height=30, spacing=6):
                     ui.Button('Compare', clicked_fn=self._compare)
@@ -236,14 +237,16 @@ class SceneReviewExtension(omni.ext.IExt):
         try:
             await operation
         except Exception as exc:
-            self._message(type(exc).__name__ + ': ' + str(exc)
-                          + ' Close review to acknowledge a stopped failed worker, then retry.')
+            advice = (' Close review to acknowledge a stopped failed worker, then retry.'
+                      if self._viewer.state == 'failed' else ' Check the input paths and package first-use guide.')
+            self._message(type(exc).__name__ + ': ' + str(exc) + advice)
             carb.log_warn('USD Scene Review operation failed: ' + type(exc).__name__)
 
     def _compare(self):
         self._schedule(self._compare_async())
 
     async def _compare_async(self):
+        paths = manifest_inputs({s:model.as_string for s,model in self._paths.items()})
         self._overlay_receipt=None
         self._close_bounds_overlay()
         if self._in_app and not await self._in_app.close():
@@ -260,7 +263,6 @@ class SceneReviewExtension(omni.ext.IExt):
         self._disposition.set_value('Human review: no changed prim selected')
         self._render_numeric(None)
         self._rows.clear()
-        paths = {s: Path(model.as_string).expanduser().resolve() for s, model in self._paths.items()}
         hashes = {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in paths.items()}
         report = compare(paths['A'], paths['B'])
         if hashes != {s: hashlib.sha256(p.read_bytes()).hexdigest() for s, p in paths.items()}:

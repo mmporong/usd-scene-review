@@ -11,6 +11,10 @@ def package(destination):
     if destination.exists() or destination.is_symlink():
         raise ValueError('destination must be a new file')
     files = {}
+    files['README.md'] = (repo/'distribution/extension-README.md').read_bytes()
+    files['docs/first-use.md'] = (repo/'docs/first-use.md').read_bytes()
+    for name in ('before.usda','after.usda'):
+        files['examples/synthetic/'+name]=(repo/'distribution/examples/synthetic'/name).read_bytes()
     for path in extension.rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts:
             files[path.relative_to(extension).as_posix()] = path.read_bytes()
@@ -40,10 +44,8 @@ def package(destination):
     files['docs/teardown-investigation.md'] = (repo/'docs/teardown-investigation.md').read_bytes()
     files['docs/viewport-reuse-assessment.md'] = (repo/'docs/viewport-reuse-assessment.md').read_bytes()
     files['examples/usd-scene-review-in-app.png'] = (repo/'examples/usd-scene-review-in-app.png').read_bytes()
-    files['docs/README.md'] = files['docs/README.md'].replace(
-        b'../../../docs/in-app-review.md', b'in-app-review.md')
-    files['docs/README.md'] = files['docs/README.md'].replace(
-        b'../../../docs/viewport-bounds-overlay.md', b'viewport-bounds-overlay.md')
+    files['docs/README.md'] = (b'# USD Scene Review\n\nStart with the [first-use workflow](first-use.md).\n'
+        b'Experimental A/B limits: [in-app review](in-app-review.md).\n')
     for path in (repo / 'src' / 'usd_scene_review').glob('*.py'):
         files['python/usd_scene_review/' + path.name] = path.read_bytes()
     with zipfile.ZipFile(destination, 'x', compression=zipfile.ZIP_DEFLATED) as archive:

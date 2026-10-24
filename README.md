@@ -108,6 +108,11 @@ for the actual RTX material check behind this revised appearance.
 
 ## Distribution candidate
 
+Rc.4 starts with [the complete stage-free first-use workflow](docs/first-use.md):
+verify/extract, prepare baseline/revision, activate in Isaac, filter/select, inspect
+old-A UI faces and values, close/reopen and disable. Worker launch is optional legacy.
+See [clean-package QA, reproducible artifact hash and release blockers](docs/deployment-workflow-qa.md).
+
 Rc.3 adds separate scale-normalized effective orientation and point-derived
 static Cube/Mesh AABB candidates. Rigid policy rules are unchanged; collision remains
 unknown. Candidate scope, exclusions and work budgets are recorded in the report.

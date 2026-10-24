@@ -1,13 +1,14 @@
 # Implementation plan and acceptance
 
-Current status: the core, isolated minimal-Kit review, static green/lime old-pose helper,
-right-side evidence and local human metadata are implemented and tested. The visual
-baseline is user-approved. The current bounded work stabilizes capture tooling and
-reconciles evidence; it does not redesign visuals or add features. Full Isaac normal
-shutdown remains blocked by the reproduced baseline SDK fault; license is undecided.
-See [validation.md](validation.md) and the current disposition in
-[contribution-candidates.md](contribution-candidates.md). The initial outcome below is
-historical, not the latest GUI status.
+Current status: stage-free working-viewport bounds and bounded alpha0.22 old-A UI
+faces, semantic numeric evidence, filtering/navigation and frozen-input checks are
+implemented. The current work validates the complete clean-package first-use flow;
+it does not add another renderer or broaden geometry support. Same-app live A/B
+remains guarded; stock Full app navigation shutdown remains a reproduced SDK fault.
+The reduced owned profile can exit naturally with SDK diagnostics (strict-clean=false).
+Actual mouse and production/long-session qualification remain incomplete, and license
+is undecided. See [first use](first-use.md) and [validation](validation.md).
+The numbered initial outcome below is historical.
 
 1. Establish this scope, prior-art links and validation boundaries before implementation.
 2. Implement strict local snapshot bundles and manifest integrity validation. Root-equal/dependency-different, missing dependency and changed bundle must be tested.
