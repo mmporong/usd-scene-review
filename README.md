@@ -13,10 +13,12 @@ Inside the working Isaac viewport, **Show snapshot bounds in working viewport**
 now links change-list selection to blue dashed before-A and orange after-B bounds
 and shared values. This stage-free UI path preserves the working USD/session,
 camera, selection and save state in synthetic Full Isaac tests. Optional
-[old A green UI faces](docs/scene-ui-faces.md) show actual static Cube/triangle Mesh
+[old A green UI faces](docs/scene-ui-faces.md) show actual static Cube/planar polygon Mesh
 geometry at alpha0.22 without USD edits. These unlit helpers do not reproduce scene
 depth/materials or complete the general mesh ghost. The camera stays fixed. See
 [installation, real capture and exact limits](docs/viewport-bounds-overlay.md).
+[Polygon support](docs/polygon-ui-faces.md) includes conservative quad/concave
+triangulation, USD hole-face exclusion and explicit geometry/budget refusals.
 
 [Two-scale deployment QA](docs/bounds-deployment-qa.md) measures 32/2,048 synthetic
 Cubes and repeated cleanup. Verified-report reuse reduces the measured large-case

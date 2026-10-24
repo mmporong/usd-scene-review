@@ -107,7 +107,7 @@ class SceneReviewExtension(omni.ext.IExt):
                     ui.Button('Clear bounds overlay',clicked_fn=self._hide_bounds_overlay)
                 with ui.HStack(height=24):
                     ui.CheckBox(model=self._bounds_faces,width=20)
-                    ui.Label('Old A green UI faces: static Cube / triangle Mesh, alpha 0.22; no scene depth or materials.')
+                    ui.Label('Old A green UI faces: static Cube / planar polygon Mesh, alpha 0.22; no scene depth or materials.')
                 ui.Label('A blue dashed / B orange solid bounds. Working camera and stage selection stay unchanged.',height=24)
                 ui.StringField(model=self._status, read_only=True, multiline=True, height=52)
                 with ui.HStack(height=26):

@@ -36,7 +36,7 @@ class ViewerLifecycleTests(unittest.IsolatedAsyncioTestCase):
             shutil.rmtree(directory, ignore_errors=True)
         self.temp.cleanup()
 
-    def client(self, exit_code=0, bad_nonce=False, silent=False):
+    def client(self, exit_code=0, bad_nonce=False, silent=False, timeout=3):
         self.processes = []
         def launch(directory, config):
             self.directories.append(directory)
@@ -62,7 +62,9 @@ class ViewerLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     await asyncio.sleep(.005)
             self.tasks.append(asyncio.ensure_future(serve()))
             return process, None
-        return ViewerClient(launch, timeout=.3)
+        # Successful protocol cases must not become 300ms disk/scheduler tests.
+        # Keep the explicit timeout-refusal case short and independently asserted.
+        return ViewerClient(launch, timeout=timeout)
 
     async def view(self, client):
         return await client.view(self.manifests, 'A', None, sdk='unused', worker_module='unused')
@@ -97,7 +99,7 @@ class ViewerLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.state, 'failed')
 
     async def test_timeout_is_failure_and_owned_process_is_stopped(self):
-        client = self.client(silent=True)
+        client = self.client(silent=True,timeout=.3)
         with self.assertRaises(TimeoutError):
             await self.view(client)
         self.assertTrue(self.processes[0].terminated)
