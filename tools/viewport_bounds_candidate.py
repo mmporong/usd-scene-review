@@ -14,6 +14,7 @@ def check_names(faces=False):
         if faces:names.update(label+str(cycle) for label in ('cube UI faces ','triangle UI faces ','subdivision refused ','removed UI faces ','face toggle clears '))
         if faces:names.update(label+str(cycle) for label in ('quad UI faces ','concave and hole UI faces ','nonplanar refused ','reflected parent UI faces '))
         if faces:names.update(label+str(cycle) for label in ('ready feedback ','unsupported feedback ','pair feedback ','closed feedback '))
+        if faces:names.update(label+str(cycle) for label in ('filtered navigation ','navigation boundary '))
     if faces:names.update(('faces screenshot captured','alpha changes rendered pixels','green faces rendered','faces controls preserved','transparent face colors stay green','reselected transparent colors stay green','concave screenshot captured','panel scroll reaches values'))
     return names
 
@@ -192,6 +193,18 @@ async def evaluate(probe,root,faces=False):
                 pair=owner._report['overlap_analysis']['pairs'][0];owner._select_pair(pair);await updates()
                 feedback=' '.join(owner._display_feedback.as_string.split())
                 check('pair feedback '+str(cycle),owner._bounds_overlay.line_count==0 and 'Pair evidence' in feedback and 'geometry is cleared' in feedback and 'framed' not in owner._motion.as_string)
+                from usd_scene_review.presentation import CHANGE_KINDS
+                owner._query.set_value('removed')
+                owner._kind_filter.model.get_item_value_model().set_value(CHANGE_KINDS.index('removed'))
+                owner._navigate_change(1);await updates()
+                check('filtered navigation '+str(cycle),owner._selected=='/World/Removed'
+                      and owner._selected_pair is None and owner._bounds_overlay.face_count==0
+                      and len(owner._visible_changes())==1 and state()==before)
+                owner._navigate_change(1);await updates()
+                check('navigation boundary '+str(cycle),owner._selected=='/World/Removed'
+                      and 'No wrap' in owner._status.as_string and state()==before)
+                owner._query.set_value('')
+                owner._kind_filter.model.get_item_value_model().set_value(0)
                 owner._select(changed)
             owner._hide_bounds_overlay();await updates()
             check('toggle off '+str(cycle),owner._bounds_overlay is None)

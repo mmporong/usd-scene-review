@@ -12,7 +12,7 @@ import omni.ui as ui
 
 from usd_scene_review import compare
 from usd_scene_review.overlay import ComparisonReceipt,display_feedback,FACE_SUPPORT_TEXT
-from usd_scene_review.presentation import details, summary, visible_changes
+from usd_scene_review.presentation import details, summary, visible_changes, adjacent_change, CHANGE_KINDS
 from usd_scene_review.measurements import detail_rows, measurements
 from usd_scene_review.dispositions import change_identity, record, history, latest
 from usd_scene_review.worker_client import get_viewer_client
@@ -120,6 +120,13 @@ class SceneReviewExtension(omni.ext.IExt):
                     ui.StringField(model=self._query)
                     ui.CheckBox(model=self._inherited, width=20)
                     ui.Label('Inherited motion', width=130)
+                with ui.HStack(height=26):
+                    ui.Label('Change type', width=100)
+                    self._kind_filter = ui.ComboBox(0, *CHANGE_KINDS)
+                    ui.Button('Previous change', clicked_fn=partial(self._navigate_change, -1))
+                    ui.Button('Next change', clicked_fn=partial(self._navigate_change, 1))
+                ui.Label('Working-camera framing/restore unavailable: installed framing API edits the camera prim. Navigation keeps your view.',
+                         word_wrap=True,height=40,style={'font_size':14})
                 with ui.HStack(height=30):
                     ui.Label('BEFORE A | BLUE / dashed bounds', style={'color': 0xFFBC5D0C})
                     ui.Label('AFTER B | ORANGE / solid bounds', style={'color': 0xFF0754C0})
@@ -165,6 +172,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._render_numeric(None)
         self._window.set_visibility_changed_fn(lambda visible:self._close_bounds_overlay() if not visible else None)
         self._query_callback = self._query.add_value_changed_fn(lambda _: self._render_rows())
+        self._kind_callback = self._kind_filter.model.add_item_changed_fn(lambda *_: self._render_rows())
         self._bounds_faces_callback=self._bounds_faces.add_value_changed_fn(lambda _:self._set_bounds_faces())
         self._focus_callback = self._focus.add_value_changed_fn(
             lambda _: self._request_frame() if self._viewer.state == 'running' else None)
@@ -267,10 +275,29 @@ class SceneReviewExtension(omni.ext.IExt):
         self._render_pairs()
         self._message(summary(self._report).splitlines()[0])
 
+    def _visible_changes(self):
+        index = self._kind_filter.model.get_item_value_model().as_int
+        return visible_changes(self._report or {}, self._query.as_string,
+                               self._inherited.as_bool, CHANGE_KINDS[index])
+
+    def _navigate_change(self, direction):
+        if not self._report or self._shutting_down:
+            self._message('Compare snapshots before navigating changes.')
+            return
+        changes = self._visible_changes()
+        target = adjacent_change(changes, self._selected, direction)
+        if target is None:
+            self._message('No matching changes.' if not changes else
+                          'End of matching changes; selection retained. No wrap.')
+            return
+        self._select(target)
+        position = next(i for i, c in enumerate(changes, 1) if c is target)
+        self._message(f'Change {position} / {len(changes)} matching: {target["path"]}. Working camera unchanged.')
+
     def _render_rows(self):
         if not self._report or not self._window:
             return
-        changes = visible_changes(self._report, self._query.as_string, self._inherited.as_bool)
+        changes = self._visible_changes()
         groups = {g['parent']: len(g['affected']) for g in self._report.get('parent_groups', [])}
         self._rows.clear()
         with self._rows:
@@ -544,6 +571,7 @@ class SceneReviewExtension(omni.ext.IExt):
                 carb.log_error('In-app cleanup pending; native attachment/render drain retains ownership')
                 if self._task:self._task.add_done_callback(lambda _,owned=self._in_app:owned.close_sync())
         self._query.remove_value_changed_fn(self._query_callback)
+        self._kind_filter.model.remove_item_changed_fn(self._kind_callback)
         self._inherited.remove_value_changed_fn(self._inherited_callback)
         self._focus.remove_value_changed_fn(self._focus_callback)
         self._ghost.remove_value_changed_fn(self._ghost_callback)
