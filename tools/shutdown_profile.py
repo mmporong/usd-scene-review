@@ -83,7 +83,7 @@ def assess(report, process, log, profile=None):
         expected_ids=list(profile['observation']['startup_extensions'])
         if expected:
             expected_ids+=profile['navigation_extension_ids']
-        bounds=profile.get('candidate') in ('viewport-bounds','viewport-bounds-scale','viewport-bounds-stability')
+        bounds=profile.get('candidate') in ('viewport-bounds','viewport-bounds-scale','viewport-bounds-stability','viewport-faces')
         required_checks=set(REQUIRED_CHECKS)
         if bounds:
             expected_ids+=['mmporong.scene.review-0.1.0']
@@ -109,7 +109,9 @@ def assess(report, process, log, profile=None):
                     from viewport_bounds_scale_qa import check_names
                 else:
                     from viewport_bounds_candidate import check_names
-                names=check_names((2048,),33) if profile.get('candidate')=='viewport-bounds-stability' else check_names()
+                if profile.get('candidate')=='viewport-bounds-stability':names=check_names((2048,),33)
+                elif profile.get('candidate')=='viewport-faces':names=check_names(faces=True)
+                else:names=check_names()
             else:names=reuse_check_names()
             required['candidate']=(profile['variant']=='no-navigation' and candidate.get('status')=='passed'
                 and len(candidate_checks)==len(names) and {c.get('name') for c in candidate_checks if c.get('passed') is True}==names
@@ -201,6 +203,20 @@ def validate_admission(metadata, processes, own_pid, exclusive, gpu, blockers, o
             'driver':gpu[0][4].strip() if len(gpu[0])>4 else None}
 
 
+def protected_windows_desktop(name,reported):
+    """Known OS UI clients in protected locations; never accept a basename alone."""
+    path=ntpath.normcase(ntpath.normpath(reported))
+    windows=ntpath.normcase(os.environ.get('SystemRoot',r'C:\Windows'))
+    if name=='applicationframehost.exe':return path==ntpath.join(windows,'system32','applicationframehost.exe')
+    if name=='systemsettings.exe':return path==ntpath.join(windows,'immersivecontrolpanel','systemsettings.exe')
+    if name=='snippingtool.exe':
+        import re
+        apps=ntpath.normcase(ntpath.join(os.environ.get('ProgramFiles',r'C:\Program Files'),'WindowsApps'))
+        relative=ntpath.relpath(path,apps) if ntpath.splitdrive(path)[0]==ntpath.splitdrive(apps)[0] else ''
+        return bool(re.fullmatch(r'microsoft\.screensketch_[0-9.]+_x64__8wekyb3d8bbwe\\snippingtool\\snippingtool\.exe',relative))
+    return False
+
+
 def unmanaged_clients(clients, processes, own_pid):
     # Desktop draw clients are present in Windows nvidia-smi output. Unknown or
     # permission-hidden clients must be resolved by PID or fail closed.
@@ -221,7 +237,8 @@ def unmanaged_clients(clients, processes, own_pid):
         pid=int(row[0])
         name=ntpath.basename(row[1].strip()).lower()
         if name.startswith('['):name=str(by_id.get(pid,{}).get('Name','')).lower()
-        if pid!=own_pid and name not in desktop:
+        protected=(str(by_id.get(pid,{}).get('Name','')).lower()==name and protected_windows_desktop(name,row[1].strip()))
+        if pid!=own_pid and name not in desktop and not protected:
             blockers.append({'pid':pid,'name':name or 'unresolved'})
     return blockers
 

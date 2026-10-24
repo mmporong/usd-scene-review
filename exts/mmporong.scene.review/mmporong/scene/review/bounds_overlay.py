@@ -18,8 +18,9 @@ class BoundsOverlay:
         self.subscriptions=[];self.snapshots={};self.report=None;self.last_plan=None
         self.window=self.api=self.host=self.stage=self.caption=None
         self.line_count=0;self._matrices=None
+        self.show_faces=False;self.face_count=0
 
-    def open(self,paths,report,selected=None,comparison_receipt=None):
+    def open(self,paths,report,selected=None,comparison_receipt=None,show_faces=False):
         self.close()
         if report.get('status')=='unknown':raise ValueError('Compare complete frozen snapshots before overlay')
         if not omni.timeline.get_timeline_interface().is_stopped():raise ValueError('Bounds overlay requires stopped timeline')
@@ -37,6 +38,7 @@ class BoundsOverlay:
             raise ValueError('Working viewport units/up axis differ from snapshots; no alignment is guessed')
         self.snapshots={side:load_snapshot(paths[side]) for side in ('A','B')}
         self.report=report;self.window=window;self.api=api;self.host=host;self.stage=stage
+        self.show_faces=bool(show_faces)
         try:
             self.frame=window.get_frame(FRAME_NAME)
             self.frame.clear();self.frame.visible=True
@@ -48,7 +50,7 @@ class BoundsOverlay:
                         ui.Spacer(width=32)
                         with ui.VStack():
                             ui.Spacer(height=32)
-                            self.caption=ui.Label('',height=150,word_wrap=True,
+                            self.caption=ui.Label('',height=210,word_wrap=True,
                                 style={'font_size':14,'color':0xFFFFFFFF,'background_color':0xA0303030})
                             ui.Spacer()
             self.state='open';self.select(selected)
@@ -84,13 +86,19 @@ class BoundsOverlay:
 
     def select(self,path):
         if self.state!='open':return
-        try:plan=bounds_plan(self.report,self.snapshots,path)
+        try:plan=bounds_plan(self.report,self.snapshots,path,show_faces=self.show_faces)
         except Exception:
-            self.scene_view.scene.clear();self.line_count=0;self.last_plan=None
+            self.scene_view.scene.clear();self.line_count=self.face_count=0;self.last_plan=None
             self.caption.text='Bounds overlay cleared: comparison selection/input unavailable'
             raise
-        self.scene_view.scene.clear();self.line_count=0
+        self.scene_view.scene.clear();self.line_count=self.face_count=0
         with self.scene_view.scene:
+            faces=plan.get('old_faces',{})
+            for mesh in faces.get('meshes',[]):
+                sc.PolygonMesh(mesh['positions'],mesh['colors'],mesh['vertex_counts'],mesh['vertex_indices'])
+            for index in range(0,len(faces.get('wires',[])),2):
+                sc.Line(faces['wires'][index],faces['wires'][index+1],color=faces['wire_color'],thickness=1.)
+            self.face_count=faces.get('triangles',0)
             for box in plan['boxes']:
                 for index in range(0,len(box['points']),2):
                     sc.Line(box['points'][index],box['points'][index+1],color=box['color'],thickness=2.5)
@@ -107,7 +115,8 @@ class BoundsOverlay:
             # get_frame caches one SDK-owned container per fixed key. Reuse that
             # empty frame on reopen; do not leave destroyed children or callbacks.
             self.frame.clear();self.frame.visible=False;self.frame=None
-        self.snapshots.clear();self.report=self.last_plan=None;self.line_count=0;self._matrices=None
+        self.snapshots.clear();self.report=self.last_plan=None;self.line_count=self.face_count=0;self._matrices=None
+        self.show_faces=False
         self.window=self.api=self.host=self.stage=self.caption=None
         if reason:self.message(reason)
         return True

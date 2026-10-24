@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "id": "isaac45-scene-ui-faces-v1",
+  "baseline_main": "14112d98c026af2008fd51de38809f5a314bda01",
+  "environment": {
+    "os": "Windows 11 Pro",
+    "cpu": "AMD Ryzen 7 5800X",
+    "visible_ram_bytes": 85810319360,
+    "gpu": "RTX 3060 12288 MiB",
+    "driver": "610.62",
+    "isaac_sim": "4.5.0-rc.36",
+    "kit": "106.5",
+    "python": "3.10.15",
+    "usd": "22.11"
+  },
+  "api": {
+    "extension": "omni.ui.scene",
+    "installed_version": "1.11.2",
+    "shape": "PolygonMesh",
+    "camera": "independent UI camera model copies existing viewport view/projection"
+  },
+  "scope": {
+    "static_cube": true,
+    "linear_triangle_mesh": true,
+    "subdivision": false,
+    "general_polygons": false,
+    "material_or_scene_depth_match": false,
+    "face_alpha": 0.22,
+    "max_geometry_prims": 64,
+    "max_source_points": 10000,
+    "max_triangles": 20000,
+    "max_wire_segments": 20000
+  },
+  "source_sha256": {
+    "A": "4439c6c83a6a4f30410dad3952dccfd29458e787a40bcb2af76add081edd8ec1",
+    "B": "0410a863fb4c2df5355c20f87c537452fb957236d8dcd6aabad6dbb1b5f66bf2"
+  },
+  "admission_correction": {
+    "first_attempt_spawned_kit": false,
+    "first_attempt_reason": "protected Windows UI clients were missing from classifier",
+    "verified_microsoft_signatures": [
+      "ApplicationFrameHost.exe",
+      "SystemSettings.exe",
+      "SnippingTool.exe"
+    ],
+    "correction": "require protected OS/package path and matching actual process name; unknown/hidden/spoofed clients still blocked"
+  },
+  "before": {
+    "candidate_checks": 37,
+    "outer_checks": 18,
+    "callback_tests_only": true,
+    "working_stage_preserved": true,
+    "pending_before": false,
+    "pending_after": false,
+    "owned_resources_remaining": false,
+    "render_settings_preserved": true,
+    "face_pixels": {
+      "alpha_opaque_difference_mean_sum": 5.684752083333333,
+      "green_pixels": 34811
+    },
+    "shutdown": {
+      "process_exit": 0,
+      "native_exit_ok": true,
+      "profile_conditions_met": true,
+      "strict_clean_shutdown": false,
+      "log_summary": {
+        "error_lines": 7,
+        "warning_lines": 463,
+        "error_categories": {
+          "carb.scripting-python.plugin": 3,
+          "omni.ext.plugin": 3,
+          "omni.kit.menu.utils.app_menu": 1
+        },
+        "traceback_observed": true,
+        "graphics_objects_leaked": true,
+        "fabric_history_outstanding": true
+      },
+      "fixture_bytes_preserved": true,
+      "owned_process_reaped": true,
+      "owned_job_empty": true,
+      "owned_job_closed": true,
+      "descendant_containment_required": false
+    },
+    "lease": {
+      "admitted_exclusively": true,
+      "naturally_released": true,
+      "wrapper_exit": 2
+    },
+    "code_sha256": {
+      "faces": "15f3164a25cc2d1bf58d1f883ced27e41b45561e5acd0e6a29621250238df8d2",
+      "adapter": "29b8ca142212c0397089e74fbcb7d4c3ecffe424544568018cc05d4c6d31af31",
+      "extension": "105c94270b6125b4aa2cec0edbf96aa9edeb3701116539f166da88febdbeed14",
+      "probe": "3602fa279c46322dbc6ef35ad851b9ff75b5f905491c0fef509108ebb62a1ec4"
+    },
+    "visual_inspection": "failed: shared-vertex Cube had missing/magenta faces despite initial pixel checks"
+  },
+  "after": {
+    "candidate_checks": 39,
+    "outer_checks": 18,
+    "callback_tests_only": true,
+    "working_stage_preserved": true,
+    "pending_before": false,
+    "pending_after": false,
+    "owned_resources_remaining": false,
+    "render_settings_preserved": true,
+    "face_pixels": {
+      "alpha_opaque_difference_mean_sum": 9.183846527777778,
+      "green_pixels": 68746,
+      "opaque_green_mask_pixels": 69368,
+      "faint_green_mask_matches": 65936,
+      "faint_green_match_ratio": 0.9505247376311844,
+      "reselected_green_match_ratio": 0.9504959058932072
+    },
+    "shutdown": {
+      "process_exit": 0,
+      "native_exit_ok": true,
+      "profile_conditions_met": true,
+      "strict_clean_shutdown": false,
+      "log_summary": {
+        "error_lines": 8,
+        "warning_lines": 604,
+        "error_categories": {
+          "carb.scripting-python.plugin": 3,
+          "omni.ext.plugin": 3,
+          "omni.kit.menu.utils.app_menu": 2
+        },
+        "traceback_observed": true,
+        "graphics_objects_leaked": true,
+        "fabric_history_outstanding": true
+      },
+      "fixture_bytes_preserved": true,
+      "owned_process_reaped": true,
+      "owned_job_empty": true,
+      "owned_job_closed": true,
+      "descendant_containment_required": false
+    },
+    "lease": {
+      "admitted_exclusively": true,
+      "naturally_released": true,
+      "wrapper_exit": 2
+    },
+    "code_sha256": {
+      "faces": "624eb41d4b324459987ad3d33fe01b43ff3ed78cbd2a895c44b7b98df91a19f2",
+      "adapter": "29b8ca142212c0397089e74fbcb7d4c3ecffe424544568018cc05d4c6d31af31",
+      "extension": "105c94270b6125b4aa2cec0edbf96aa9edeb3701116539f166da88febdbeed14",
+      "probe": "560d93c436883b80f64b5f5eeef7914b0a98b935b52fc2a51955b6d1a10d1d21"
+    },
+    "visual_inspection": "filled green Cube with translucent faces; independently inspected authentic capture"
+  },
+  "capture": {
+    "source_sha256": "cf691e23e781d79dddb9e9296299e6e3e49599320216ba0139edff0c92a4f210",
+    "crop_xyxy": [
+      55,
+      85,
+      765,
+      610
+    ],
+    "public_sha256": "8d5480101657075e0d8103d88c1fb6f689c05cc94a7070e531e2eeb448a14e18",
+    "method": "exact native swapchain pixel crop; no repaint/resize; removes private manifest fields"
+  },
+  "limits": {
+    "real_mouse_tested": false,
+    "stock_full_shutdown_qualified": false,
+    "live_ab_guard_removed": false,
+    "general_mesh_ghost_complete": false,
+    "long_duration_faces_qualified": false,
+    "native_root_cause_of_shared_color_issue_proven": false
+  }
+}
