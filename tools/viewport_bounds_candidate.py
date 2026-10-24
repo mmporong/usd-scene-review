@@ -13,7 +13,8 @@ def check_names(faces=False):
             'toggle off ','toggle on ','close review ','subscriptions released ','cycle preservation '))
         if faces:names.update(label+str(cycle) for label in ('cube UI faces ','triangle UI faces ','subdivision refused ','removed UI faces ','face toggle clears '))
         if faces:names.update(label+str(cycle) for label in ('quad UI faces ','concave and hole UI faces ','nonplanar refused ','reflected parent UI faces '))
-    if faces:names.update(('faces screenshot captured','alpha changes rendered pixels','green faces rendered','faces controls preserved','transparent face colors stay green','reselected transparent colors stay green','concave screenshot captured'))
+        if faces:names.update(label+str(cycle) for label in ('ready feedback ','unsupported feedback ','pair feedback ','closed feedback '))
+    if faces:names.update(('faces screenshot captured','alpha changes rendered pixels','green faces rendered','faces controls preserved','transparent face colors stay green','reselected transparent colors stay green','concave screenshot captured','panel scroll reaches values'))
     return names
 
 
@@ -163,6 +164,7 @@ async def evaluate(probe,root,faces=False):
                 owner._bounds_faces.set_value(True);await updates()
                 check('cube UI faces '+str(cycle),owner._bounds_overlay.face_count==12 and owner._bounds_overlay.line_count==108
                       and owner._bounds_overlay.last_plan['old_faces']['status']=='ready')
+                check('ready feedback '+str(cycle),'/World/Item' in owner._display_feedback.as_string and '12 triangles' in owner._display_feedback.as_string)
                 owner._select(changes['/World/Triangle']);await updates()
                 check('triangle UI faces '+str(cycle),owner._bounds_overlay.face_count==1)
                 owner._select(changes['/World/Quad']);await updates()
@@ -181,10 +183,15 @@ async def evaluate(probe,root,faces=False):
                 check('reflected parent UI faces '+str(cycle),owner._bounds_overlay.face_count==2 and Gf.Dot(normal,expected)>0)
                 owner._select(changes['/World/Subdivision']);await updates()
                 check('subdivision refused '+str(cycle),owner._bounds_overlay.face_count==0 and 'linear Mesh' in owner._bounds_overlay.caption.text)
+                feedback=' '.join(owner._display_feedback.as_string.split())
+                check('unsupported feedback '+str(cycle),'/World/Subdivision' in feedback and 'not shown' in feedback and 'linear Mesh' in feedback)
                 owner._select(changes['/World/Removed']);await updates()
                 check('removed UI faces '+str(cycle),owner._bounds_overlay.face_count==12)
                 owner._bounds_faces.set_value(False);await updates()
                 check('face toggle clears '+str(cycle),owner._bounds_overlay.face_count==0)
+                pair=owner._report['overlap_analysis']['pairs'][0];owner._select_pair(pair);await updates()
+                feedback=' '.join(owner._display_feedback.as_string.split())
+                check('pair feedback '+str(cycle),owner._bounds_overlay.line_count==0 and 'Pair evidence' in feedback and 'geometry is cleared' in feedback and 'framed' not in owner._motion.as_string)
                 owner._select(changed)
             owner._hide_bounds_overlay();await updates()
             check('toggle off '+str(cycle),owner._bounds_overlay is None)
@@ -192,12 +199,18 @@ async def evaluate(probe,root,faces=False):
             check('toggle on '+str(cycle),owner._bounds_overlay is not None and owner._bounds_overlay.line_count==108)
             held=owner._bounds_overlay;owner._close_review();await updates()
             check('close review '+str(cycle),owner._bounds_overlay is None)
+            if faces:check('closed feedback '+str(cycle),'display off' in owner._display_feedback.as_string)
             check('subscriptions released '+str(cycle),held.scene_view is None and not held.subscriptions)
             check('cycle preservation '+str(cycle),state()==before)
         if faces:
             from omni.kit.renderer.capture import acquire_renderer_capture_interface
             from PIL import Image,ImageChops,ImageStat
             recorder=acquire_renderer_capture_interface()
+            await updates(20);maximum=owner._panel_scroll.scroll_y_max
+            owner._panel_scroll.scroll_y=maximum;await updates()
+            result['panel_scroll']={'max_y':maximum,'observed_y':owner._panel_scroll.scroll_y}
+            check('panel scroll reaches values',maximum>0 and owner._panel_scroll.scroll_y>0)
+            owner._panel_scroll.scroll_y=0;await updates()
             owner._show_bounds_overlay();owner._select(changed);owner._bounds_faces.set_value(True);await updates(20)
             async def capture(name):
                 recorder.capture_next_frame_swapchain(str(root/name));await updates(8);recorder.wait_async_capture()

@@ -1,0 +1,307 @@
+{
+  "schema": 1,
+  "id": "review-display-feedback-qa-v1",
+  "baseline_main": "b51c19f76a8d1794f163d2fb01f00f3eadd68847",
+  "purpose": "one owned native regression of real display-status, pair wording and panel scroll fixes; not an SDK frequency experiment",
+  "candidate_checks": 57,
+  "outer_checks": 18,
+  "checks": [
+    "fresh extracted engine",
+    "persistent exclusion solve",
+    "navigation exclusions retained",
+    "Full A/B guard retained",
+    "comparison callback completed",
+    "show empty 0",
+    "select before/after 0",
+    "cube UI faces 0",
+    "ready feedback 0",
+    "triangle UI faces 0",
+    "quad UI faces 0",
+    "concave and hole UI faces 0",
+    "nonplanar refused 0",
+    "reflected parent UI faces 0",
+    "subdivision refused 0",
+    "unsupported feedback 0",
+    "removed UI faces 0",
+    "face toggle clears 0",
+    "pair feedback 0",
+    "toggle off 0",
+    "toggle on 0",
+    "close review 0",
+    "closed feedback 0",
+    "subscriptions released 0",
+    "cycle preservation 0",
+    "show empty 1",
+    "select before/after 1",
+    "cube UI faces 1",
+    "ready feedback 1",
+    "triangle UI faces 1",
+    "quad UI faces 1",
+    "concave and hole UI faces 1",
+    "nonplanar refused 1",
+    "reflected parent UI faces 1",
+    "subdivision refused 1",
+    "unsupported feedback 1",
+    "removed UI faces 1",
+    "face toggle clears 1",
+    "pair feedback 1",
+    "toggle off 1",
+    "toggle on 1",
+    "close review 1",
+    "closed feedback 1",
+    "subscriptions released 1",
+    "cycle preservation 1",
+    "panel scroll reaches values",
+    "alpha changes rendered pixels",
+    "green faces rendered",
+    "transparent face colors stay green",
+    "reselected transparent colors stay green",
+    "concave screenshot captured",
+    "faces screenshot captured",
+    "faces controls preserved",
+    "extension disabled",
+    "navigation exclusions after disable",
+    "working state preserved",
+    "inputs preserved"
+  ],
+  "panel_scroll": {
+    "max_y": 490.0,
+    "observed_y": 490.0
+  },
+  "face_pixels": {
+    "alpha_opaque_difference_mean_sum": 9.181834722222222,
+    "green_pixels": 68744,
+    "opaque_green_mask_pixels": 69366,
+    "faint_green_mask_matches": 65932,
+    "faint_green_match_ratio": 0.9504944785629847,
+    "reselected_green_match_ratio": 0.9505088948476199
+  },
+  "working_stage_preserved": true,
+  "settings_preserved": true,
+  "pending_before": false,
+  "pending_after": false,
+  "owned_resources_remaining": false,
+  "shutdown": {
+    "process_exit": 0,
+    "native_exit_ok": true,
+    "profile_conditions_met": true,
+    "strict_clean_shutdown": false,
+    "log_summary": {
+      "error_lines": 32,
+      "warning_lines": 263,
+      "error_categories": {
+        "carb.scripting-python.plugin": 3,
+        "omni.ext.plugin": 3,
+        "omni.kit.menu.utils.app_menu": 26
+      },
+      "traceback_observed": true,
+      "graphics_objects_leaked": true,
+      "fabric_history_outstanding": true
+    },
+    "fixture_bytes_preserved": true,
+    "owned_process_reaped": true,
+    "owned_job_empty": true,
+    "owned_job_closed": true,
+    "descendant_containment_required": false
+  },
+  "lease": {
+    "admitted_exclusively": true,
+    "naturally_released": true,
+    "wrapper_exit": 2
+  },
+  "error_signature_audit": {
+    "error_lines": 32,
+    "markers": {
+      "review_shutdown_ms": 37547,
+      "first_shutdown_ms": 39237,
+      "semantics_shutdown_ms": 60367,
+      "usd_shutdown_ms": 60981
+    },
+    "signatures": {
+      "menu.missing_window": {
+        "count": 5,
+        "first_ms": 60604,
+        "last_ms": 61643,
+        "after_shutdown_begin": 5,
+        "after_usd_shutdown": 1,
+        "after_review_shutdown": 5,
+        "after_semantics_shutdown": 5,
+        "menu_items": {
+          "Semantics Schema Editor": 5
+        },
+        "frames": [
+          "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+          "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result",
+          "extscache/semantics.schema.editor-0.3.10/semantics/schema/editor/ext.py :: _is_visible"
+        ],
+        "project_frame_observed": false
+      },
+      "menu.none_selection": {
+        "count": 20,
+        "first_ms": 61608,
+        "last_ms": 61639,
+        "after_shutdown_begin": 20,
+        "after_usd_shutdown": 20,
+        "after_review_shutdown": 20,
+        "after_semantics_shutdown": 20,
+        "menu_items": {
+          "Create Selection Set": 1,
+          "Delete": 1,
+          "Delete - All Layers": 1,
+          "Duplicate": 1,
+          "Duplicate - All Layers": 1,
+          "Duplicate - Collapsed": 1,
+          "Focus": 1,
+          "Group": 1,
+          "Instance": 1,
+          "Parent": 1,
+          "Rename": 1,
+          "Select Hierarchy": 1,
+          "Select Invert": 1,
+          "Select Leaf": 1,
+          "Select None": 1,
+          "Select Parent": 1,
+          "Select Similar": 1,
+          "Toggle Visibility": 1,
+          "Ungroup": 1,
+          "Unparent": 1
+        },
+        "frames": [
+          "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: can_prims_parent",
+          "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: can_prims_unparent",
+          "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: prim_selected",
+          "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+          "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result"
+        ],
+        "project_frame_observed": false
+      },
+      "menu.none_stage_state": {
+        "count": 1,
+        "first_ms": 61606,
+        "last_ms": 61606,
+        "after_shutdown_begin": 1,
+        "after_usd_shutdown": 1,
+        "after_review_shutdown": 1,
+        "after_semantics_shutdown": 1,
+        "menu_items": {
+          "Save Flattened As...": 1
+        },
+        "frames": [
+          "exts/isaacsim.gui.menu/isaacsim/gui/menu/file_menu/file_menu.py :: can_close",
+          "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+          "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result"
+        ],
+        "project_frame_observed": false
+      },
+      "python.missing_manipulator_factory": {
+        "count": 1,
+        "first_ms": 55620,
+        "last_ms": 55620,
+        "after_shutdown_begin": 1,
+        "after_usd_shutdown": 0,
+        "after_review_shutdown": 1,
+        "after_semantics_shutdown": 0,
+        "menu_items": {},
+        "frames": [
+          "extscache/omni.kit.manipulator.prim.core-107.0.7+d02c707b/omni/kit/manipulator/prim/core/extension.py :: on_shutdown",
+          "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+          "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+        ],
+        "project_frame_observed": false
+      },
+      "python.missing_menu_button": {
+        "count": 1,
+        "first_ms": 43351,
+        "last_ms": 43351,
+        "after_shutdown_begin": 1,
+        "after_usd_shutdown": 0,
+        "after_review_shutdown": 1,
+        "after_semantics_shutdown": 0,
+        "menu_items": {},
+        "frames": [
+          "exts/isaacsim.sensors.physx.ui/isaacsim/sensors/physx/ui/extension.py :: _unregister_property_menu",
+          "exts/isaacsim.sensors.physx.ui/isaacsim/sensors/physx/ui/extension.py :: on_shutdown",
+          "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+          "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+        ],
+        "project_frame_observed": false
+      },
+      "python.none_get_prim": {
+        "count": 1,
+        "first_ms": 44972,
+        "last_ms": 44972,
+        "after_shutdown_begin": 1,
+        "after_usd_shutdown": 0,
+        "after_review_shutdown": 1,
+        "after_semantics_shutdown": 0,
+        "menu_items": {},
+        "frames": [
+          "exts/isaacsim.core.utils/isaacsim/core/utils/prims.py :: get_prim_at_path",
+          "exts/isaacsim.core.utils/isaacsim/core/utils/prims.py :: is_prim_path_valid",
+          "exts/isaacsim.robot_setup.xrdf_editor/isaacsim/robot_setup/xrdf_editor/collision_sphere_editor.py :: on_shutdown",
+          "exts/isaacsim.robot_setup.xrdf_editor/isaacsim/robot_setup/xrdf_editor/extension.py :: on_shutdown",
+          "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+          "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+        ],
+        "project_frame_observed": false
+      },
+      "shutdown.manipulator_core": {
+        "count": 1,
+        "first_ms": 55620,
+        "last_ms": 55620,
+        "after_shutdown_begin": 1,
+        "after_usd_shutdown": 0,
+        "after_review_shutdown": 1,
+        "after_semantics_shutdown": 0,
+        "menu_items": {},
+        "frames": [],
+        "project_frame_observed": false
+      },
+      "shutdown.physx_ui": {
+        "count": 1,
+        "first_ms": 43352,
+        "last_ms": 43352,
+        "after_shutdown_begin": 1,
+        "after_usd_shutdown": 0,
+        "after_review_shutdown": 1,
+        "after_semantics_shutdown": 0,
+        "menu_items": {},
+        "frames": [],
+        "project_frame_observed": false
+      },
+      "shutdown.xrdf_editor": {
+        "count": 1,
+        "first_ms": 44973,
+        "last_ms": 44973,
+        "after_shutdown_begin": 1,
+        "after_usd_shutdown": 0,
+        "after_review_shutdown": 1,
+        "after_semantics_shutdown": 0,
+        "menu_items": {},
+        "frames": [],
+        "project_frame_observed": false
+      }
+    },
+    "unclassified_errors": 0
+  },
+  "signatures_not_in_no_project_baseline": [],
+  "code_sha256": {
+    "ui": "f433a9aec90312a1b09f734241514e37951fc2216eca2e2c020ea9589cb0987f",
+    "feedback": "3ce0f4f3ec4498a91243e766aadf03b5e3b318c7cd38748c6dafd80d4e91b2e6",
+    "probe": "12cdbc6ce9a16ae9e11f56c3fa06b330220afb96ff41aa0a69d22cff1f21d082"
+  },
+  "initial_cpu_fixture_errors": {
+    "cases": 233,
+    "errors": 10,
+    "cause": "extracted-method SelectionRouter fixture omitted new feedback method/model; fixture updated, assertions retained",
+    "focused_cases_after_fix": 7,
+    "focused_passed": 7
+  },
+  "limits": {
+    "actual_mouse_tested": false,
+    "sdk_error_reduction_claimed": false,
+    "stock_full_shutdown_qualified": false,
+    "live_ab_guard_removed": false,
+    "long_duration_qualified": false
+  }
+}

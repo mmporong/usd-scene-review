@@ -7,10 +7,11 @@ import unittest
 from unittest.mock import Mock
 from pxr import Gf,Usd,UsdGeom
 from usd_scene_review import compare,create_snapshot,load_snapshot
-from usd_scene_review.overlay import bounds_plan,overlay_text,ComparisonReceipt,validate_report_reference
+from usd_scene_review.overlay import bounds_plan,overlay_text,ComparisonReceipt,validate_report_reference,display_feedback
 from usd_scene_review.snapshot import digest
 from unittest.mock import patch
 import importlib
+import json
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -53,6 +54,48 @@ def adapter(snapshots,report):
 
 
 class BoundsOverlayTests(unittest.TestCase):
+    def test_native_feedback_record_keeps_scroll_and_shutdown_limits(self):
+        record=json.loads((ROOT/'diagnostics/review-feedback-qa-v1.json').read_text())
+        self.assertEqual((record['candidate_checks'],record['outer_checks']),(57,18))
+        self.assertGreater(record['panel_scroll']['observed_y'],0)
+        self.assertTrue(record['working_stage_preserved']);self.assertFalse(record['owned_resources_remaining'])
+        self.assertFalse(record['signatures_not_in_no_project_baseline'])
+        self.assertEqual(record['error_signature_audit']['unclassified_errors'],0)
+        self.assertFalse(record['shutdown']['strict_clean_shutdown']);self.assertEqual(record['shutdown']['process_exit'],0)
+        self.assertTrue(record['lease']['naturally_released']);self.assertFalse(record['limits']['actual_mouse_tested'])
+        self.assertFalse(record['limits']['sdk_error_reduction_claimed'])
+
+    def test_extension_feedback_refreshes_on_pair_error_and_native_close_message(self):
+        path=ROOT/'exts/mmporong.scene.review/mmporong/scene/review/extension.py'
+        source=ast.parse(path.read_text());node=next(item for item in source.body if isinstance(item,ast.ClassDef))
+        names={'_refresh_display_feedback','_update_bounds_overlay','_close_bounds_overlay','_bounds_message'}
+        wrapper=ast.parse('class Methods: pass')
+        wrapper.body[0].body=[item for item in node.body if isinstance(item,ast.FunctionDef) and item.name in names]
+        env={'display_feedback':display_feedback};exec(compile(wrapper,str(path),'exec'),env)
+        owner=env['Methods']();owner._display_feedback=Mock();owner._message=Mock()
+        overlay=NS(state='open',last_plan={'path':None},caption=NS(text=''),select=Mock(),close=Mock())
+        owner._bounds_overlay=overlay;owner._selected=None;owner._selected_pair={'id':'pair'}
+        owner._update_bounds_overlay();self.assertIn('Pair evidence',owner._display_feedback.set_value.call_args.args[0])
+        self.assertIn('No camera move',overlay.caption.text)
+        owner._bounds_message('Working stage changed');self.assertIn('Display cleared',owner._display_feedback.set_value.call_args.args[0])
+        owner._selected_pair=None;overlay.select.side_effect=ValueError('Inputs changed')
+        owner._update_bounds_overlay();self.assertIsNone(owner._bounds_overlay)
+        self.assertIn('Inputs changed',owner._display_feedback.set_value.call_args.args[0]);overlay.close.assert_called_once()
+
+    def test_panel_feedback_reports_selection_support_and_pair_without_false_framing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths,report=fixture(Path(tmp));snapshots={s:load_snapshot(p) for s,p in paths.items()}
+            shown=display_feedback(bounds_plan(report,snapshots,'/World/Inherited',show_faces=True))
+            self.assertIn('/World/Inherited',shown);self.assertIn('12 triangles',shown)
+            missing=' '.join(display_feedback(bounds_plan(report,snapshots,'/World/Added',show_faces=True)).split())
+            self.assertIn('not shown',missing);self.assertIn('absent',missing)
+            off=display_feedback(bounds_plan(report,snapshots,'/World/Inherited'))
+            self.assertIn('faces off',off)
+            pair=' '.join(display_feedback(pair=True).split())
+            self.assertIn('geometry is cleared',pair);self.assertIn('No camera',pair)
+            self.assertNotIn('framed',pair)
+            self.assertIn('display off',display_feedback());self.assertIn('no object selected',display_feedback(bounds_plan(report,snapshots,None)))
+
     def test_optional_faces_are_real_geometry_clear_on_toggle_and_reselection(self):
         with tempfile.TemporaryDirectory() as tmp:
             paths,report=fixture(Path(tmp));owner,scene,_=adapter({s:load_snapshot(p) for s,p in paths.items()},report)

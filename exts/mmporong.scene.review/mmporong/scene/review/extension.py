@@ -11,7 +11,7 @@ import omni.ext
 import omni.ui as ui
 
 from usd_scene_review import compare
-from usd_scene_review.overlay import ComparisonReceipt
+from usd_scene_review.overlay import ComparisonReceipt,display_feedback,FACE_SUPPORT_TEXT
 from usd_scene_review.presentation import details, summary, visible_changes
 from usd_scene_review.measurements import detail_rows, measurements
 from usd_scene_review.dispositions import change_identity, record, history, latest
@@ -66,6 +66,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._review_event = {}
         self._export_path = ui.SimpleStringModel()
         self._status = ui.SimpleStringModel('Compare two frozen snapshots, then Open A/B in Isaac (experimental).')
+        self._display_feedback=ui.SimpleStringModel(display_feedback())
         if self._in_app_blocked:
             self._status.set_value(FULL_HOST_REVIEW_LIMITATION)
         self._details = ui.SimpleStringModel('No comparison loaded.')
@@ -84,7 +85,10 @@ class SceneReviewExtension(omni.ext.IExt):
             'ScrollingFrame': {'background_color': 0xFFF8F7F5},
         })
         with self._window.frame:
-            with ui.VStack(spacing=4):
+            self._panel_scroll=ui.ScrollingFrame()
+            with self._panel_scroll:
+                content=ui.VStack(spacing=4)
+            with content:
                 ui.Label('USD SCENE REVIEW  |  static revision comparison', height=26)
                 ui.Label('A = BEFORE saved scene | B = AFTER saved scene. A change may be intentional.', height=24)
                 for side in ('A', 'B'):
@@ -108,6 +112,7 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.HStack(height=24):
                     ui.CheckBox(model=self._bounds_faces,width=20)
                     ui.Label('Old A green UI faces: static Cube / planar polygon Mesh, alpha 0.22; no scene depth or materials.')
+                ui.Label(FACE_SUPPORT_TEXT,word_wrap=True,height=40,style={'font_size':14})
                 ui.Label('A blue dashed / B orange solid bounds. Working camera and stage selection stay unchanged.',height=24)
                 ui.StringField(model=self._status, read_only=True, multiline=True, height=52)
                 with ui.HStack(height=26):
@@ -135,6 +140,7 @@ class SceneReviewExtension(omni.ext.IExt):
                     with ui.ScrollingFrame(height=100):
                         self._pair_rows = ui.VStack(spacing=3)
                 ui.StringField(model=self._selected_label, read_only=True, height=30)
+                ui.StringField(model=self._display_feedback,read_only=True,multiline=True,height=100)
                 ui.StringField(model=self._motion, read_only=True, multiline=True, height=52)
                 with ui.CollapsableFrame('Human review metadata (separate from evidence)', collapsed=True) as review_frame:
                     self._review_frame = review_frame
@@ -301,7 +307,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._reason.set_value('')
         self._load_review()
         self._selected_label.set_value(' / '.join(pair['paths']))
-        self._motion.set_value('AABB candidate only. Both objects framed with A/B union. Collision / clearance UNKNOWN.')
+        self._motion.set_value('AABB candidate evidence only. A/B union is available to optional viewer focus. Collision / clearance UNKNOWN.')
         self._details.set_value(canonical(pair))
         self._numeric.clear()
         with self._numeric:
@@ -323,22 +329,35 @@ class SceneReviewExtension(omni.ext.IExt):
                 raise ValueError('Close the existing review viewer before showing working-viewport bounds')
             from .bounds_overlay import BoundsOverlay
             self._close_bounds_overlay()
-            self._bounds_overlay=BoundsOverlay(self._message)
+            self._bounds_overlay=BoundsOverlay(self._bounds_message)
             self._bounds_overlay.open(self._comparison_paths,self._report,self._selected,comparison_receipt=self._overlay_receipt,
                                       show_faces=self._bounds_faces.as_bool)
+            self._refresh_display_feedback()
             self._message('Snapshot A/B world bounds overlay shown; working camera and selection are unchanged.')
         except Exception as exc:
             self._close_bounds_overlay()
+            self._display_feedback.set_value('Display unavailable: '+str(exc))
             self._message('Bounds overlay unavailable: '+str(exc))
 
     def _update_bounds_overlay(self):
-        if self._bounds_overlay is None or self._bounds_overlay.state!='open':return
+        if self._bounds_overlay is None or self._bounds_overlay.state!='open':
+            self._refresh_display_feedback();return
         try:
             self._bounds_overlay.select(self._selected)
+            self._refresh_display_feedback()
             if self._selected_pair:
-                self._bounds_overlay.caption.text+='\nPair selected: use panel evidence; this overlay displays one changed prim.'
+                self._bounds_overlay.caption.text+='\nPair evidence selected; single-object geometry cleared. No camera move.'
         except Exception as exc:
             self._close_bounds_overlay();self._message('Bounds overlay cleared: '+str(exc))
+            self._display_feedback.set_value('Display cleared: '+str(exc))
+
+    def _refresh_display_feedback(self):
+        plan=self._bounds_overlay.last_plan if self._bounds_overlay is not None and self._bounds_overlay.state=='open' else None
+        self._display_feedback.set_value(display_feedback(plan,pair=self._selected_pair is not None))
+
+    def _bounds_message(self,text):
+        self._display_feedback.set_value('Display cleared: '+text)
+        self._message(text)
 
     def _set_bounds_faces(self):
         if self._bounds_overlay is not None and self._bounds_overlay.state=='open':
@@ -350,6 +369,7 @@ class SceneReviewExtension(omni.ext.IExt):
         was_open=self._bounds_overlay is not None and self._bounds_overlay.state=='open'
         if self._bounds_overlay is not None:self._bounds_overlay.close()
         self._bounds_overlay=None
+        self._display_feedback.set_value(display_feedback())
         return was_open
 
     def _hide_bounds_overlay(self):
@@ -538,6 +558,7 @@ class SceneReviewExtension(omni.ext.IExt):
         if self._window:
             self._window.destroy()
             self._window = None
+        self._panel_scroll=None
         # Kit can stop advancing asyncio during app shutdown. The child runs its
         # own loop, so bounded synchronous IPC confirms its normal exit first.
         if not self._viewer.shutdown_sync():
