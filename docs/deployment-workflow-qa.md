@@ -73,7 +73,9 @@ Graphics-object/Fabric history diagnostics remain. Wrapper exit2 and
 ## Failed controls retained and corrected
 
 1. A Korean native host-state path logged two kvdb and two capture errors; no PNG
-   was produced. This is distinct from CPU Unicode input/package support. The probe
+   was produced. The capture path failure is explicit; the kvdb messages do not
+   isolate their cause, so a Unicode-cache root cause is not asserted. This is
+   distinct from CPU Unicode input/package support. The probe
    failed and its owned Job was contained (exit1), not passed as normal shutdown.
    Diagnostic host state now rejects non-ASCII paths before launching Kit. Capture
    uses an owned ASCII temporary target and Python copies pixels to the evidence

@@ -66,7 +66,7 @@
       "owned_job_contained": true,
       "owned_job_empty": true,
       "owned_pid_reaped": true,
-      "reason": "SDK Unicode native cache/capture path failures",
+      "reason": "Unicode host-state control: SDK capture path failed; two kvdb errors also observed, cause not isolated",
       "warnings": 110
     },
     {
