@@ -5,8 +5,27 @@ from .snapshot import verify
 from .transform_analysis import coordinates
 from dataclasses import dataclass
 import hashlib
+import textwrap
 from pathlib import Path
 from .snapshot import canonical,digest
+
+FACE_SUPPORT_TEXT='Faces: static Cube or simple planar linear Mesh. Subdivision, animation, deformation, instances, unsafe polygons and over-budget geometry are not shown. See the selected display reason below.'
+
+
+def display_feedback(plan=None,*,pair=False):
+    if pair:
+        text='Pair evidence selected. Single-object geometry is cleared. Select one change row to display its A/B geometry and values. No camera or USD selection was moved.'
+    elif plan is None:
+        text='Working viewport display off. Compare and select a change, then Show snapshot bounds. Camera and USD selection stay unchanged.'
+    elif plan.get('path') is None:
+        text='Overlay open; no object selected. Click a change row to display its A/B bounds, values and optional old A faces.'
+    else:
+        faces=plan.get('old_faces')
+        if faces is None:state='Old A faces off; bounds only.'
+        elif faces['status']=='ready':state='Old A faces shown: '+str(faces['triangles'])+' triangles at snapshot A.'
+        else:state='Old A faces not shown: '+faces['reason']+'.'
+        text=plan['path']+'\n'+state+'\nA: '+plan['presence']['A']+'; B: '+plan['presence']['B']+'. Snapshot display is not current-stage verification.'
+    return '\n'.join(textwrap.fill(line,width=64) for line in text.splitlines())
 
 
 @dataclass(frozen=True)

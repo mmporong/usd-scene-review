@@ -19,6 +19,9 @@ depth/materials or complete the general mesh ghost. The camera stays fixed. See
 [installation, real capture and exact limits](docs/viewport-bounds-overlay.md).
 [Polygon support](docs/polygon-ui-faces.md) includes conservative quad/concave
 triangulation, USD hole-face exclusion and explicit geometry/budget refusals.
+[Display feedback](docs/review-display-feedback.md) shows per-object support/refusal
+reasons and makes numeric evidence scrollable. The [SDK error audit](docs/shutdown-signature-audit.md)
+separates repeated teardown signatures from new product exceptions without hiding errors.
 
 [Two-scale deployment QA](docs/bounds-deployment-qa.md) measures 32/2,048 synthetic
 Cubes and repeated cleanup. Verified-report reuse reduces the measured large-case

@@ -1,0 +1,512 @@
+{
+  "schema": 1,
+  "id": "sdk-shutdown-signature-comparison-v1",
+  "runs": {
+    "no_project_baseline": {
+      "error_lines": 82,
+      "markers": {
+        "first_shutdown_ms": 25600,
+        "semantics_shutdown_ms": 44837,
+        "usd_shutdown_ms": 46815
+      },
+      "signatures": {
+        "menu.missing_window": {
+          "count": 13,
+          "first_ms": 45246,
+          "last_ms": 48193,
+          "after_shutdown_begin": 13,
+          "after_usd_shutdown": 3,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 13,
+          "menu_items": {
+            "Semantics Schema Editor": 13
+          },
+          "frames": [
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result",
+            "extscache/semantics.schema.editor-0.3.10/semantics/schema/editor/ext.py :: _is_visible"
+          ],
+          "project_frame_observed": false
+        },
+        "menu.none_selection": {
+          "count": 60,
+          "first_ms": 47801,
+          "last_ms": 48176,
+          "after_shutdown_begin": 60,
+          "after_usd_shutdown": 60,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 60,
+          "menu_items": {
+            "Create Selection Set": 3,
+            "Delete": 3,
+            "Delete - All Layers": 3,
+            "Duplicate": 3,
+            "Duplicate - All Layers": 3,
+            "Duplicate - Collapsed": 3,
+            "Focus": 3,
+            "Group": 3,
+            "Instance": 3,
+            "Parent": 3,
+            "Rename": 3,
+            "Select Hierarchy": 3,
+            "Select Invert": 3,
+            "Select Leaf": 3,
+            "Select None": 3,
+            "Select Parent": 3,
+            "Select Similar": 3,
+            "Toggle Visibility": 3,
+            "Ungroup": 3,
+            "Unparent": 3
+          },
+          "frames": [
+            "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: can_prims_parent",
+            "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: can_prims_unparent",
+            "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: prim_selected",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result"
+          ],
+          "project_frame_observed": false
+        },
+        "menu.none_stage_state": {
+          "count": 3,
+          "first_ms": 47783,
+          "last_ms": 48106,
+          "after_shutdown_begin": 3,
+          "after_usd_shutdown": 3,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 3,
+          "menu_items": {
+            "Save Flattened As...": 3
+          },
+          "frames": [
+            "exts/isaacsim.gui.menu/isaacsim/gui/menu/file_menu/file_menu.py :: can_close",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result"
+          ],
+          "project_frame_observed": false
+        },
+        "python.missing_manipulator_factory": {
+          "count": 1,
+          "first_ms": 43842,
+          "last_ms": 43842,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "extscache/omni.kit.manipulator.prim.core-107.0.7+d02c707b/omni/kit/manipulator/prim/core/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "python.missing_menu_button": {
+          "count": 1,
+          "first_ms": 35282,
+          "last_ms": 35282,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "exts/isaacsim.sensors.physx.ui/isaacsim/sensors/physx/ui/extension.py :: _unregister_property_menu",
+            "exts/isaacsim.sensors.physx.ui/isaacsim/sensors/physx/ui/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "python.none_get_prim": {
+          "count": 1,
+          "first_ms": 33878,
+          "last_ms": 33878,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "exts/isaacsim.core.utils/isaacsim/core/utils/prims.py :: get_prim_at_path",
+            "exts/isaacsim.core.utils/isaacsim/core/utils/prims.py :: is_prim_path_valid",
+            "exts/isaacsim.robot_setup.xrdf_editor/isaacsim/robot_setup/xrdf_editor/collision_sphere_editor.py :: on_shutdown",
+            "exts/isaacsim.robot_setup.xrdf_editor/isaacsim/robot_setup/xrdf_editor/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "shutdown.manipulator_core": {
+          "count": 1,
+          "first_ms": 43842,
+          "last_ms": 43842,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        },
+        "shutdown.physx_ui": {
+          "count": 1,
+          "first_ms": 35282,
+          "last_ms": 35282,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        },
+        "shutdown.xrdf_editor": {
+          "count": 1,
+          "first_ms": 33879,
+          "last_ms": 33879,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 0,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        }
+      },
+      "unclassified_errors": 0,
+      "log_sha256": "b30bba346ac1942d8164801a8413cad0c41e5011a9f409b8e959307c339b860f",
+      "process_exit": 0,
+      "strict_clean_shutdown": null,
+      "profile_conditions_met": null,
+      "public_close_callback": true,
+      "review_startup_observed": false,
+      "source_project_frames": 0
+    },
+    "triangle_faces": {
+      "error_lines": 8,
+      "markers": {
+        "review_shutdown_ms": 31734,
+        "first_shutdown_ms": 33285,
+        "semantics_shutdown_ms": 51176,
+        "usd_shutdown_ms": 52557
+      },
+      "signatures": {
+        "menu.missing_window": {
+          "count": 2,
+          "first_ms": 51475,
+          "last_ms": 51563,
+          "after_shutdown_begin": 2,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 2,
+          "after_semantics_shutdown": 2,
+          "menu_items": {
+            "Semantics Schema Editor": 2
+          },
+          "frames": [
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result",
+            "extscache/semantics.schema.editor-0.3.10/semantics/schema/editor/ext.py :: _is_visible"
+          ],
+          "project_frame_observed": false
+        },
+        "python.missing_manipulator_factory": {
+          "count": 1,
+          "first_ms": 47530,
+          "last_ms": 47530,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "extscache/omni.kit.manipulator.prim.core-107.0.7+d02c707b/omni/kit/manipulator/prim/core/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "python.missing_menu_button": {
+          "count": 1,
+          "first_ms": 41325,
+          "last_ms": 41325,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "exts/isaacsim.sensors.physx.ui/isaacsim/sensors/physx/ui/extension.py :: _unregister_property_menu",
+            "exts/isaacsim.sensors.physx.ui/isaacsim/sensors/physx/ui/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "python.none_get_prim": {
+          "count": 1,
+          "first_ms": 35946,
+          "last_ms": 35946,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "exts/isaacsim.core.utils/isaacsim/core/utils/prims.py :: get_prim_at_path",
+            "exts/isaacsim.core.utils/isaacsim/core/utils/prims.py :: is_prim_path_valid",
+            "exts/isaacsim.robot_setup.xrdf_editor/isaacsim/robot_setup/xrdf_editor/collision_sphere_editor.py :: on_shutdown",
+            "exts/isaacsim.robot_setup.xrdf_editor/isaacsim/robot_setup/xrdf_editor/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "shutdown.manipulator_core": {
+          "count": 1,
+          "first_ms": 47530,
+          "last_ms": 47530,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        },
+        "shutdown.physx_ui": {
+          "count": 1,
+          "first_ms": 41325,
+          "last_ms": 41325,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        },
+        "shutdown.xrdf_editor": {
+          "count": 1,
+          "first_ms": 35946,
+          "last_ms": 35946,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        }
+      },
+      "unclassified_errors": 0,
+      "log_sha256": "497b21cc30ba87b1b6e1f5c3056823532e361de6b3fa14665c46af428a164211",
+      "process_exit": 0,
+      "strict_clean_shutdown": false,
+      "profile_conditions_met": true,
+      "public_close_callback": true,
+      "review_startup_observed": true,
+      "source_project_frames": 0
+    },
+    "polygon_faces": {
+      "error_lines": 100,
+      "markers": {
+        "review_shutdown_ms": 38135,
+        "first_shutdown_ms": 39807,
+        "semantics_shutdown_ms": 57161,
+        "usd_shutdown_ms": 58162
+      },
+      "signatures": {
+        "menu.missing_window": {
+          "count": 10,
+          "first_ms": 57440,
+          "last_ms": 58697,
+          "after_shutdown_begin": 10,
+          "after_usd_shutdown": 4,
+          "after_review_shutdown": 10,
+          "after_semantics_shutdown": 10,
+          "menu_items": {
+            "Semantics Schema Editor": 10
+          },
+          "frames": [
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result",
+            "extscache/semantics.schema.editor-0.3.10/semantics/schema/editor/ext.py :: _is_visible"
+          ],
+          "project_frame_observed": false
+        },
+        "menu.none_selection": {
+          "count": 80,
+          "first_ms": 58521,
+          "last_ms": 58693,
+          "after_shutdown_begin": 80,
+          "after_usd_shutdown": 80,
+          "after_review_shutdown": 80,
+          "after_semantics_shutdown": 80,
+          "menu_items": {
+            "Create Selection Set": 4,
+            "Delete": 4,
+            "Delete - All Layers": 4,
+            "Duplicate": 4,
+            "Duplicate - All Layers": 4,
+            "Duplicate - Collapsed": 4,
+            "Focus": 4,
+            "Group": 4,
+            "Instance": 4,
+            "Parent": 4,
+            "Rename": 4,
+            "Select Hierarchy": 4,
+            "Select Invert": 4,
+            "Select Leaf": 4,
+            "Select None": 4,
+            "Select Parent": 4,
+            "Select Similar": 4,
+            "Toggle Visibility": 4,
+            "Ungroup": 4,
+            "Unparent": 4
+          },
+          "frames": [
+            "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: can_prims_parent",
+            "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: can_prims_unparent",
+            "exts/isaacsim.gui.menu/isaacsim/gui/menu/edit_menu/edit_menu.py :: prim_selected",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result"
+          ],
+          "project_frame_observed": false
+        },
+        "menu.none_stage_state": {
+          "count": 4,
+          "first_ms": 58519,
+          "last_ms": 58669,
+          "after_shutdown_begin": 4,
+          "after_usd_shutdown": 4,
+          "after_review_shutdown": 4,
+          "after_semantics_shutdown": 4,
+          "menu_items": {
+            "Save Flattened As...": 4
+          },
+          "frames": [
+            "exts/isaacsim.gui.menu/isaacsim/gui/menu/file_menu/file_menu.py :: can_close",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: _build_menu",
+            "extscache/omni.kit.menu.utils-1.7.7+d02c707b/omni/kit/menu/utils/app_menu.py :: get_fn_result"
+          ],
+          "project_frame_observed": false
+        },
+        "python.missing_manipulator_factory": {
+          "count": 1,
+          "first_ms": 56595,
+          "last_ms": 56595,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "extscache/omni.kit.manipulator.prim.core-107.0.7+d02c707b/omni/kit/manipulator/prim/core/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "python.missing_menu_button": {
+          "count": 1,
+          "first_ms": 45229,
+          "last_ms": 45229,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "exts/isaacsim.sensors.physx.ui/isaacsim/sensors/physx/ui/extension.py :: _unregister_property_menu",
+            "exts/isaacsim.sensors.physx.ui/isaacsim/sensors/physx/ui/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "python.none_get_prim": {
+          "count": 1,
+          "first_ms": 45223,
+          "last_ms": 45223,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [
+            "exts/isaacsim.core.utils/isaacsim/core/utils/prims.py :: get_prim_at_path",
+            "exts/isaacsim.core.utils/isaacsim/core/utils/prims.py :: is_prim_path_valid",
+            "exts/isaacsim.robot_setup.xrdf_editor/isaacsim/robot_setup/xrdf_editor/collision_sphere_editor.py :: on_shutdown",
+            "exts/isaacsim.robot_setup.xrdf_editor/isaacsim/robot_setup/xrdf_editor/extension.py :: on_shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown",
+            "kit/kernel/py/omni/ext/_impl/_internal.py :: shutdown_extension"
+          ],
+          "project_frame_observed": false
+        },
+        "shutdown.manipulator_core": {
+          "count": 1,
+          "first_ms": 56595,
+          "last_ms": 56595,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        },
+        "shutdown.physx_ui": {
+          "count": 1,
+          "first_ms": 45229,
+          "last_ms": 45229,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        },
+        "shutdown.xrdf_editor": {
+          "count": 1,
+          "first_ms": 45223,
+          "last_ms": 45223,
+          "after_shutdown_begin": 1,
+          "after_usd_shutdown": 0,
+          "after_review_shutdown": 1,
+          "after_semantics_shutdown": 0,
+          "menu_items": {},
+          "frames": [],
+          "project_frame_observed": false
+        }
+      },
+      "unclassified_errors": 0,
+      "log_sha256": "56866f04c6488a5ba97099929a0637af31355b13db79f1a02a4768b539c7bf53",
+      "process_exit": 0,
+      "strict_clean_shutdown": false,
+      "profile_conditions_met": true,
+      "public_close_callback": true,
+      "review_startup_observed": true,
+      "source_project_frames": 0
+    }
+  },
+  "polygon_minus_triangle": {
+    "menu.missing_window": 8,
+    "menu.none_selection": 80,
+    "menu.none_stage_state": 4,
+    "python.missing_manipulator_factory": 0,
+    "python.missing_menu_button": 0,
+    "python.none_get_prim": 0,
+    "shutdown.manipulator_core": 0,
+    "shutdown.physx_ui": 0,
+    "shutdown.xrdf_editor": 0
+  },
+  "polygon_signatures_absent_from_no_project_baseline": [],
+  "conclusion": "No new polygon exception signature or project traceback observed. Additional 92 lines are repeated SDK menu callbacks after review teardown and SDK shutdown begins. Selection/stage callbacks follow USD teardown; semantics-window callbacks can precede it. Frequency causality is not established by unmatched runs.",
+  "limits": [
+    "Different setup, actions and durations; totals are not a rate or controlled causal comparison.",
+    "Known signatures still count as errors; no suppression or qualification change.",
+    "No new GPU run was used for this audit; raw logs and private paths remain local."
+  ]
+}

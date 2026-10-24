@@ -6,22 +6,23 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import Mock,MagicMock,AsyncMock
+from usd_scene_review.overlay import display_feedback
 
 
 def owner():
     path=Path(__file__).resolve().parents[1]/'exts/mmporong.scene.review/mmporong/scene/review/extension.py'
     tree=ast.parse(path.read_text())
     source=next(node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='SceneReviewExtension')
-    names={'_schedule','_run','_request_frame','_operation_finished','_select','_select_pair','_update_bounds_overlay','_close_bounds_overlay'}
+    names={'_schedule','_run','_request_frame','_operation_finished','_select','_select_pair','_update_bounds_overlay','_close_bounds_overlay','_refresh_display_feedback'}
     node=ast.ClassDef(name='SelectionRouter',bases=[],keywords=[],decorator_list=[],
                       body=[method for method in source.body if isinstance(method,(ast.FunctionDef,ast.AsyncFunctionDef)) and method.name in names])
     env={'asyncio':asyncio,'carb':NS(log_warn=Mock()),'details':lambda change:change['path'],
-         'canonical':json.dumps,'pair_rows':lambda report,pair:[]}
+         'canonical':json.dumps,'pair_rows':lambda report,pair:[],'display_feedback':display_feedback}
     exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),str(path),'exec'),env)
     result=env['SelectionRouter']()
     result._task=None;result._frame_requested=False;result._shutting_down=False
     result._report={'changes':[]};result._viewer=NS(state='closed');result._in_app=None
-    result._bounds_overlay=None
+    result._bounds_overlay=None;result._display_feedback=Mock()
     result._selected=None;result._selected_pair=None;result._selected_change=None
     result._reason=Mock();result._details=Mock();result._load_review=Mock()
     result._selected_label=Mock();result._motion=Mock();result._numeric=MagicMock()
@@ -41,7 +42,7 @@ async def settle(result):
 class SelectionFocusQueueTests(unittest.IsolatedAsyncioTestCase):
     async def test_overlay_selection_updates_without_native_viewer_focus(self):
         item=owner();item._frame=AsyncMock()
-        item._bounds_overlay=NS(state='open',select=Mock(),caption=NS(text=''))
+        item._bounds_overlay=NS(state='open',select=Mock(),caption=NS(text=''),last_plan=None,close=Mock())
         item._select({'path':'/OverlayTarget'})
         item._bounds_overlay.select.assert_called_once_with('/OverlayTarget')
         self.assertEqual(item.numeric_path,'/OverlayTarget');item._frame.assert_not_awaited()
