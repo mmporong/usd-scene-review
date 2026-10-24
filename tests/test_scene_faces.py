@@ -56,7 +56,7 @@ class SceneFacesTests(unittest.TestCase):
             self.assertEqual(before,[layer.ExportToString() for layer in snapshot.stage.GetLayerStack()])
 
     def test_subdivision_polygons_animation_missing_and_budget_fail_explicitly(self):
-        for kind in ('subdiv','quad','animated'):
+        for kind in ('subdiv','animated'):
             with self.subTest(kind=kind),tempfile.TemporaryDirectory() as tmp:
                 result=old_faces(self.build(Path(tmp),kind),'/Root')
                 self.assertEqual(result['status'],'unsupported');self.assertFalse(result['meshes'])

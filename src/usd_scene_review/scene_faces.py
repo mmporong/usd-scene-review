@@ -1,6 +1,7 @@
 """Bounded static old-A faces for SceneUI; no USD authoring or renderer material."""
 from pxr import Gf
 from .ghost import extract,FACE_COLOR,FACE_OPACITY,WIRE_COLOR
+from .polygon_faces import triangulate,Budget
 
 MAX_TRIANGLES=20000
 
@@ -9,7 +10,7 @@ def old_faces(snapshot,path):
     def unsupported(reason):return {'status':'unsupported','reason':reason,'meshes':[],'wires':[],'triangles':0}
     data=extract(snapshot,path,max_prims=64,max_points=10000)
     if data['status']!='ready':return unsupported(data['reason'])
-    meshes=[];triangles=0;wires=[]
+    meshes=[];triangles=0;wires=[];budget=Budget()
     for item in data['geometry']:
         attrs=item['attributes']
         if item['type']=='Cube':
@@ -17,6 +18,9 @@ def old_faces(snapshot,path):
             points=[[half if n&(1<<axis) else -half for axis in range(3)] for n in range(8)]
             quads=((0,2,3,1),(4,5,7,6),(0,1,5,4),(2,6,7,3),(0,4,6,2),(1,3,7,5))
             faces=[tri for a,b,c,d in quads for tri in ((a,b,c),(a,c,d))]
+            orientation=str(attrs.get('orientation',(None,'rightHanded'))[1])
+            if orientation not in ('rightHanded','leftHanded'):return unsupported('Invalid Cube orientation')
+            if orientation=='leftHanded':faces=[(a,c,b) for a,b,c in faces]
             edges={tuple(sorted(pair)) for face in quads for pair in zip(face,face[1:]+face[:1])}
         else:
             if str(attrs.get('subdivisionScheme',(None,'catmullClark'))[1])!='none':
@@ -25,16 +29,24 @@ def old_faces(snapshot,path):
             holes=list(attrs.get('holeIndices',(None,[]))[1])
             if len(set(holes))!=len(holes) or any(hole<0 or hole>=len(counts) for hole in holes):
                 return unsupported('Invalid Mesh hole indices')
-            holes=set(holes);faces=[];start=0
+            orientation=str(attrs.get('orientation',(None,'rightHanded'))[1])
+            if orientation not in ('rightHanded','leftHanded'):return unsupported('Invalid Mesh orientation')
+            holes=set(holes);faces=[];edges=set();start=0
             for index,count in enumerate(counts):
                 if index not in holes:
-                    if count!=3:return unsupported('SceneUI faces currently require triangulated Mesh; polygons are not guessed')
-                    faces.append(tuple(int(v) for v in indices[start:start+count]))
+                    if triangles+len(faces)+count-2>MAX_TRIANGLES:return unsupported('SceneUI faces exceed 20000 triangles')
+                    ring=[int(v) for v in indices[start:start+count]]
+                    if orientation=='leftHanded':ring.reverse()
+                    try:faces.extend(triangulate(points,ring,budget))
+                    except ValueError as exc:return unsupported(str(exc))
+                    edges.update(tuple(sorted(pair)) for pair in zip(ring,ring[1:]+ring[:1]))
                 start+=count
-            edges={tuple(sorted(pair)) for a,b,c in faces for pair in ((a,b),(b,c),(c,a))}
         triangles+=len(faces)
         if triangles>MAX_TRIANGLES:return unsupported('SceneUI faces exceed 20000 triangles')
         matrix=Gf.Matrix4d(*[value for row in item['world'] for value in row])
+        # Output has no USD orientation token. Encode the effective winding in
+        # the triangles, including the opposite-handed rule for mirrored worlds.
+        if matrix.GetDeterminant()<0:faces=[(a,c,b) for a,b,c in faces]
         positions=[list(matrix.Transform(Gf.Vec3d(*point))) for point in points]
         if len(wires)//2+len(edges)>20000:return unsupported('SceneUI face outlines exceed 20000 segments')
         # SceneUI receives independent face vertices, matching its bundled sample;

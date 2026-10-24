@@ -1,8 +1,11 @@
 # Old A faces in the working viewport
 
 Optional **Old A green UI faces** adds actual static before-A geometry to the
-stage-free overlay: Cube and already triangulated, linear Mesh, including selected
+stage-free overlay: Cube and simple planar polygon linear Mesh, including selected
 transform subtrees. These are world-transformed source vertices, not filled AABBs.
+See the later [polygon contract and QA](polygon-ui-faces.md) for quad/concave n-gon
+support, tolerances, orientation, holes and explicit refusals. Validation below
+records the earlier triangle-only implementation.
 
 ![Native Isaac working viewport, old A faces and before/after values](../examples/usd-scene-review-scene-ui-faces.png)
 
@@ -37,7 +40,7 @@ opacity. This is unlit UI without RTX depth/occlusion, materials, lighting or
 shadows; existing scene appearance/settings are untouched. It does not complete
 the general material-aware mesh ghost or simultaneous live A/B review.
 
-Subdivision, non-triangle polygons, animation/deformation, instances, displacement
+Subdivision, unsafe/nonplanar polygons, animation/deformation, instances, displacement
 and other Gprims are refused explicitly. Holes omit faces/edges. Per-selection
 limits: 64 geometry prims, 10,000 source points, 20,000 triangles, 20,000 wire segments.
 Unsupported/budget cases clear faces with a reason; bounds can remain. Numeric

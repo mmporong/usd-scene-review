@@ -12,7 +12,8 @@ def check_names(faces=False):
         names.update(label+str(cycle) for label in ('show empty ','select before/after ',
             'toggle off ','toggle on ','close review ','subscriptions released ','cycle preservation '))
         if faces:names.update(label+str(cycle) for label in ('cube UI faces ','triangle UI faces ','subdivision refused ','removed UI faces ','face toggle clears '))
-    if faces:names.update(('faces screenshot captured','alpha changes rendered pixels','green faces rendered','faces controls preserved','transparent face colors stay green','reselected transparent colors stay green'))
+        if faces:names.update(label+str(cycle) for label in ('quad UI faces ','concave and hole UI faces ','nonplanar refused ','reflected parent UI faces '))
+    if faces:names.update(('faces screenshot captured','alpha changes rendered pixels','green faces rendered','faces controls preserved','transparent face colors stay green','reselected transparent colors stay green','concave screenshot captured'))
     return names
 
 
@@ -76,6 +77,18 @@ def prepare(root,fixture_data,faces=False):
                     mesh.CreatePointsAttr([(-.5,0,0),(.5,0,0),(0,0,1)])
                     mesh.CreateFaceVertexCountsAttr([3]);mesh.CreateFaceVertexIndicesAttr([0,1,2])
                     mesh.AddTranslateOp().Set((0,0 if side=='A' else .4,0))
+                for name in ('Quad','Nonplanar','Concave'):
+                    mesh=UsdGeom.Mesh.Define(stage,'/World/'+name);mesh.CreateSubdivisionSchemeAttr('none')
+                    points=[(-.5,0,0),(.5,0,0),(.5,.1 if name=='Nonplanar' else 0,1),(-.5,0,1)]
+                    counts=[4];indices=[0,1,2,3]
+                    if name=='Concave':
+                        points=[(-1.5,-1.1,-1.5),(1.5,-1.1,-1.5),(1.5,-1.1,1.5),(.5,-1.1,1.5),(.5,-1.1,-.5),(-.5,-1.1,-.5),(-.5,-1.1,1.5),(-1.5,-1.1,1.5),(-.1,0,0),(.1,0,0),(0,0,.1)]
+                        counts=[8,3];indices=list(range(11));mesh.CreateHoleIndicesAttr([1])
+                    mesh.CreatePointsAttr(points);mesh.CreateFaceVertexCountsAttr(counts);mesh.CreateFaceVertexIndicesAttr(indices)
+                    mesh.AddTranslateOp().Set((0,0 if side=='A' else .4,0))
+                parent=UsdGeom.Xform.Define(stage,'/World/Reflected');parent.AddTranslateOp().Set((0 if side=='A' else .4,0,0));parent.AddScaleOp().Set((-1,2,1));parent.AddRotateZOp().Set(25)
+                mesh=UsdGeom.Mesh.Define(stage,'/World/Reflected/Quad');mesh.CreateSubdivisionSchemeAttr('none');mesh.CreateOrientationAttr('leftHanded')
+                mesh.CreatePointsAttr([(-.5,0,0),(.5,0,0),(.5,0,1),(-.5,0,1)]);mesh.CreateFaceVertexCountsAttr([4]);mesh.CreateFaceVertexIndicesAttr([0,1,2,3])
                 if side=='A':UsdGeom.Cube.Define(stage,'/World/Removed').CreateSizeAttr(.5)
             stage.GetRootLayer().Save();stage=None
         paths[side]=str(create_snapshot(source,root/('bounds-'+side)))
@@ -152,6 +165,20 @@ async def evaluate(probe,root,faces=False):
                       and owner._bounds_overlay.last_plan['old_faces']['status']=='ready')
                 owner._select(changes['/World/Triangle']);await updates()
                 check('triangle UI faces '+str(cycle),owner._bounds_overlay.face_count==1)
+                owner._select(changes['/World/Quad']);await updates()
+                check('quad UI faces '+str(cycle),owner._bounds_overlay.face_count==2)
+                owner._select(changes['/World/Concave']);await updates()
+                check('concave and hole UI faces '+str(cycle),owner._bounds_overlay.face_count==6 and len(owner._bounds_overlay.last_plan['old_faces']['wires'])==16)
+                owner._select(changes['/World/Nonplanar']);await updates()
+                check('nonplanar refused '+str(cycle),owner._bounds_overlay.face_count==0 and 'nonplanar' in owner._bounds_overlay.caption.text)
+                owner._select(changes['/World/Reflected']);await updates()
+                from pxr import Gf,UsdGeom
+                vertices=owner._bounds_overlay.last_plan['old_faces']['meshes'][0]['positions']
+                normal=Gf.Cross(Gf.Vec3d(*vertices[1])-Gf.Vec3d(*vertices[0]),Gf.Vec3d(*vertices[2])-Gf.Vec3d(*vertices[0]))
+                source=owner._bounds_overlay.snapshots['A'].stage.GetPrimAtPath('/World/Reflected/Quad')
+                matrix=UsdGeom.XformCache().GetLocalToWorldTransform(source)
+                expected=matrix.GetInverse().GetTranspose().TransformDir(Gf.Vec3d(0,1,0)) # leftHanded XZ quad
+                check('reflected parent UI faces '+str(cycle),owner._bounds_overlay.face_count==2 and Gf.Dot(normal,expected)>0)
                 owner._select(changes['/World/Subdivision']);await updates()
                 check('subdivision refused '+str(cycle),owner._bounds_overlay.face_count==0 and 'linear Mesh' in owner._bounds_overlay.caption.text)
                 owner._select(changes['/World/Removed']);await updates()
@@ -208,6 +235,9 @@ async def evaluate(probe,root,faces=False):
                 matching=sum(1 for index in mask if pixels[index][1]>pixels[index][0]+5 and pixels[index][1]>pixels[index][2]+5)
                 result['face_pixels']['reselected_green_match_ratio']=matching/max(1,len(mask))
             check('reselected transparent colors stay green',len(mask)>1000 and matching/len(mask)>.95)
+            owner._select(changes['/World/Concave']);await updates(20)
+            recorder=acquire_renderer_capture_interface();await capture('ui-concave-review.png');recorder=None
+            check('concave screenshot captured',(root/'ui-concave-review.png').stat().st_size>1000)
             check('faces screenshot captured',(root/'ui-faces-review.png').stat().st_size>1000)
             owner._hide_bounds_overlay();owner._bounds_faces.set_value(False)
             check('faces controls preserved',state()==before)

@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "id": "isaac45-static-polygon-faces-v1",
+  "baseline_main": "c10193eb4d72e8353a971ee49d8ed52f3492c514",
+  "environment": {
+    "os": "Windows 11 Pro",
+    "cpu": "AMD Ryzen 7 5800X",
+    "visible_ram_bytes": 85810319360,
+    "gpu": "RTX 3060 12288 MiB",
+    "driver": "610.62",
+    "isaac_sim": "4.5.0-rc.36",
+    "kit": "106.5",
+    "python": "3.10.15",
+    "usd": "22.11"
+  },
+  "algorithm": {
+    "method": "deterministic planar simple-ring ear clipping, no fan fallback",
+    "normal": "Newell; dominant-axis projection",
+    "normalized_epsilon": 1e-10,
+    "relative_planarity_tolerance": 1e-07,
+    "relative_area_tolerance": 1e-08,
+    "max_face_vertices": 256,
+    "max_triangulation_operations": 1000000,
+    "max_geometry_prims": 64,
+    "max_source_points": 10000,
+    "max_triangles": 20000,
+    "max_wire_segments": 20000,
+    "holes": "whole USD hole faces omitted; no arbitrary inner ring support",
+    "orientation": "local handedness plus negative world determinant encoded in output winding"
+  },
+  "source_sha256": {
+    "A": "6967608cb4cfaa0b5700f059e696b04e949c61bf77b61c657989b87719456a9f",
+    "B": "1ce615257fedc77af3349ee386d05aea548b8b94563f70b144e090294d40617f"
+  },
+  "code_sha256": {
+    "triangulation": "8e20ae4c6eb7f03e9759efe459ef137f1600cebf487057b6127cca2fd03298fa",
+    "faces": "c1c5061bbe3f40e03f4a9850b4a9121d80ca2be23a72545223c1161cf7930f21",
+    "adapter": "29b8ca142212c0397089e74fbcb7d4c3ecffe424544568018cc05d4c6d31af31",
+    "extension": "6c9f54d92cbde834a8bdc54d9086b422a8eb3ca472cc66d184f79870957855c2",
+    "probe": "bc25dd9ee48d835b57300241980d06333a0d825fb14da7c083b91daca02abdd6"
+  },
+  "native": {
+    "candidate_checks": 48,
+    "outer_checks": 18,
+    "cycles": 2,
+    "checks": [
+      "fresh extracted engine",
+      "persistent exclusion solve",
+      "navigation exclusions retained",
+      "Full A/B guard retained",
+      "comparison callback completed",
+      "show empty 0",
+      "select before/after 0",
+      "cube UI faces 0",
+      "triangle UI faces 0",
+      "quad UI faces 0",
+      "concave and hole UI faces 0",
+      "nonplanar refused 0",
+      "reflected parent UI faces 0",
+      "subdivision refused 0",
+      "removed UI faces 0",
+      "face toggle clears 0",
+      "toggle off 0",
+      "toggle on 0",
+      "close review 0",
+      "subscriptions released 0",
+      "cycle preservation 0",
+      "show empty 1",
+      "select before/after 1",
+      "cube UI faces 1",
+      "triangle UI faces 1",
+      "quad UI faces 1",
+      "concave and hole UI faces 1",
+      "nonplanar refused 1",
+      "reflected parent UI faces 1",
+      "subdivision refused 1",
+      "removed UI faces 1",
+      "face toggle clears 1",
+      "toggle off 1",
+      "toggle on 1",
+      "close review 1",
+      "subscriptions released 1",
+      "cycle preservation 1",
+      "alpha changes rendered pixels",
+      "green faces rendered",
+      "transparent face colors stay green",
+      "reselected transparent colors stay green",
+      "concave screenshot captured",
+      "faces screenshot captured",
+      "faces controls preserved",
+      "extension disabled",
+      "navigation exclusions after disable",
+      "working state preserved",
+      "inputs preserved"
+    ],
+    "working_stage_preserved": true,
+    "pending_before": false,
+    "pending_after": false,
+    "owned_resources_remaining": false,
+    "settings_preserved": true,
+    "face_pixels": {
+      "alpha_opaque_difference_mean_sum": 9.181201388888889,
+      "green_pixels": 68743,
+      "opaque_green_mask_pixels": 69368,
+      "faint_green_mask_matches": 65933,
+      "faint_green_match_ratio": 0.9504814900242187,
+      "reselected_green_match_ratio": 0.9505103217621959
+    }
+  },
+  "shutdown": {
+    "process_exit": 0,
+    "native_exit_ok": true,
+    "profile_conditions_met": true,
+    "strict_clean_shutdown": false,
+    "log_summary": {
+      "error_lines": 100,
+      "warning_lines": 183,
+      "error_categories": {
+        "carb.scripting-python.plugin": 3,
+        "omni.ext.plugin": 3,
+        "omni.kit.menu.utils.app_menu": 94
+      },
+      "traceback_observed": true,
+      "graphics_objects_leaked": true,
+      "fabric_history_outstanding": true
+    },
+    "fixture_bytes_preserved": true,
+    "owned_process_reaped": true,
+    "owned_job_empty": true,
+    "owned_job_closed": true,
+    "descendant_containment_required": false
+  },
+  "lease": {
+    "admitted_exclusively": true,
+    "naturally_released": true,
+    "wrapper_exit": 2
+  },
+  "capture": {
+    "source_sha256": "51cb763209b9f85893bf7ddfc7db23ac839c0ba889152620864289068d6088dc",
+    "crop_xyxy": [
+      55,
+      85,
+      765,
+      610
+    ],
+    "public_sha256": "fc9fdb658474598f5c509256f104ca1a01c6e3b725ebf0bffaaae7e3e7a640c8",
+    "method": "exact native swapchain pixels; crop only, no repaint/resize"
+  },
+  "initial_cpu_regression": {
+    "cases": 227,
+    "failures": 1,
+    "skipped": 2,
+    "scope": "mock-worker positive protocol case used a 0.3s deadline while its scheduled disk task took 0.75s",
+    "resolution": "test positive deadline 3s; production unchanged; explicit timeout-refusal case still 0.3s",
+    "focused_cases_after_fix": 13,
+    "focused_passed": 13
+  },
+  "iterations": "initial polygon native pass followed by final run asserting reflected-world normal direction against USD inverse-transpose rule",
+  "limits": {
+    "actual_mouse_tested": false,
+    "mouse_blocker": "Computer Use skill available but its required node_repl tool was not exposed",
+    "stock_full_shutdown_qualified": false,
+    "live_ab_guard_removed": false,
+    "general_mesh_ghost_complete": false,
+    "depth_or_material_match": false,
+    "long_duration_use_qualified": false
+  }
+}
