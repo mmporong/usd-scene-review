@@ -11,7 +11,7 @@ import sys
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parent
-VERSION = '0.1.0-rc.3'
+VERSION = '0.1.0-rc.4'
 
 
 def verify(root=ROOT):
@@ -82,7 +82,7 @@ def doctor(sdk):
         raise ValueError('GPU_DIAGNOSTIC: NVIDIA read-only health query failed; do not assume rendering is qualified')
     return dict(candidate=VERSION, os=platform.platform(), sdk_version=version,
                 runtime=runtime, gpu=gpu.stdout.strip().splitlines(),
-                scope='minimal Kit only; full Isaac application shutdown remains unqualified',
+                scope='stage-free working-viewport overlay; legacy minimal worker optional; full Isaac shutdown remains unqualified',
                 license='not selected; this is not an open-source license grant')
 
 
@@ -188,6 +188,8 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='command',required=True)
     sub.add_parser('verify')
     sub.add_parser('doctor')
+    location = sub.add_parser('extension-path')
+    snap = sub.add_parser('snapshot');snap.add_argument('--source',required=True);snap.add_argument('--workspace',required=True)
     create = sub.add_parser('sample');create.add_argument('--workspace',required=True)
     diff = sub.add_parser('compare');diff.add_argument('--before',required=True);diff.add_argument('--after',required=True);diff.add_argument('--workspace',required=True)
     view = sub.add_parser('launch');view.add_argument('--data',required=True);view.add_argument('--workspace',required=True)
@@ -197,6 +199,8 @@ def main(argv=None):
         verify()
         if args.command=='verify':
             print('Candidate payload checksums verified (not an authenticated signature).');return 0
+        if args.command=='extension-path':
+            print(ROOT/'exts');return 0
         if not args.sdk:
             raise ValueError('SDK_REQUIRED: pass --sdk with your existing SDK directory')
         if args.command=='doctor':
@@ -209,6 +213,10 @@ def main(argv=None):
                                     '--_prepared',*raw],env=env)
         if args.command=='sample':
             sample(args.workspace);return 0
+        if args.command=='snapshot':
+            from usd_scene_review import create_snapshot
+            print(create_snapshot(Path(args.source).expanduser().resolve(),outside_package(args.workspace)))
+            return 0
         if args.command=='compare':
             from usd_scene_review import compare
             from usd_scene_review.exports import save_report

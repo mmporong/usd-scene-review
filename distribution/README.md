@@ -1,10 +1,12 @@
-# USD Scene Review — distribution candidate 0.1.0-rc.3
+# USD Scene Review — distribution candidate 0.1.0-rc.4
 
-Start with [English quick start](docs/quickstart-en.md) or
+Start with [the stage-free first-use workflow](docs/first-use.md).
+The optional legacy worker route is documented in [English quick start](docs/quickstart-en.md) or
 [한국어 빠른 시작](docs/quickstart-ko.md).
 
-This project-only candidate uses your existing Windows Isaac Sim 4.5 SDK through a
-separate minimal Kit app. It installs no runtime or driver and never attaches to an
+This project-only candidate uses your existing Windows Isaac Sim 4.5 SDK. The primary
+workflow is the stage-free overlay in the working Isaac viewport; the minimal Kit
+launcher is a separate legacy worker route. It installs no runtime or driver and never attaches to an
 already running application. Full Isaac app shutdown remains unqualified.
 
 Run `review_kit.py verify` first. Check the archive's separate SHA-256 before extracting.

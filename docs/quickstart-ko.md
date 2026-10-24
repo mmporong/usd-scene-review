@@ -1,3 +1,6 @@
+> rc.4 primary workflow: [stage-free review inside Isaac](first-use.md).
+> The minimal Kit launcher below is the optional legacy worker route, not live in-app A/B.
+
 # 배포 후보 빠른 시작 — 한국어
 
 Windows와 이미 설치된 Isaac Sim 4.5 SDK(Kit 106.5, Python 3.10, OpenUSD 22.11),

@@ -20,6 +20,11 @@ REQUIRED_CHECKS={'supported route','owned portable config','review extension nev
     'no startup dependency failures','startup inventory matches pinned profile'}
 
 
+def validate_state_path(root):
+    if not str(Path(root).resolve()).isascii():
+        raise ValueError('SDK_STATE_PATH: diagnostic host state must use an ASCII path; Unicode package/input CPU support is separate')
+
+
 def load_profile(variant):
     if variant not in PROFILES:
         raise ValueError('Unknown shutdown diagnostic profile')

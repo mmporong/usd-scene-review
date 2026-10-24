@@ -11,7 +11,7 @@ import time
 import zipfile
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from package_extension import package
-from shutdown_profile import PROFILES,load_profile,validate_sdk,shared_admission,finish_job,assess
+from shutdown_profile import PROFILES,load_profile,validate_sdk,shared_admission,finish_job,assess,validate_state_path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'src'))
 from usd_scene_review.worker_client import WindowsJob, resume_owned_process
 
@@ -42,6 +42,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--isaac-root',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--candidate-archive',type=Path,help='Use verified clean distribution candidate bytes for an explicit bounds treatment')
     parser.add_argument('--probe',type=Path,default=Path(__file__).with_name('in_app_lifecycle_probe.py'))
     parser.add_argument('--timeout',type=float,default=180)
     parser.add_argument('--full-app',action='store_true',help='Use the existing full Isaac app in a fresh portable profile')
@@ -58,6 +59,11 @@ def main():
     parser.add_argument('--topology',choices=('single','shared','two-contexts','sequence'),default='shared',
                         help='SDK-only engine probe control; unused by product acceptance probes')
     args=parser.parse_args();sdk=args.isaac_root.resolve();root=args.output.resolve()
+    if args.shutdown_profile:
+        try:validate_state_path(root)
+        except ValueError as exc:parser.error(str(exc))
+    if args.candidate_archive and args.shutdown_candidate!='viewport-faces':
+        parser.error('--candidate-archive requires the preserved viewport-faces treatment')
     if args.probe.name=='in_app_native_texture_probe.py' and (not args.full_app or not args.fail_fast_native):
         parser.error('native texture reproducer requires --full-app and --fail-fast-native')
     if args.baseline and not args.full_app:parser.error('--baseline requires --full-app')
@@ -91,9 +97,14 @@ def main():
         fixture.write_text('#usda 1.0\n(\n    upAxis = "Z"\n    metersPerUnit = 1\n)\ndef Xform "World" {\n    def Cube "Item" {\n        double size = 2\n    }\n}\n',encoding='utf-8')
     fixture_hash=hashlib.sha256(fixture.read_bytes()).hexdigest() if args.shutdown_control else None
     if not args.baseline or args.shutdown_candidate in ('viewport-bounds','viewport-bounds-scale','viewport-bounds-stability','viewport-faces'):
-        package(root/'extension.zip')
-        with zipfile.ZipFile(root/'extension.zip') as archive:
-            archive.extractall(root/'exts/mmporong.scene.review')
+        if args.candidate_archive:
+            from package_candidate import extract_for_validation
+            receipt=extract_for_validation(args.candidate_archive,root)
+            (root/'candidate-package-receipt.json').write_text(json.dumps(receipt,indent=2))
+        else:
+            package(root/'extension.zip')
+            with zipfile.ZipFile(root/'extension.zip') as archive:
+                archive.extractall(root/'exts/mmporong.scene.review')
     if args.shutdown_candidate in ('viewport-bounds','viewport-faces'):
         from viewport_bounds_candidate import prepare
         prepare(root,fixture_data,faces=args.shutdown_candidate=='viewport-faces')
