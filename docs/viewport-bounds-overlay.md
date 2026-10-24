@@ -1,5 +1,9 @@
 # Snapshot bounds in the working Isaac viewport
 
+Optional [old A SceneUI faces](scene-ui-faces.md) now add bounded static Cube and
+triangle Mesh geometry. The bounds-only qualification below remains historical;
+the new guide separates faces validation and visual limits.
+
 See the later [two-scale deployment QA](bounds-deployment-qa.md) for actual callback
 latencies, repeated cleanup/memory samples and the verified-report reopen fix.
 Real mouse QA remains unavailable and large initial Compare is still blocking.

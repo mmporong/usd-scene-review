@@ -31,8 +31,8 @@ def fixture(root):
 
 
 class Scene:
-    def __init__(self):self.lines=[]
-    def clear(self):self.lines.clear()
+    def __init__(self):self.lines=[];self.meshes=[]
+    def clear(self):self.lines.clear();self.meshes.clear()
     def __enter__(self):return self
     def __exit__(self,*args):pass
 
@@ -44,7 +44,7 @@ def adapter(snapshots,report):
     scene=Scene()
     def line(a,b,**kw):scene.lines.append((a,b,kw))
     env={'bounds_plan':bounds_plan,'overlay_text':overlay_text,
-         'sc':NS(Line=line,Matrix44=lambda *values:values),
+         'sc':NS(Line=line,PolygonMesh=lambda *args:scene.meshes.append(args),Matrix44=lambda *values:values),
          'omni':NS(timeline=NS(get_timeline_interface=lambda:NS(is_stopped=lambda:True)))}
     exec(compile(ast.Module(body=[node],type_ignores=[]),str(path),'exec'),env)
     owner=env['BoundsOverlay'](Mock());owner.state='open';owner.report=report;owner.snapshots=dict(snapshots)
@@ -53,6 +53,19 @@ def adapter(snapshots,report):
 
 
 class BoundsOverlayTests(unittest.TestCase):
+    def test_optional_faces_are_real_geometry_clear_on_toggle_and_reselection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths,report=fixture(Path(tmp));owner,scene,_=adapter({s:load_snapshot(p) for s,p in paths.items()},report)
+            owner.show_faces=True;owner.select('/World/Inherited')
+            self.assertEqual(owner.face_count,12);self.assertEqual(len(scene.meshes),1)
+            self.assertEqual(len(scene.lines),120) # 108 A/B bounds + 12 Cube edges
+            self.assertTrue(all(color[3]==.22 for color in scene.meshes[0][1]))
+            owner.select('/World/Added');self.assertEqual(owner.face_count,0);self.assertFalse(scene.meshes)
+            self.assertIn('absent',owner.caption.text)
+            owner.select('/World/Removed');self.assertEqual(owner.face_count,12)
+            owner.show_faces=False;owner.select('/World/Removed');self.assertEqual(owner.face_count,0)
+            self.assertFalse(scene.meshes);owner.show_faces=True;owner.select(None);self.assertFalse(scene.meshes)
+
     def test_pinned_report_avoids_reanalysis_without_accepting_changed_report_or_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
             paths,report=fixture(Path(tmp));hashes={side:digest(path) for side,path in paths.items()}
@@ -75,6 +88,7 @@ class BoundsOverlayTests(unittest.TestCase):
             snapshot=snapshots['A'];snapshot.root.write_text(snapshot.root.read_text()+'\n# mutated\n')
             self.assertTrue(receipt.matches(paths,report)) # manifest/report still pinned
             with self.assertRaises(ValueError):bounds_plan(report,snapshots,'/World/Moved')
+            with self.assertRaises(ValueError):bounds_plan(report,snapshots,'/World/Moved',show_faces=True)
 
     def test_move_parent_delete_hidden_none_and_source_layers_preserved(self):
         with tempfile.TemporaryDirectory() as tmp:

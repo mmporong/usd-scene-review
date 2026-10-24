@@ -61,6 +61,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._inherited = ui.SimpleBoolModel(False)
         self._focus = ui.SimpleBoolModel(False)
         self._ghost = ui.SimpleBoolModel(False)
+        self._bounds_faces = ui.SimpleBoolModel(False)
         self._normalized = ui.SimpleBoolModel(True)
         self._review_event = {}
         self._export_path = ui.SimpleStringModel()
@@ -104,7 +105,10 @@ class SceneReviewExtension(omni.ext.IExt):
                 with ui.HStack(height=28):
                     ui.Button('Show snapshot bounds in working viewport',clicked_fn=self._show_bounds_overlay)
                     ui.Button('Clear bounds overlay',clicked_fn=self._hide_bounds_overlay)
-                ui.Label('Bounds only: A blue dashed / B orange solid. No mesh ghost, camera move or stage selection.',height=24)
+                with ui.HStack(height=24):
+                    ui.CheckBox(model=self._bounds_faces,width=20)
+                    ui.Label('Old A green UI faces: static Cube / triangle Mesh, alpha 0.22; no scene depth or materials.')
+                ui.Label('A blue dashed / B orange solid bounds. Working camera and stage selection stay unchanged.',height=24)
                 ui.StringField(model=self._status, read_only=True, multiline=True, height=52)
                 with ui.HStack(height=26):
                     ui.Label('Path search', width=85)
@@ -155,6 +159,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._render_numeric(None)
         self._window.set_visibility_changed_fn(lambda visible:self._close_bounds_overlay() if not visible else None)
         self._query_callback = self._query.add_value_changed_fn(lambda _: self._render_rows())
+        self._bounds_faces_callback=self._bounds_faces.add_value_changed_fn(lambda _:self._set_bounds_faces())
         self._focus_callback = self._focus.add_value_changed_fn(
             lambda _: self._request_frame() if self._viewer.state == 'running' else None)
         self._ghost_callback = self._ghost.add_value_changed_fn(
@@ -319,7 +324,8 @@ class SceneReviewExtension(omni.ext.IExt):
             from .bounds_overlay import BoundsOverlay
             self._close_bounds_overlay()
             self._bounds_overlay=BoundsOverlay(self._message)
-            self._bounds_overlay.open(self._comparison_paths,self._report,self._selected,comparison_receipt=self._overlay_receipt)
+            self._bounds_overlay.open(self._comparison_paths,self._report,self._selected,comparison_receipt=self._overlay_receipt,
+                                      show_faces=self._bounds_faces.as_bool)
             self._message('Snapshot A/B world bounds overlay shown; working camera and selection are unchanged.')
         except Exception as exc:
             self._close_bounds_overlay()
@@ -333,6 +339,12 @@ class SceneReviewExtension(omni.ext.IExt):
                 self._bounds_overlay.caption.text+='\nPair selected: use panel evidence; this overlay displays one changed prim.'
         except Exception as exc:
             self._close_bounds_overlay();self._message('Bounds overlay cleared: '+str(exc))
+
+    def _set_bounds_faces(self):
+        if self._bounds_overlay is not None and self._bounds_overlay.state=='open':
+            self._bounds_overlay.show_faces=self._bounds_faces.as_bool
+            self._update_bounds_overlay()
+        elif self._bounds_faces.as_bool:self._show_bounds_overlay()
 
     def _close_bounds_overlay(self):
         was_open=self._bounds_overlay is not None and self._bounds_overlay.state=='open'
@@ -515,6 +527,7 @@ class SceneReviewExtension(omni.ext.IExt):
         self._inherited.remove_value_changed_fn(self._inherited_callback)
         self._focus.remove_value_changed_fn(self._focus_callback)
         self._ghost.remove_value_changed_fn(self._ghost_callback)
+        self._bounds_faces.remove_value_changed_fn(self._bounds_faces_callback)
         self._rows.clear()
         self._rows = None
         self._pair_rows.clear()

@@ -44,7 +44,7 @@ def validate_report_reference(paths,report,receipt=None):
     if not valid:raise ValueError('Inputs or report changed; compare again before overlay')
 
 
-def bounds_plan(report,snapshots,selected):
+def bounds_plan(report,snapshots,selected,*,show_faces=False):
     if coordinates(report.get('stage_metadata',{}))['status']!='known':
         raise ValueError('Matching snapshot units and up axis are required for bounds overlay')
     if any(verify(snapshot) for snapshot in snapshots.values()):
@@ -64,6 +64,10 @@ def bounds_plan(report,snapshots,selected):
                                     'color':(*COLORS[side],1.0),'dashed':side=='A'})
     result['motion']=motion_label(change)
     result['rows']=detail_rows(report,change)
+    if show_faces:
+        from .scene_faces import old_faces
+        result['title']='SNAPSHOT UI GEOMETRY | A green old faces / blue dashed bounds | B orange bounds'
+        result['old_faces']=old_faces(snapshots['A'],selected)
     return result
 
 
@@ -74,5 +78,10 @@ def overlay_text(plan):
     for name,before,after,delta in plan['rows']:
         if name in ('World position [stage u]','World effective q'):
             lines.append(name+': A '+before+' | B '+after+' | '+delta)
-    lines.append('Display AABBs, not mesh/green ghost, collision or current-stage verification.')
+    if 'old_faces' in plan:
+        faces=plan['old_faces']
+        lines.append('OLD A UI FACES: '+faces['status']+' | '+faces['reason'])
+        lines.append('Green alpha 0.22 per surface; unlit, no scene depth/occlusion or material match.')
+        lines.append('Not collision, clearance or current-stage verification.')
+    else:lines.append('Display AABBs, not mesh/green ghost, collision or current-stage verification.')
     return '\n'.join(lines)

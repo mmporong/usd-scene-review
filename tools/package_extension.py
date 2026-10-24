@@ -19,6 +19,9 @@ def package(destination):
     # Keep candidate installation/qualification guidance usable after extraction.
     files['docs/in-app-review.md'] = (repo/'docs/in-app-review.md').read_bytes()
     files['docs/viewport-bounds-overlay.md'] = (repo/'docs/viewport-bounds-overlay.md').read_bytes()
+    files['docs/scene-ui-faces.md'] = (repo/'docs/scene-ui-faces.md').read_bytes()
+    files['diagnostics/scene-ui-faces-v1.json'] = (repo/'diagnostics/scene-ui-faces-v1.json').read_bytes()
+    files['examples/usd-scene-review-scene-ui-faces.png'] = (repo/'examples/usd-scene-review-scene-ui-faces.png').read_bytes()
     files['docs/bounds-deployment-qa.md'] = (repo/'docs/bounds-deployment-qa.md').read_bytes()
     files['docs/cpu-bottleneck-analysis.md'] = (repo/'docs/cpu-bottleneck-analysis.md').read_bytes()
     files['diagnostics/cpu-bottleneck-v1.json'] = (repo/'diagnostics/cpu-bottleneck-v1.json').read_bytes()

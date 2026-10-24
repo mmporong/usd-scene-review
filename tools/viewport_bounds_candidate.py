@@ -5,12 +5,14 @@ from pathlib import Path
 import sys
 
 
-def check_names():
+def check_names(faces=False):
     names={'fresh extracted engine','persistent exclusion solve','navigation exclusions retained','navigation exclusions after disable','Full A/B guard retained','comparison callback completed',
            'extension disabled','working state preserved','inputs preserved'}
     for cycle in range(2):
         names.update(label+str(cycle) for label in ('show empty ','select before/after ',
             'toggle off ','toggle on ','close review ','subscriptions released ','cycle preservation '))
+        if faces:names.update(label+str(cycle) for label in ('cube UI faces ','triangle UI faces ','subdivision refused ','removed UI faces ','face toggle clears '))
+    if faces:names.update(('faces screenshot captured','alpha changes rendered pixels','green faces rendered','faces controls preserved','transparent face colors stay green','reselected transparent colors stay green'))
     return names
 
 
@@ -56,7 +58,7 @@ def disable_review(manager,resources_remaining):
             'extension_disabled':not manager.is_extension_enabled('mmporong.scene.review')}
 
 
-def prepare(root,fixture_data):
+def prepare(root,fixture_data,faces=False):
     """Run in CPU launcher before Kit starts; all authored data is disposable."""
     from pxr import Usd,UsdGeom
     from usd_scene_review import create_snapshot
@@ -64,15 +66,23 @@ def prepare(root,fixture_data):
     for side in ('A','B'):
         folder=root/('bounds-source-'+side);folder.mkdir()
         source=folder/'scene.usda';source.write_bytes(fixture_data)
-        if side=='B':
+        if side=='B' or faces:
             stage=Usd.Stage.Open(str(source))
-            UsdGeom.Xformable(stage.GetPrimAtPath('/World/Item')).AddTranslateOp().Set((.4,0,0))
+            if not faces:UsdGeom.Xformable(stage.GetPrimAtPath('/World/Item')).AddTranslateOp().Set((.4,0,0))
+            else:
+                if side=='A':UsdGeom.Xformable(stage.GetPrimAtPath('/World/Item')).AddTranslateOp().Set((-.4,0,0))
+                for name,scheme in (('Triangle','none'),('Subdivision','catmullClark')):
+                    mesh=UsdGeom.Mesh.Define(stage,'/World/'+name);mesh.CreateSubdivisionSchemeAttr(scheme)
+                    mesh.CreatePointsAttr([(-.5,0,0),(.5,0,0),(0,0,1)])
+                    mesh.CreateFaceVertexCountsAttr([3]);mesh.CreateFaceVertexIndicesAttr([0,1,2])
+                    mesh.AddTranslateOp().Set((0,0 if side=='A' else .4,0))
+                if side=='A':UsdGeom.Cube.Define(stage,'/World/Removed').CreateSizeAttr(.5)
             stage.GetRootLayer().Save();stage=None
         paths[side]=str(create_snapshot(source,root/('bounds-'+side)))
     (root/'bounds-inputs.json').write_text(json.dumps(paths))
 
 
-async def evaluate(probe,root):
+async def evaluate(probe,root,faces=False):
     import omni.kit.app
     import omni.timeline
     import omni.usd
@@ -118,18 +128,37 @@ async def evaluate(probe,root):
         from mmporong.scene.review.extension import get_active_extension
         owner=get_active_extension()
         check('Full A/B guard retained',owner is not None and owner._in_app_blocked)
+        if faces:
+            # Only our newly created review panel in the disposable test host;
+            # expose the working viewport for swapchain inspection.
+            owner._window.width=580;owner._window.height=800
+            owner._window.position_x=1000;owner._window.position_y=70
         paths=json.loads((root/'bounds-inputs.json').read_text())
         for side in ('A','B'):owner._paths[side].set_value(paths[side])
         owner._compare() # Actual Compare button callback, including scheduler.
         if owner._task:await owner._task
         check('comparison callback completed',owner._report is not None and owner._report['status']!='unknown')
         changed=next(change for change in owner._report['changes'] if change['path']=='/World/Item')
+        changes={change['path']:change for change in owner._report['changes']}
         for cycle in range(2):
             owner._selected=None
             owner._show_bounds_overlay();await updates()
             check('show empty '+str(cycle),owner._bounds_overlay is not None and owner._bounds_overlay.line_count==0)
             owner._select(changed);await updates()
             check('select before/after '+str(cycle),owner._bounds_overlay.line_count==108 and '0.4' in owner._bounds_overlay.caption.text)
+            if faces:
+                owner._bounds_faces.set_value(True);await updates()
+                check('cube UI faces '+str(cycle),owner._bounds_overlay.face_count==12 and owner._bounds_overlay.line_count==108
+                      and owner._bounds_overlay.last_plan['old_faces']['status']=='ready')
+                owner._select(changes['/World/Triangle']);await updates()
+                check('triangle UI faces '+str(cycle),owner._bounds_overlay.face_count==1)
+                owner._select(changes['/World/Subdivision']);await updates()
+                check('subdivision refused '+str(cycle),owner._bounds_overlay.face_count==0 and 'linear Mesh' in owner._bounds_overlay.caption.text)
+                owner._select(changes['/World/Removed']);await updates()
+                check('removed UI faces '+str(cycle),owner._bounds_overlay.face_count==12)
+                owner._bounds_faces.set_value(False);await updates()
+                check('face toggle clears '+str(cycle),owner._bounds_overlay.face_count==0)
+                owner._select(changed)
             owner._hide_bounds_overlay();await updates()
             check('toggle off '+str(cycle),owner._bounds_overlay is None)
             owner._show_bounds_overlay();await updates()
@@ -138,6 +167,50 @@ async def evaluate(probe,root):
             check('close review '+str(cycle),owner._bounds_overlay is None)
             check('subscriptions released '+str(cycle),held.scene_view is None and not held.subscriptions)
             check('cycle preservation '+str(cycle),state()==before)
+        if faces:
+            from omni.kit.renderer.capture import acquire_renderer_capture_interface
+            from PIL import Image,ImageChops,ImageStat
+            recorder=acquire_renderer_capture_interface()
+            owner._show_bounds_overlay();owner._select(changed);owner._bounds_faces.set_value(True);await updates(20)
+            async def capture(name):
+                recorder.capture_next_frame_swapchain(str(root/name));await updates(8);recorder.wait_async_capture()
+            await capture('ui-faces-alpha22.png')
+            # Owned UI primitives only: opacity control does not touch USD/session or renderer settings.
+            mesh_data=owner._bounds_overlay.last_plan['old_faces']['meshes']
+            scene=owner._bounds_overlay.scene_view.scene;scene.clear()
+            from omni.ui import scene as sc
+            with scene:
+                for mesh in mesh_data:
+                    sc.PolygonMesh(mesh['positions'],[[.12,.95,.22,1.] for _ in mesh['positions']],mesh['vertex_counts'],mesh['vertex_indices'])
+                plan=owner._bounds_overlay.last_plan;old=plan['old_faces']
+                for index in range(0,len(old['wires']),2):
+                    sc.Line(old['wires'][index],old['wires'][index+1],color=old['wire_color'],thickness=1.)
+                for box in plan['boxes']:
+                    for index in range(0,len(box['points']),2):
+                        sc.Line(box['points'][index],box['points'][index+1],color=box['color'],thickness=2.5)
+            await updates(20);await capture('ui-faces-opaque-control.png')
+            with Image.open(root/'ui-faces-alpha22.png') as first,Image.open(root/'ui-faces-opaque-control.png') as second:
+                difference=sum(ImageStat.Stat(ImageChops.difference(first.convert('RGB'),second.convert('RGB'))).mean)
+                green=sum(1 for r,g,b in first.convert('RGB').getdata() if g>r+20 and g>b+20)
+                faint=list(first.convert('RGB').crop((70,140,950,580)).getdata())
+                opaque=list(second.convert('RGB').crop((70,140,950,580)).getdata())
+                mask=[index for index,(r,g,b) in enumerate(opaque) if g>r+50 and g>b+50]
+                matching=sum(1 for index in mask if faint[index][1]>faint[index][0]+5 and faint[index][1]>faint[index][2]+5)
+                result['face_pixels']={'alpha_opaque_difference_mean_sum':difference,'green_pixels':green,
+                    'opaque_green_mask_pixels':len(mask),'faint_green_mask_matches':matching,'faint_green_match_ratio':matching/max(1,len(mask))}
+            check('alpha changes rendered pixels',difference>.1)
+            check('green faces rendered',green>100)
+            check('transparent face colors stay green',len(mask)>1000 and matching/len(mask)>.95)
+            owner._bounds_overlay.select(owner._selected);await updates(20)
+            await capture('ui-faces-review.png');recorder=None
+            with Image.open(root/'ui-faces-review.png') as frame:
+                pixels=list(frame.convert('RGB').crop((70,140,950,580)).getdata())
+                matching=sum(1 for index in mask if pixels[index][1]>pixels[index][0]+5 and pixels[index][1]>pixels[index][2]+5)
+                result['face_pixels']['reselected_green_match_ratio']=matching/max(1,len(mask))
+            check('reselected transparent colors stay green',len(mask)>1000 and matching/len(mask)>.95)
+            check('faces screenshot captured',(root/'ui-faces-review.png').stat().st_size>1000)
+            owner._hide_bounds_overlay();owner._bounds_faces.set_value(False)
+            check('faces controls preserved',state()==before)
     finally:
         resources_remaining=bool(owner and getattr(owner,'_bounds_overlay',None))
         owner=held=None
@@ -155,6 +228,6 @@ async def evaluate(probe,root):
     result['owned_resources_remaining']=unload['owned_resources_remaining']
     check('working state preserved',result['working_stage_preserved'])
     check('inputs preserved',hashes()==files)
-    if {row['name'] for row in result['checks']}!=check_names():raise RuntimeError('Incomplete bounds treatment')
+    if {row['name'] for row in result['checks']}!=check_names(faces):raise RuntimeError('Incomplete bounds treatment')
     result['status']='passed';probe.result['candidate']=result;probe.write()
     return result

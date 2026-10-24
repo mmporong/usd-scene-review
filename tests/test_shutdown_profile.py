@@ -17,6 +17,16 @@ policy=importlib.util.module_from_spec(spec);spec.loader.exec_module(policy)
 
 
 class ShutdownProfileTests(unittest.TestCase):
+    def test_new_os_ui_clients_require_protected_paths_and_matching_process_names(self):
+        rows=[['10',r'C:\Windows\System32\ApplicationFrameHost.exe'],['11',r'C:\Windows\ImmersiveControlPanel\SystemSettings.exe'],
+              ['12',r'C:\Program Files\WindowsApps\Microsoft.ScreenSketch_11.2608.41.0_x64__8wekyb3d8bbwe\SnippingTool\SnippingTool.exe']]
+        processes=[{'ProcessId':int(pid),'Name':path.split('\\')[-1]} for pid,path in rows]
+        with patch.dict(os.environ,{'SystemRoot':r'C:\Windows','ProgramFiles':r'C:\Program Files'}):
+            self.assertEqual(policy.unmanaged_clients(rows,processes,99),[])
+            for bad in (r'C:\Temp\SnippingTool.exe',r'C:\Program Files\WindowsApps\Other_1_x64__8wekyb3d8bbwe\SnippingTool\SnippingTool.exe',
+                        r'C:\Windows\System32\..\Other\ApplicationFrameHost.exe','[Insufficient Permissions]'):
+                self.assertTrue(policy.unmanaged_clients([['12',bad]],processes,99))
+            self.assertTrue(policy.unmanaged_clients(rows,[{'ProcessId':int(pid),'Name':'python.exe'} for pid,path in rows],99))
     def test_recorded_bounds_exit0_keeps_diagnostics_and_baseline_separate(self):
         record=json.loads((ROOT/'diagnostics/bounds-persistent-exclusions-v1.json').read_text(encoding='utf-8-sig'))
         baseline,_=policy.load_profile('no-navigation')

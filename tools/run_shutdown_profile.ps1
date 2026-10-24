@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$IsaacRoot,
     [Parameter(Mandatory=$true)][string]$Output,
     [ValidateSet('no-navigation','matched-full')][string]$DiagnosticProfile='no-navigation',
-    [ValidateSet('none','viewport-reuse','viewport-bounds','viewport-bounds-scale','viewport-bounds-stability')][string]$Candidate='none',
+    [ValidateSet('none','viewport-reuse','viewport-bounds','viewport-bounds-scale','viewport-bounds-stability','viewport-faces')][string]$Candidate='none',
     [ValidateSet('none','wait','attach','open')][string]$AttachControl='none',
     [ValidateRange(1,1800)][int]$LeaseWaitSeconds=1,
     [switch]$OwnedChild
