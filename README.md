@@ -112,6 +112,8 @@ Rc.4 starts with [the complete stage-free first-use workflow](docs/first-use.md)
 verify/extract, prepare baseline/revision, activate in Isaac, filter/select, inspect
 old-A UI faces and values, close/reopen and disable. Worker launch is optional legacy.
 See [clean-package QA, reproducible artifact hash and release blockers](docs/deployment-workflow-qa.md).
+The [release evidence audit and pending manual checklist](docs/release-blockers.md)
+keep kvdb, Full shutdown, named-context preservation and mouse acceptance separate.
 
 Rc.3 adds separate scale-normalized effective orientation and point-derived
 static Cube/Mesh AABB candidates. Rigid policy rules are unchanged; collision remains

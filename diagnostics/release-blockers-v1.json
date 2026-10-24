@@ -1,0 +1,154 @@
+{
+  "candidate_version": "0.1.0-rc.4",
+  "conclusions": {
+    "current_cua_mouse_testing_blocked": true,
+    "database_lock_or_concurrent_cpu_client_proven": false,
+    "formal_release_ready": false,
+    "kvdb_absent_in_selected_project_free_baselines": true,
+    "kvdb_errors_precede_review_startup": true,
+    "live_ab_guard_retained": true,
+    "no_new_gpu_experiment_justified_by_current_public_surface": true,
+    "runtime_changed": false,
+    "same_archive_used_in_three_rc4_controls": true,
+    "stock_full_exit_qualified": false,
+    "strict_clean": false,
+    "unicode_state_correlation_is_not_root_cause": true,
+    "upstream_issue_sent": false
+  },
+  "console_corpus": {
+    "deduplication": "console.log only; matching kit.log copy is not counted again",
+    "files_scanned": 67,
+    "files_with_kvdb_error": 1,
+    "inventory_of_sorted_log_hashes_sha256": "bbd42d49cc29de4bfa9fecf2cdc42c1712159737ffb5224a54c1a9192b0f8711"
+  },
+  "mouse_recheck": {
+    "action": "cua.getState()",
+    "apps_clicked": 0,
+    "attempts": 1,
+    "error": "failed to write kernel assets: 지정된 경로를 찾을 수 없습니다. (os error 3)",
+    "outcome": "failed before app selection or input",
+    "permission_denied": false,
+    "retried": false,
+    "target_path": "not returned by tool",
+    "tool": "mcp__cua_repl.js"
+  },
+  "schema": 1,
+  "scope": "Existing logs and installed source/API review only; no new Kit/GPU execution",
+  "sdk_inspection": {
+    "dependency_chain": [
+      "omni.physx.cooking",
+      "omni.localcache",
+      "omni.kvdb"
+    ],
+    "error_path_or_code_in_existing_log": false,
+    "kvdb_version": "106.5.7",
+    "manifest_category": "Internal",
+    "python_surface": "interface acquire/release; no database methods, error-code or filename diagnostics exposed",
+    "relative_file_sha256": {
+      "extsPhysics/omni.kvdb/config/extension.toml": "9d10f59ffc309718ba8583d488cc44fc1f39d72dc6ae04478d5ae42ca79bb5f6",
+      "extsPhysics/omni.kvdb/omni/kvdb/bindings/_kvdb.pyi": "41d08137be32f933d448596faa5e3a4c631cbe0fd44cb985ab871e6c364e0c79",
+      "extsPhysics/omni.kvdb/omni/kvdb/scripts/extension.py": "dd99cb8c6d127f950264c701aa17c06a1d54c8af6f75d733f7a58847bf61b9c6",
+      "extsPhysics/omni.localcache/config/extension.toml": "1d23e32d116f636c96347659a371f09cddf5557f28dfd1cbb386920c81b3e0e2",
+      "extsPhysics/omni.physx.cooking/config/extension.toml": "28995837d3d80aa386390febced46fe3cbdb3c4e46e7fca88bb0edb56f891231"
+    }
+  },
+  "selected_runs": {
+    "attach_only": {
+      "candidate_archive_sha256": null,
+      "gpu_memory_mib_at_admission": 1725,
+      "gpu_utilization_at_admission": 1,
+      "kvdb_errors": [],
+      "kvdb_startup_observed": true,
+      "log_sha256": "6923488d3ab2b4f4644816ad2dab364dfb3e98297f8714538687f6a2477707a5",
+      "native_exit": 1,
+      "review_startup_ms": null,
+      "structured_exclusive_admission": true
+    },
+    "rc4_ascii_state_final": {
+      "candidate_archive_sha256": "b4b6b94a19906e5bec4d940165f52d185d20e541b8a4ad772a246f3047767b26",
+      "gpu_memory_mib_at_admission": 2099,
+      "gpu_utilization_at_admission": 4,
+      "kvdb_errors": [],
+      "kvdb_startup_observed": true,
+      "log_sha256": "c50ce01fad1d48b89a7aa21ccdb390c9be1e2d4e7212dd08157dfd05d12dcd4c",
+      "native_exit": 0,
+      "review_startup_ms": 24778,
+      "structured_exclusive_admission": true
+    },
+    "rc4_ascii_state_stale_getter": {
+      "candidate_archive_sha256": "b4b6b94a19906e5bec4d940165f52d185d20e541b8a4ad772a246f3047767b26",
+      "gpu_memory_mib_at_admission": 2099,
+      "gpu_utilization_at_admission": 6,
+      "kvdb_errors": [],
+      "kvdb_startup_observed": true,
+      "log_sha256": "eee6a6cccfe00d700ce6b7a7a4f1307e5748ed12705222d6319770b71560d6c3",
+      "native_exit": 1,
+      "review_startup_ms": 26740,
+      "structured_exclusive_admission": true
+    },
+    "rc4_unicode_state": {
+      "candidate_archive_sha256": "b4b6b94a19906e5bec4d940165f52d185d20e541b8a4ad772a246f3047767b26",
+      "gpu_memory_mib_at_admission": 2099,
+      "gpu_utilization_at_admission": 7,
+      "kvdb_errors": [
+        {
+          "ms": 13119,
+          "signature": "Unexpected key-value database error"
+        },
+        {
+          "ms": 24758,
+          "signature": "Unexpected key-value database error"
+        }
+      ],
+      "kvdb_startup_observed": true,
+      "log_sha256": "22799938af1befcdd6158c3fde3d142aa71d01d39397201d33d0691bbec564a4",
+      "native_exit": 1,
+      "review_startup_ms": 25788,
+      "structured_exclusive_admission": true
+    },
+    "sdk_full_earlier": {
+      "candidate_archive_sha256": null,
+      "gpu_memory_mib_at_admission": null,
+      "gpu_utilization_at_admission": null,
+      "kvdb_errors": [],
+      "kvdb_startup_observed": true,
+      "log_sha256": "2baf7c64ff6de6de1433f55d6d66b7a1f80c22dc706e0935fad9758e6462fc24",
+      "native_exit": 1,
+      "review_startup_ms": null,
+      "structured_exclusive_admission": null
+    },
+    "sdk_matched_full": {
+      "candidate_archive_sha256": null,
+      "gpu_memory_mib_at_admission": 1772,
+      "gpu_utilization_at_admission": 6,
+      "kvdb_errors": [],
+      "kvdb_startup_observed": true,
+      "log_sha256": "04004b8c52d48a4c32d083c05f2ccea3a9eb009d70d4c3b6e3062172c0174bd2",
+      "native_exit": 1,
+      "review_startup_ms": null,
+      "structured_exclusive_admission": true
+    },
+    "sdk_reduced_original": {
+      "candidate_archive_sha256": null,
+      "gpu_memory_mib_at_admission": null,
+      "gpu_utilization_at_admission": null,
+      "kvdb_errors": [],
+      "kvdb_startup_observed": true,
+      "log_sha256": "b30bba346ac1942d8164801a8413cad0c41e5011a9f409b8e959307c339b860f",
+      "native_exit": 0,
+      "review_startup_ms": null,
+      "structured_exclusive_admission": null
+    },
+    "wait_without_attach": {
+      "candidate_archive_sha256": null,
+      "gpu_memory_mib_at_admission": 1725,
+      "gpu_utilization_at_admission": 1,
+      "kvdb_errors": [],
+      "kvdb_startup_observed": true,
+      "log_sha256": "e758c1e7d14c890f3c73390e246c711251815cff3741b17e2be35310f2962254",
+      "native_exit": 0,
+      "review_startup_ms": null,
+      "structured_exclusive_admission": true
+    }
+  }
+}
